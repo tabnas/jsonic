@@ -319,7 +319,7 @@ let makeCommentMatcher = (cfg, opts) => {
                 let end = mc.end;
                 cI += mc.start.length;
                 let suffixLen = 0;
-                while (fI < fwdlen && !fwd.substring(fI).startsWith(end)) {
+                while (fI < fwdlen && !fwd.startsWith(end, fI)) {
                     let n = commentSuffixMatch(fwd, fI, mc.suffixes);
                     if (n > 0) {
                         suffixLen = n;
@@ -353,7 +353,7 @@ let makeCommentMatcher = (cfg, opts) => {
                     pnt.cI = cI;
                     return tkn;
                 }
-                if (fwd.substring(fI).startsWith(end)) {
+                if (fwd.startsWith(end, fI)) {
                     cI += end.length;
                     if (mc.eatline) {
                         while (fI < fwdlen && cfg.line.chars[fwd[fI]]) {
