@@ -1,0 +1,1 @@
+{"root":["../src/bnf.ts","../src/debug.ts","../src/defaults.ts","../src/error.ts","../src/grammar.ts","../src/jsonic-bnf-cli.ts","../src/jsonic-cli.ts","../src/jsonic.ts","../src/self.ts","../src/types.ts","../src/utility.ts"],"version":"6.0.3"}
