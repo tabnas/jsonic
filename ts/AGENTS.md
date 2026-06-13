@@ -15,10 +15,18 @@ with the management methods attached as properties.
 
 - `src/jsonic.ts` — entry point and API. Constructs `tabnas` engine
   instances and dresses them in the callable-with-properties `Jsonic`
-  shape. Re-exports the engine types/constructors for plugin authors.
+  shape (the legacy compatibility interface). Re-exports the engine
+  types/constructors for plugin authors, plus the engine class (`Tabnas`)
+  and the idiomatic grammar plugin (`jsonic`) / grammar-only helper
+  (`registerJsonicGrammar`).
 - `src/grammar.ts` — the relaxed-JSON grammar (the `val`/`map`/`list`/
   `pair`/`elem` rules), plus the strict-JSON variant selected by
-  `Jsonic.make('json')`.
+  `Jsonic.make('json')`. Exports the idiomatic `tabnas` plugin
+  `jsonic` (apply jsonic option defaults + register grammar) and the
+  `registerJsonicGrammar` helper; the legacy `make()` path installs the
+  same grammar. The package is **a normal `tabnas` grammar plugin**
+  (`new Tabnas().use(jsonic)`); the callable `Jsonic` API is kept only
+  for backward compatibility.
 - `src/bnf.ts` + `src/jsonic-bnf-cli.ts` — the BNF→jsonic grammar
   converter and its CLI (`bin/jsonic-bnf`).
 - `src/jsonic-cli.ts` — the `jsonic` CLI (`bin/jsonic`).

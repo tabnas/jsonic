@@ -7,7 +7,11 @@
  *  Jsonic format.
  */
 
+import type { Plugin } from 'tabnas'
+
 import { Jsonic, Rule, RuleSpec, Context, Parser, FuncRef } from './jsonic'
+
+import { defaults } from './defaults'
 
 const defprop = Object.defineProperty
 
@@ -1009,4 +1013,36 @@ function makeJSON(jsonic: any) {
 }
 
 
-export { grammar, makeJSON }
+// Register the relaxed-JSON grammar rules (val / map / list / pair /
+// elem) on a `tabnas` engine instance. Exposed under an explicit name so
+// other grammar plugins can layer their own syntax on top of the jsonic
+// core — e.g. a CSV grammar that parses each cell as a jsonic value —
+// without re-declaring it. This is the same role `registerJsonGrammar`
+// plays for the strict-JSON fixture in the `tabnas` package.
+const registerJsonicGrammar = grammar
+
+
+// The idiomatic `tabnas` grammar plugin. On a bare engine it applies
+// jsonic's option defaults (the engine already lexes relaxed JSON; this
+// adds the jsonic error/hint branding) and then registers the
+// relaxed-JSON grammar:
+//
+//   import { Tabnas } from 'tabnas'
+//   import { jsonic } from 'jsonic'
+//   const parser = new Tabnas().use(jsonic)
+//   parser.parse('a:1,b:[x,y,z]')   // { a: 1, b: ['x','y','z'] }
+//
+// Registration order matters when another plugin builds on jsonic — use
+// jsonic first so the value/map/list rules and tokens it defines are in
+// place:  new Tabnas().use(jsonic).use(csv).
+//
+// The callable `Jsonic` API exported from this package is a legacy
+// compatibility wrapper around this same plugin; new code that composes
+// grammars should prefer the plugin.
+const jsonicPlugin: Plugin = function jsonic(am: any, _options?: any) {
+  am.options(defaults)
+  registerJsonicGrammar(am as unknown as Jsonic)
+}
+
+
+export { grammar, makeJSON, registerJsonicGrammar, jsonicPlugin }

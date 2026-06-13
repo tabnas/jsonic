@@ -35,6 +35,33 @@ import { Jsonic } from 'jsonic'
 Jsonic('a:1, b:2') // {"a": 1, "b": 2}
 ```
 
+## jsonic is a tabnas plugin
+
+jsonic is the relaxed-JSON **grammar plugin** for the
+[`tabnas`](https://github.com/tabnas/parser) parsing engine. The engine
+ships no grammar; jsonic supplies it. Install it on an engine instance
+the idiomatic way:
+
+```js
+const { Tabnas } = require('tabnas')
+const { jsonic } = require('jsonic')
+
+const parser = new Tabnas().use(jsonic)
+parser.parse('a:1, b:[x,y,z]')   // { a: 1, b: ['x','y','z'] }
+```
+
+Because it is a normal plugin, other grammar plugins can depend on it and
+layer their own syntax on top of jsonic's value/map/list rules — register
+jsonic first:
+
+```js
+new Tabnas().use(jsonic).use(csv)   // csv builds on jsonic's cell grammar
+```
+
+The callable `Jsonic` API shown above is a **legacy compatibility
+wrapper** around this same plugin. Reach for it when migrating existing
+code; reach for `use(jsonic)` when composing grammars.
+
 ## What Syntax Does jsonic Accept?
 
 More than you'd expect. All of the following parse to `{"a": 1, "b": "B"}`:

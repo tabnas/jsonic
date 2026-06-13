@@ -79,7 +79,7 @@ import type {
 
 import { defaults } from './defaults'
 
-import { grammar, makeJSON } from './grammar'
+import { grammar, makeJSON, jsonicPlugin, registerJsonicGrammar } from './grammar'
 
 import { bnf as bnfConvert } from './bnf'
 
@@ -388,6 +388,14 @@ root.util = util
 root.make = make
 root.S = S
 
+// The idiomatic `tabnas` grammar plugin and its grammar-only
+// registration helper, plus the engine class, so CJS consumers can reach
+// them off the default export (`require('jsonic').jsonic`) and ESM
+// consumers via the named exports below.
+root.jsonic = jsonicPlugin
+root.registerJsonicGrammar = registerJsonicGrammar
+root.Tabnas = Tabnas
+
 
 // Export most of the engine types for use by plugins (re-exported from
 // `tabnas` via ./types).
@@ -425,10 +433,22 @@ export type {
   Token,
 }
 
+// The `tabnas` engine class and its native plugin type, re-exported so
+// that plugin authors who build on the jsonic grammar can construct an
+// engine and type their plugins without a separate `tabnas` import.
+export { Tabnas } from 'tabnas'
+export type { Plugin as TabnasPlugin } from 'tabnas'
+
 export {
   // Jsonic is both a type and a value.
   Jsonic as Jsonic,
   JsonicError,
+  // The idiomatic grammar plugin: `new Tabnas().use(jsonic)`. Named in
+  // lower case to match the engine's plugin-naming convention; distinct
+  // from the legacy callable `Jsonic` export above.
+  jsonicPlugin as jsonic,
+  // Grammar-only registration helper for plugins that layer on jsonic.
+  registerJsonicGrammar,
   util,
   make,
   makeToken,
