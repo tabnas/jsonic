@@ -21,11 +21,13 @@ Plugins are re-applied when a child instance is derived with `make()`.
 
 ## Adding Tokens
 
-Register a new fixed token by providing a name and source character:
+Register a new fixed token (an exact source string) through the `fixed.token`
+option, then look up its Tin with `token(name)`:
 
 ```js
 function tildePlugin(jsonic) {
-  const T_TILDE = jsonic.token('#TL', '~')
+  jsonic.options({ fixed: { token: { '#TL': '~' } } })
+  const T_TILDE = jsonic.token('#TL')  // the token's Tin number
 }
 ```
 
@@ -51,23 +53,25 @@ Token names conventionally use `#XX` format. Built-in tokens:
 
 ## Modifying Rules
 
-The parser uses named rules, each with `open` and `close` alternate lists.
-Alternates match token patterns and fire actions.
+The parser uses named rules, each with an `open` and a `close` phase.
+`rs.open(alts)` and `rs.close(alts)` add a list of **alternates**; each
+alternate matches a token pattern and fires actions. Pass the alternates you
+want to add — they are appended to the rule's existing alternates.
 
 ```js
 function myPlugin(jsonic) {
-  const T_TILDE = jsonic.token('#TL', '~')
+  jsonic.options({ fixed: { token: { '#TL': '~' } } })
+  const T_TILDE = jsonic.token('#TL')
 
   jsonic.rule('val', (rs) => {
-    // Add a new alternate at the start of the open phase
-    rs.open.unshift({
+    rs.open([{
       // Match a tilde token
-      s: [[T_TILDE]],
+      s: [T_TILDE],
       // Action: set the node value
       a: (rule) => {
         rule.node = 42
       }
-    })
+    }])
   })
 }
 ```
@@ -76,7 +80,7 @@ function myPlugin(jsonic) {
 
 | Field | Description |
 |---|---|
-| `s` | Token pattern to match (array of arrays of Tin) |
+| `s` | Token pattern to match: a token name (`'#TL'`) or an array of Tin |
 | `a` | Action function: `(rule, ctx) => void` |
 | `p` | Push a new rule onto the stack by name |
 | `r` | Replace current rule with another |
@@ -96,13 +100,14 @@ Each rule spec has four hook points:
 | `bc` | Before close -- runs before close alternates are tried |
 | `ac` | After close -- runs after a close alternate matches |
 
+Each is a method that registers a hook (hooks accumulate; they do not
+replace each other):
+
 ```js
 jsonic.rule('map', (rs) => {
-  const original_ao = rs.ao
-  rs.ao = (rule, ctx) => {
-    if (original_ao) original_ao(rule, ctx)
+  rs.ao((rule, ctx) => {
     console.log('opened a map at', rule.node)
-  }
+  })
 })
 ```
 

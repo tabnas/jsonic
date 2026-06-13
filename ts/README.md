@@ -10,7 +10,7 @@ a:1,foo:bar  →  {"a": 1, "foo": "bar"}
 
 It's a JSON parser that isn't strict. And it's very, very extensible.
 
-Available for [TypeScript/JavaScript](#install) and [Go](go/).
+Available for [TypeScript/JavaScript](#install) and [Go](../go/).
 
 ## Install
 
@@ -75,7 +75,6 @@ Here's the full set of relaxations:
 - **Single-quoted strings**: `'hello'` works like `"hello"`
 - **Backtick strings**: `` `hello` `` works like `"hello"`
 - **Multiline strings**: backtick strings preserve newlines
-- **Indent-adjusted strings**: `'''...\n'''` trims leading indent
 - **Comments**: `//`, `#` (line), `/* */` (block)
 - **Object merging**: `a:{b:1},a:{c:2}` &rarr; `{"a": {"b": 1, "c": 2}}`
 - **Path diving**: `a:b:1,a:c:2` &rarr; `{"a": {"b": 1, "c": 2}}`
@@ -164,7 +163,7 @@ The essentials:
 ## Go Version
 
 There's a Go port with the same core parsing behavior. Same syntax,
-same relaxations, same results. See the [Go documentation](go/) for
+same relaxations, same results. See the [Go documentation](../go/) for
 installation and usage.
 
 ```go
@@ -172,6 +171,19 @@ import "github.com/jsonicjs/jsonic/go"
 
 result, err := jsonic.Parse("a:1, b:2")
 ```
+
+## Documentation
+
+Organized by what you are trying to do:
+
+- **Learning** — [Tutorial](doc/tutorial.md): from install to your
+  first parse, step by step.
+- **Tasks** — [How-to guide](doc/guide.md) and
+  [Writing plugins](doc/plugins.md): focused recipes.
+- **Reference** — [API](doc/api.md), [Options](doc/options.md), and
+  [Syntax](doc/syntax.md): complete method, option, and syntax lists.
+- **Understanding** — [Concepts](doc/concepts.md): how the parser is
+  built and why.
 
 ## License
 

@@ -162,7 +162,8 @@ Controls parser rule behavior.
 | `Start` | `string` | `"val"` | Starting rule name |
 | `Finish` | `*bool` | `true` | Auto-close at EOF |
 | `MaxMul` | `*int` | `3` | Rule occurrence multiplier |
-| `Exclude` | `string` | `""` | Comma-separated group tags to exclude |
+| `Include` | `string` | `""` | Comma-separated group tags; keep only matching alternates (applied first) |
+| `Exclude` | `string` | `""` | Comma-separated group tags to drop (applied after `Include`) |
 
 ## `Lex`
 
@@ -189,29 +190,27 @@ Controls security features.
 |---|---|---|---|
 | `Key` | `*bool` | `true` | Block `__proto__` and `constructor` keys |
 
-## Go-Only Options
+## `Info`
 
-These options are specific to the Go version:
+Go-only. Wraps output values in typed structs that carry extra metadata,
+instead of plain Go values. Set the fields on an `*InfoOptions`.
 
-### `TextInfo`
+```go
+j := jsonic.Make(jsonic.Options{Info: &jsonic.InfoOptions{
+    Text: boolp(true),
+    List: boolp(true),
+    Map:  boolp(true),
+}})
+```
 
-| Type | Default | Description |
-|---|---|---|
-| `*bool` | `false` | Wrap string/text values in `Text{Quote, Str}` structs |
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `Text` | `*bool` | `false` | Wrap string/text values in `Text{Quote, Str}` (quote char preserved; `""` for unquoted) |
+| `List` | `*bool` | `false` | Wrap arrays in `ListRef{Val, Implicit, Child, Meta}` (`Implicit` true when no brackets) |
+| `Map` | `*bool` | `false` | Wrap objects in `MapRef{Val, Implicit, Meta}` (`Implicit` true when no braces) |
+| `Marker` | `string` | `"__info__"` | Key under which info metadata is stored on wrapped values |
 
-### `ListRef`
-
-| Type | Default | Description |
-|---|---|---|
-| `*bool` | `false` | Wrap arrays in `ListRef{Val, Implicit, ...}` structs |
-
-Automatically enabled when `List.Child` is true.
-
-### `MapRef`
-
-| Type | Default | Description |
-|---|---|---|
-| `*bool` | `false` | Wrap objects in `MapRef{Val, Implicit}` structs |
+`List` is enabled automatically when `List.Child` is set.
 
 ## Other Fields
 

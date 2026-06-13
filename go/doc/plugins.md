@@ -5,21 +5,25 @@ registering custom matchers, or subscribing to parse events.
 
 ## Plugin Structure
 
-A plugin is a function with signature `Plugin`:
+A plugin is a function with signature `Plugin` — it returns an `error`
+(`nil` on success):
 
 ```go
-type Plugin func(j *Jsonic, opts map[string]any)
+type Plugin func(j *Jsonic, opts map[string]any) error
 ```
 
-Register a plugin with `Use`:
+Register a plugin with `Use`, which propagates that error:
 
 ```go
-func myPlugin(j *jsonic.Jsonic, opts map[string]any) {
+func myPlugin(j *jsonic.Jsonic, opts map[string]any) error {
     // modify the parser
+    return nil
 }
 
 j := jsonic.Make()
-j.Use(myPlugin, map[string]any{"key": "value"})
+if err := j.Use(myPlugin, map[string]any{"key": "value"}); err != nil {
+    // plugin failed
+}
 ```
 
 Plugins are re-applied when `Derive()` creates a child instance.
@@ -29,9 +33,10 @@ Plugins are re-applied when `Derive()` creates a child instance.
 Register a new fixed token:
 
 ```go
-func tildePlugin(j *jsonic.Jsonic, opts map[string]any) {
+func tildePlugin(j *jsonic.Jsonic, opts map[string]any) error {
     TL := j.Token("#TL", "~")
     _ = TL
+    return nil
 }
 ```
 
@@ -60,7 +65,7 @@ Token names use `#XX` format by convention. Built-in tokens:
 The parser has named rules, each with `Open` and `Close` alternate lists.
 
 ```go
-func myPlugin(j *jsonic.Jsonic, opts map[string]any) {
+func myPlugin(j *jsonic.Jsonic, opts map[string]any) error {
     TL := j.Token("#TL", "~")
 
     j.Rule("val", func(rs *jsonic.RuleSpec, p *jsonic.Parser) {
@@ -72,6 +77,7 @@ func myPlugin(j *jsonic.Jsonic, opts map[string]any) {
             },
         }}, rs.Open...)
     })
+    return nil
 }
 ```
 

@@ -161,7 +161,7 @@ func formatValue(v any) string {
 
 // specDir returns the path to the spec directory.
 func specDir() string {
-	return filepath.Join("..", "test", "spec")
+	return filepath.Join("..", "ts", "test", "spec")
 }
 
 // parserTSVFiles lists all parser-related TSV files (excluding utility-* files).

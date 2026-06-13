@@ -74,11 +74,16 @@ jsonic accepts all standard JSON plus the relaxations listed in the
 
 ## Documentation
 
-- [API Reference](doc/api.md) -- types, functions, and methods
-- [Syntax Reference](doc/syntax.md) -- all supported syntax
-- [Options Reference](doc/options.md) -- configuration options
-- [Plugin Guide](doc/plugins.md) -- writing plugins
-- [Differences from TypeScript](doc/differences.md) -- what to know if you use both
+The docs are organized by what you are trying to do:
+
+- **Learning** — [Tutorial](doc/tutorial.md): from install to your first
+  parse, step by step.
+- **Tasks** — [How-to guide](doc/guide.md) and [Plugin guide](doc/plugins.md):
+  focused recipes.
+- **Reference** — [API](doc/api.md), [Options](doc/options.md), and
+  [Syntax](doc/syntax.md): complete field, method, and syntax lists.
+- **Understanding** — [Concepts](doc/concepts.md) and, if you also use
+  the TypeScript version, [Differences from TypeScript](doc/differences.md).
 
 ## License
 
