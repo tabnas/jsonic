@@ -14,11 +14,17 @@ import (
 // Version is the current version of the jsonic Go module.
 const Version = "0.1.22"
 
-// Error message templates matching TypeScript defaults.
+// Error message templates matching TypeScript defaults (tabnas defaults.ts).
+// Each template has the offending source fragment appended by makeJsonicError.
 var errorMessages = map[string]string{
 	"unexpected":           "unexpected character(s): ",
+	"invalid_unicode":      "invalid unicode escape: ",
+	"invalid_ascii":        "invalid ascii escape: ",
+	"unprintable":          "unprintable character: ",
 	"unterminated_string":  "unterminated string: ",
 	"unterminated_comment": "unterminated comment: ",
+	"unknown_rule":         "unknown rule: ",
+	"end_of_source":        "unexpected end of source",
 	"unknown":              "unknown error: ",
 }
 

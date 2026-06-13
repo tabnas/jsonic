@@ -6,15 +6,38 @@ A dynamic JSON parser that isn't strict and can be customized.
 a:1,foo:bar  →  {"a": 1, "foo": "bar"}
 ```
 
-This repository contains:
+jsonic accepts all standard JSON and then relaxes it for humans:
+unquoted keys, implicit objects and arrays, comments, trailing commas,
+single/backtick quotes, and path diving.
 
-| Path | Description |
+## Choose your runtime
+
+| Runtime | Start here |
 |---|---|
-| [`ts/`](ts/) | TypeScript / JavaScript implementation (`jsonic` on npm). Built on the [`tabnas`](https://github.com/tabnas/parser) parsing engine. |
-| [`go/`](go/) | Go port. |
+| **TypeScript / JavaScript** (canonical, `jsonic` on npm) | [`ts/README.md`](ts/README.md) |
+| **Go** (`github.com/jsonicjs/jsonic/go`) | [`go/README.md`](go/README.md) |
 
-Start with [`ts/README.md`](ts/README.md) for the JS API or
-[`go/README.md`](go/README.md) for Go.
+The TypeScript package is built on the
+[`tabnas`](https://github.com/tabnas/parser) parsing engine; the Go port
+is a single self-contained module. TypeScript is canonical — both
+runtimes share the conformance fixtures in [`ts/test/spec/`](ts/test/spec/)
+and produce the same parse results.
+
+## Documentation
+
+Organized by what you are trying to do:
+
+- **Learning** — tutorials: [TypeScript](ts/doc/tutorial.md), [Go](go/doc/tutorial.md).
+- **Tasks** — how-to guides ([TS](ts/doc/guide.md), [Go](go/doc/guide.md))
+  and plugin guides ([TS](ts/doc/plugins.md), [Go](go/doc/plugins.md)).
+- **Reference** — syntax, API, and options per runtime
+  ([TS](ts/doc/syntax.md) / [Go](go/doc/syntax.md), and the api/options
+  docs alongside them).
+- **Understanding** — concepts ([TS](ts/doc/concepts.md), [Go](go/doc/concepts.md))
+  and the Go [differences from TypeScript](go/doc/differences.md).
+
+Working on the codebase? Each directory has an `AGENTS.md` with build,
+layout, and contribution notes; start with [`AGENTS.md`](AGENTS.md).
 
 ## License
 

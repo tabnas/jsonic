@@ -138,18 +138,24 @@ Returns the name for a token identification number.
 
 ## Plugins
 
-### `(*Jsonic) Use(plugin Plugin, opts ...map[string]any) *Jsonic`
+### `(*Jsonic) Use(plugin Plugin, opts ...map[string]any) error`
 
-Register and execute a plugin. Returns the instance for chaining.
+Register and execute a plugin. Returns an error if the plugin fails (a
+plugin that returns `nil` cannot fail).
 
 ```go
-j.Use(myPlugin, map[string]any{"key": "value"})
+if err := j.Use(myPlugin, map[string]any{"key": "value"}); err != nil {
+    // plugin failed
+}
 ```
 
 ### `Plugin` type
 
+A plugin receives the instance and its options and returns an error
+(`nil` on success):
+
 ```go
-type Plugin func(j *Jsonic, opts map[string]any)
+type Plugin func(j *Jsonic, opts map[string]any) error
 ```
 
 ### `(*Jsonic) Plugins() []Plugin`
@@ -231,12 +237,33 @@ type RuleSub func(rule *Rule, ctx *Context)
 Returns the parser's internal configuration for direct inspection or
 modification. Prefer `Token()`, `Rule()`, and `options.lex.match` for most work.
 
-### `(*Jsonic) Exclude(groups ...string) *Jsonic`
+### Filtering the grammar by group tag
 
-Remove grammar alternates tagged with the given group names.
+Every grammar alternate carries group tags (e.g. `json`, `jsonic`, `map`).
+Filter them through the `Rule` options rather than a method:
+
+- `Rule.Include` — keep only alternates tagged with these (comma-separated)
+  groups; applied first.
+- `Rule.Exclude` — drop alternates tagged with these groups; applied after
+  `Include`.
 
 ```go
-j.Exclude("jsonic") // keep only JSON-tagged rules for strict parsing
+// Keep only JSON-tagged rules (one piece of strict-JSON configuration).
+j := jsonic.Make(jsonic.Options{Rule: &jsonic.RuleOptions{Include: "json"}})
+```
+
+### `MakeJSON() *Jsonic`
+
+Returns an instance configured to accept strict JSON only. It applies
+`Rule.Include: "json"` along with the option set that rejects every jsonic
+relaxation (unquoted keys/values, comments, hex/octal/binary numbers,
+trailing commas, leading-zero numbers, single-quoted or backtick strings,
+and empty input). Mirrors TypeScript `Jsonic.make('json')`.
+
+```go
+j := jsonic.MakeJSON()
+j.Parse(`{"a":1}`) // ok
+j.Parse("a:1")      // *JsonicError — unquoted key rejected
 ```
 
 ## Error Handling
@@ -281,7 +308,7 @@ jsonic.Options{
 ### `Version`
 
 ```go
-const Version = "0.1.6"
+const Version = "0.1.22"
 ```
 
 The current version of the jsonic Go module.

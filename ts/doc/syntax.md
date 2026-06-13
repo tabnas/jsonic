@@ -9,12 +9,20 @@ Standard JSON objects work as expected. jsonic also supports:
 
 ### Unquoted Keys
 
-Keys do not need quotes when they contain only word characters (letters,
-digits, underscore) or spaces followed by a colon.
+A key does not need quotes when it is a single unquoted token — a run of
+characters with no whitespace and no structural character (`{}`, `[]`, `:`,
+`,`). Letters, digits, `_`, `-`, and `.` are all fine inside the token.
 
 ```
-{a: 1, b: 2}         → {"a": 1, "b": 2}
-{my key: "value"}     → {"my key": "value"}
+{a: 1, b: 2}          → {"a": 1, "b": 2}
+{first-name: "Sam"}   → {"first-name": "Sam"}
+{a.b.c: 1}            → {"a.b.c": 1}
+```
+
+A key that contains a space must be quoted — the space ends the token:
+
+```
+{"my key": "value"}   → {"my key": "value"}
 ```
 
 ### Implicit Top-Level Object
@@ -47,23 +55,34 @@ Standard JSON arrays work as expected. jsonic also supports:
 
 ### Implicit Top-Level Array
 
-When the input contains comma- or newline-separated values without colons,
-it is parsed as an array.
+When the input contains several values separated by commas, newlines, or
+spaces (and no top-level key), it is parsed as an array.
 
 ```
 a, b, c               → ["a", "b", "c"]
 1, 2, 3               → [1, 2, 3]
+a b c                 → ["a", "b", "c"]
 ```
 
-### Named Properties in Arrays
+### Key-Value Pairs in Arrays
 
-By default, key-value pairs inside arrays are allowed.
+By default, a key-value pair inside an array is *permitted* (it is not an
+error) but does not contribute an element — the pair is consumed and dropped:
 
 ```
-[a:1, b:2]            → [{"a": 1}, {"b": 2}]
+[1, a:2, 3]           → [1, 3]
+[a:1, b:2]            → []
 ```
 
-This can be controlled with the `list.property` option.
+Set `list.pair` to materialize each pair as a single-key object element:
+
+```
+Jsonic.make({ list: { pair: true } })('[1, a:2, 3]')   → [1, {"a": 2}, 3]
+Jsonic.make({ list: { pair: true } })('[a:1, b:2]')    → [{"a": 1}, {"b": 2}]
+```
+
+Set `list.property` to `false` to reject pairs in arrays as a parse error
+instead of dropping them. See the [`list` option](options.md#list).
 
 ## Strings
 
@@ -77,13 +96,19 @@ Double quotes, single quotes, and backticks all work as string delimiters.
 
 ### Unquoted Strings
 
-Values that are not numbers, booleans, or null are treated as unquoted strings.
-Unquoted strings extend to the next structural character (comma, colon,
-bracket, brace) or end of line.
+A value that is not a number, boolean, or null is treated as an unquoted
+string. An unquoted string is a single token: it extends to the next
+whitespace or structural character (`,`, `:`, `{`, `}`, `[`, `]`). It does
+**not** span spaces — to include spaces in a value, quote it.
 
 ```
-{a: hello world}      → {"a": "hello world"}
+{a: hello}            → {"a": "hello"}
+{a: hello-world}      → {"a": "hello-world"}
+{a: "hello world"}    → {"a": "hello world"}
 ```
+
+Because whitespace ends the token, two bare words at the top level are an
+implicit array, not one string: `hello world` → `["hello", "world"]`.
 
 ### Multiline Strings
 
@@ -92,17 +117,6 @@ Backtick strings can span multiple lines. Newlines are preserved.
 ```
 `line one
 line two`             → "line one\nline two"
-```
-
-### Indent-Adjusted Strings
-
-Triple-quoted strings (`'''...'''`) strip the common leading indentation.
-
-```
-  '''
-  line one
-  line two
-  '''                 → "line one\nline two"
 ```
 
 ## Numbers

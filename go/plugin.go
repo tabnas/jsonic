@@ -385,8 +385,14 @@ func (j *Jsonic) Sub(lexSub LexSub, ruleSub RuleSub) *Jsonic {
 // rules, plugins, and custom tokens. Changes to the child do not affect the parent.
 // This matches TypeScript's jsonic.make(options, parent).
 func (j *Jsonic) Derive(opts ...Options) *Jsonic {
-	// Start with parent's options, merge with new ones.
-	child := Make(opts...)
+	// Inherit the parent's resolved options, then deep-merge any child
+	// overrides on top, matching TypeScript make(): the child sees the
+	// parent's configuration, not just its own overrides.
+	merged := *j.options
+	for _, o := range opts {
+		merged = Deep(merged, o).(Options)
+	}
+	child := Make(merged)
 
 	// Copy parent's custom fixed tokens.
 	for k, v := range j.parser.Config.FixedTokens {

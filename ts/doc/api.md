@@ -77,23 +77,34 @@ Access or modify grammar rules.
 Each rule spec has `open` and `close` alternate lists, plus state actions
 (`bo`, `bc`, `ao`, `ac`) for before/after open/close phases.
 
+`rs.open(alts)` and `rs.close(alts)` add alternates; `rs.bo`/`rs.ao`/
+`rs.bc`/`rs.ac` each register a state-action hook.
+
 ```js
 jsonic.rule('val', (rs) => {
-  rs.open.unshift({
-    s: [[myToken]],
+  rs.open([{
+    s: [myToken],
     a: (rule) => { rule.node = 'custom' }
-  })
+  }])
 })
 ```
 
 ### `instance.token(ref)`
 
 Get or create a token type. `ref` is a string name (e.g., `'#OB'` for open
-brace). When called with a second argument mapping to a source character, it
-registers a new fixed token.
+brace); the call returns the token's Tin number, minting one if the name is
+new.
 
 ```js
-const T_TILDE = jsonic.token('#TL', '~')
+const T_OB = jsonic.token('#OB')   // look up a built-in token's Tin
+```
+
+To register a new *fixed* token (an exact source string), use the
+`fixed.token` option, then look up its Tin:
+
+```js
+jsonic.options({ fixed: { token: { '#TL': '~' } } })
+const T_TILDE = jsonic.token('#TL')
 ```
 
 ### `instance.tokenSet(ref)`
