@@ -363,7 +363,7 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 	resolve := func(gas []*GrammarAltSpec) []*AltSpec {
 		alts := make([]*AltSpec, len(gas))
 		for i, ga := range gas {
-			alts[i] = resolveGrammarAltStatic(ga, ref)
+			alts[i] = ResolveGrammarAltStatic(ga, ref)
 		}
 		return alts
 	}
@@ -382,7 +382,7 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 		{S: "#VAL", G: "val,json"},
 	})
 	// CB|CS in single slot:
-	valOpen = append(valOpen, resolveGrammarAltStatic(
+	valOpen = append(valOpen, ResolveGrammarAltStatic(
 		&GrammarAltSpec{S: []string{"#CB #CS"}, C: map[string]any{"d": CGt(0)}, B: 1, G: "val,imp,null,jsonic"}, ref))
 	valOpen = append(valOpen, resolve([]*GrammarAltSpec{
 		{S: "#CA", C: map[string]any{"d": 0}, P: "list", B: 1, G: "list,imp,jsonic"},
@@ -395,7 +395,7 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 		{S: "#ZZ", G: "end,json"},
 	})
 	// CB|CS in single slot:
-	valClose = append(valClose, resolveGrammarAltStatic(
+	valClose = append(valClose, ResolveGrammarAltStatic(
 		&GrammarAltSpec{S: []string{"#CB #CS"}, B: 1, E: "@val-close-err", G: "val,json,close"}, ref))
 	valClose = append(valClose, resolve([]*GrammarAltSpec{
 		{S: "#CA", C: map[string]any{"n.dlist": CLte(0), "n.dmap": CLte(0)},
@@ -431,9 +431,9 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 		// slot 0 = merge(CA, CS, VAL) — handled below
 	})
 	// Third alt: CA|CS|VAL tokens in single slot
-	mapClose = append(mapClose, resolveGrammarAltStatic(
+	mapClose = append(mapClose, ResolveGrammarAltStatic(
 		&GrammarAltSpec{S: []string{"#CA #CS #VAL"}, B: 1, G: "end,path,jsonic"}, ref))
-	mapClose = append(mapClose, resolveGrammarAltStatic(
+	mapClose = append(mapClose, ResolveGrammarAltStatic(
 		&GrammarAltSpec{S: "#ZZ", E: "@finish", G: "end,jsonic"}, ref))
 	mapSpec.Close = mapClose
 
@@ -448,7 +448,7 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 
 	// First alt uses a condition function directly (not declarative).
 	listOpen := []*AltSpec{
-		resolveGrammarAltStatic(&GrammarAltSpec{C: "@implist-cond", P: "elem"}, ref),
+		ResolveGrammarAltStatic(&GrammarAltSpec{C: "@implist-cond", P: "elem"}, ref),
 	}
 	listOpen = append(listOpen, resolve([]*GrammarAltSpec{
 		{S: "#OS #CS", B: 1, G: "list,json"},
@@ -477,7 +477,7 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 		{S: "#CA", G: "map,pair,comma,jsonic"},
 	})
 	if cfg.MapChild {
-		pairOpen = append(pairOpen, resolveGrammarAltStatic(
+		pairOpen = append(pairOpen, ResolveGrammarAltStatic(
 			&GrammarAltSpec{S: "#CL", P: "val",
 				U: map[string]any{"done": true, "child": true}}, ref))
 	}
@@ -493,7 +493,7 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 	})
 
 	// CB|CA|CS|KEY in single slot
-	pairSpec.Close = append(pairSpec.Close, resolveGrammarAltStatic(
+	pairSpec.Close = append(pairSpec.Close, ResolveGrammarAltStatic(
 		&GrammarAltSpec{S: []string{"#CB #CA #CS #KEY"}, C: map[string]any{"n.pk": CGt(0)},
 			B: 1, G: "map,pair,imp,path,jsonic"}, ref))
 	// Remaining pair close alts.
@@ -523,18 +523,18 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 			A: "@pairkey", E: "@elem-pair-err", G: "elem,pair,jsonic"},
 	})
 	if cfg.ListChild {
-		elemOpen = append(elemOpen, resolveGrammarAltStatic(
+		elemOpen = append(elemOpen, ResolveGrammarAltStatic(
 			&GrammarAltSpec{S: "#CL", P: "val",
 				U: map[string]any{"done": true, "child": true, "list": true},
 				G: "elem,child,jsonic"}, ref))
 	}
-	elemOpen = append(elemOpen, resolveGrammarAltStatic(
+	elemOpen = append(elemOpen, ResolveGrammarAltStatic(
 		&GrammarAltSpec{P: "val", G: "list,elem,val,json"}, ref))
 	elemSpec.Open = elemOpen
 
 	elemClose := []*AltSpec{
 		// CA in slot 0, CS|ZZ in slot 1:
-		resolveGrammarAltStatic(&GrammarAltSpec{S: []string{"#CA", "#CS #ZZ"}, B: 1, G: "list,elem,comma,jsonic"}, ref),
+		ResolveGrammarAltStatic(&GrammarAltSpec{S: []string{"#CA", "#CS #ZZ"}, B: 1, G: "list,elem,comma,jsonic"}, ref),
 	}
 	elemClose = append(elemClose, resolve([]*GrammarAltSpec{
 		{S: "#CA", R: "elem", G: "list,elem,json"},

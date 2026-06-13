@@ -1,7 +1,7 @@
 "use strict";
 /* Copyright (c) 2013-2026 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.root = exports.S = exports.SKIP = exports.EMPTY = exports.AFTER = exports.BEFORE = exports.CLOSE = exports.OPEN = exports.makeTextMatcher = exports.makeNumberMatcher = exports.makeCommentMatcher = exports.makeStringMatcher = exports.makeLineMatcher = exports.makeSpaceMatcher = exports.makeFixedMatcher = exports.makeParser = exports.makeLex = exports.makeRuleSpec = exports.makeRule = exports.makePoint = exports.makeToken = exports.util = exports.JsonicError = exports.Jsonic = void 0;
+exports.root = exports.S = exports.SKIP = exports.EMPTY = exports.AFTER = exports.BEFORE = exports.CLOSE = exports.OPEN = exports.makeTextMatcher = exports.makeNumberMatcher = exports.makeCommentMatcher = exports.makeStringMatcher = exports.makeLineMatcher = exports.makeSpaceMatcher = exports.makeFixedMatcher = exports.makeParser = exports.makeLex = exports.makeRuleSpec = exports.makeRule = exports.makePoint = exports.makeToken = exports.util = exports.registerJsonicGrammar = exports.jsonic = exports.JsonicError = exports.Jsonic = exports.Tabnas = void 0;
 exports.make = make;
 /*  jsonic.ts
  *  Entry point and API.
@@ -41,6 +41,8 @@ Object.defineProperty(exports, "makeTextMatcher", { enumerable: true, get: funct
 const utility_1 = require("tabnas/utility");
 const defaults_1 = require("./defaults");
 const grammar_1 = require("./grammar");
+Object.defineProperty(exports, "jsonic", { enumerable: true, get: function () { return grammar_1.jsonicPlugin; } });
+Object.defineProperty(exports, "registerJsonicGrammar", { enumerable: true, get: function () { return grammar_1.registerJsonicGrammar; } });
 const bnf_1 = require("./bnf");
 // Create a Jsonic instance.
 //
@@ -291,6 +293,18 @@ root.SKIP = tabnas_1.SKIP;
 root.util = tabnas_1.util;
 root.make = make;
 root.S = tabnas_1.S;
+// The idiomatic `tabnas` grammar plugin and its grammar-only
+// registration helper, plus the engine class, so CJS consumers can reach
+// them off the default export (`require('jsonic').jsonic`) and ESM
+// consumers via the named exports below.
+root.jsonic = grammar_1.jsonicPlugin;
+root.registerJsonicGrammar = grammar_1.registerJsonicGrammar;
+root.Tabnas = tabnas_1.Tabnas;
+// The `tabnas` engine class and its native plugin type, re-exported so
+// that plugin authors who build on the jsonic grammar can construct an
+// engine and type their plugins without a separate `tabnas` import.
+var tabnas_2 = require("tabnas");
+Object.defineProperty(exports, "Tabnas", { enumerable: true, get: function () { return tabnas_2.Tabnas; } });
 exports.default = Jsonic;
 if ('undefined' !== typeof module) {
     module.exports = Jsonic;

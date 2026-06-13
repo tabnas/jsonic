@@ -1,10 +1,19 @@
 # Agents Guide — jsonic (Go)
 
 A Go port of jsonic, the relaxed-JSON parser: `jsonic.Parse("a:1, b:2")`
-just works. Unlike the TypeScript package (which sits on the separate
-`tabnas` engine), this is **one self-contained module** —
-`github.com/jsonicjs/jsonic/go` — that bundles a port of the engine
-*and* the grammar, with no external dependencies.
+just works. Like the TypeScript package, this is a **grammar plugin for
+the `tabnas` engine** (`github.com/tabnas/parser/go`), not a standalone
+parser. The engine ships no grammar; this module supplies the
+relaxed-JSON one (`jsonic.Grammar`, a `tabnas.Plugin`) plus a legacy
+`jsonic.Make`/`jsonic.Parse` API on top of it.
+
+**Dependency / build.** `go.mod` requires `github.com/tabnas/parser/go`
+with a `replace` directive pointing at a sibling checkout
+(`../../parser/go`) — the same development model the TS package uses for
+`tabnas` (`file:../../parser/ts`). Clone
+`https://github.com/tabnas/parser.git` next to this repo before building.
+There is no `go.sum` entry for the engine while the dependency is a local
+`replace`.
 
 ## Authority
 
@@ -31,28 +40,38 @@ allowed.
 
 ## Go-only client features (keep, and keep tested)
 
-- `TextInfo` → `Text{Quote, Str}`, `ListRef` → `ListRef{Val, Implicit,
-  ...}`, `MapRef` → `MapRef{Val, Implicit}` (typed metadata for Go
-  callers); tests in `textinfo_test.go`, `listref_test.go`,
+- The typed metadata wrappers `Text{Quote, Str}`, `ListRef{Val,
+  Implicit, ...}`, `MapRef{Val, Implicit}` now live in the engine and are
+  re-exported here; tests in `textinfo_test.go`, `listref_test.go`,
   `mapref_test.go`.
 - `MakeJSON()` strict-JSON constructor; tests in `variant_test.go`.
-- Introspection API (`RSM()`, `Plugins()`, `Decorate()`, `TinName()`, …).
+- Introspection API (`RSM()`, `Plugins()`, `Decorate()`, `TinName()`, …)
+  — promoted from the engine.
 
 ## Layout
 
-- `jsonic.go` — public `Parse`/`ParseMeta` and `JsonicError` (the error
-  templates mirror the engine defaults), `Version`.
-- `lexer.go` — matchers and `LexConfig` (the resolved option tree).
-- `parser.go`, `rule.go` — rule machinery.
-- `grammar.go` — the relaxed-JSON grammar; `grammarspec.go` — the
-  declarative grammar-spec machinery.
-- `options.go` — the `Options` tree, `Make`/`MakeJSON`, and
-  `buildConfig` (Options → LexConfig, merging defaults).
-- `plugin.go` — `Use`, `Rule`, `Token`, `SetOptions`, match registration.
-- `debug.go` — `Describe`: render the resolved grammar/config while
-  debugging.
-- `utility.go`, `util.go`, `text.go`, `token.go` — `Deep`, `StrInject`,
-  text-form option parsing, and small helpers.
+The engine (lexer, parser, rule machinery, options, error formatting,
+utilities) lives in `github.com/tabnas/parser/go`. This module is just
+three files plus tests:
+
+- `jsonic.go` — the legacy API and the plugin: `Make`/`Empty`/`MakeJSON`/
+  `Parse`, the idiomatic `Grammar` plugin (branding + grammar) and the
+  internal `grammarPlugin` (grammar only), `jsonicOptions` (the jsonic
+  error/identity branding), and `Version`.
+- `grammar.go` — the relaxed-JSON grammar: `buildGrammar` populates the
+  rule-spec map using the engine's exported `ResolveGrammarAltStatic`, and
+  the `node*` helpers operate on plain/`MapRef`/`ListRef` nodes.
+- `engine.go` — re-exports the engine's public surface (types, funcs,
+  consts, vars) under the historic jsonic names; `Jsonic = tabnas.Tabnas`,
+  `JsonicError = tabnas.TabnasError`.
+- `*_test.go` — behavior and API tests, including `helpers_test.go`
+  (test-only helpers: `boolPtr`/`intPtr`, `preprocessEscapes`,
+  `splitGroupTags`) and the external `tabnas_plugin_test.go`
+  (`package jsonic_test`) that pins the `tabnas.Make().Use(jsonic.Grammar)`
+  contract.
+
+Engine internals (the lexer cursor, `normalizeCommentSuffix`,
+`resolveToken*Static`, …) are tested in the engine repo, not here.
 
 ## Commands
 
@@ -72,7 +91,8 @@ go test -run TestName -v ./...
   comment when porting a TS test. `options_parity_test.go` tracks the
   option surface against TS.
 - Pointer option fields: most options are pointer types so `nil` means
-  "use default"; tests use a `boolp`/`intp` helper.
+  "use default"; tests use the `boolPtr`/`intPtr` helpers in
+  `helpers_test.go`.
 - Errors are returned, never panicked; `JsonicError` carries `Code`,
   `Row`, `Col`, `Pos`, `Src`, `Hint`. Branch on `Code` — note the
   documented code differences from TS in `doc/differences.md`.

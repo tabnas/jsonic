@@ -14,7 +14,10 @@ For a recipe-style index of individual tasks, see the
 go get github.com/jsonicjs/jsonic/go@latest
 ```
 
-The module is self-contained — one package, no dependencies.
+jsonic is a grammar plugin for the `tabnas` engine
+(`github.com/tabnas/parser/go`), which it pulls in as a dependency.
+(While building from a source checkout before `tabnas/parser` is
+published, see the sibling-checkout note in the [README](../README.md).)
 
 ## 2. Parse a string
 

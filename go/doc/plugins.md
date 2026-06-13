@@ -3,6 +3,29 @@
 Plugins extend jsonic by modifying the grammar, adding token types,
 registering custom matchers, or subscribing to parse events.
 
+## jsonic is itself a plugin
+
+jsonic is a grammar plugin for the `tabnas` engine
+(`github.com/tabnas/parser/go`) — the engine ships no grammar, jsonic
+supplies the relaxed-JSON one. The idiomatic way to use it, and to write
+plugins that build on it, is at the engine level:
+
+```go
+import (
+    tabnas "github.com/tabnas/parser/go"
+    jsonic "github.com/jsonicjs/jsonic/go"
+)
+
+j := tabnas.Make()
+j.Use(jsonic.Grammar)   // dependency first
+j.Use(myPlugin)         // builds on jsonic's value/map/list rules
+```
+
+`jsonic.Make()` is a legacy convenience that installs `jsonic.Grammar`
+for you; the `Jsonic` type is the engine type (`tabnas.Tabnas`) and the
+`Plugin` type is the engine's, so a plugin written against either works
+unchanged. Register a grammar's dependencies before the grammar itself.
+
 ## Plugin Structure
 
 A plugin is a function with signature `Plugin` — it returns an `error`

@@ -1,8 +1,10 @@
 "use strict";
 /* Copyright (c) 2013-2024 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.jsonicPlugin = exports.registerJsonicGrammar = void 0;
 exports.grammar = grammar;
 exports.makeJSON = makeJSON;
+const defaults_1 = require("./defaults");
 const defprop = Object.defineProperty;
 function mark(node, marker, data) {
     if (node != null && typeof node === 'object') {
@@ -872,4 +874,34 @@ function makeJSON(jsonic) {
         },
     });
 }
+// Register the relaxed-JSON grammar rules (val / map / list / pair /
+// elem) on a `tabnas` engine instance. Exposed under an explicit name so
+// other grammar plugins can layer their own syntax on top of the jsonic
+// core — e.g. a CSV grammar that parses each cell as a jsonic value —
+// without re-declaring it. This is the same role `registerJsonGrammar`
+// plays for the strict-JSON fixture in the `tabnas` package.
+const registerJsonicGrammar = grammar;
+exports.registerJsonicGrammar = registerJsonicGrammar;
+// The idiomatic `tabnas` grammar plugin. On a bare engine it applies
+// jsonic's option defaults (the engine already lexes relaxed JSON; this
+// adds the jsonic error/hint branding) and then registers the
+// relaxed-JSON grammar:
+//
+//   import { Tabnas } from 'tabnas'
+//   import { jsonic } from 'jsonic'
+//   const parser = new Tabnas().use(jsonic)
+//   parser.parse('a:1,b:[x,y,z]')   // { a: 1, b: ['x','y','z'] }
+//
+// Registration order matters when another plugin builds on jsonic — use
+// jsonic first so the value/map/list rules and tokens it defines are in
+// place:  new Tabnas().use(jsonic).use(csv).
+//
+// The callable `Jsonic` API exported from this package is a legacy
+// compatibility wrapper around this same plugin; new code that composes
+// grammars should prefer the plugin.
+const jsonicPlugin = function jsonic(am, _options) {
+    am.options(defaults_1.defaults);
+    registerJsonicGrammar(am);
+};
+exports.jsonicPlugin = jsonicPlugin;
 //# sourceMappingURL=grammar.js.map

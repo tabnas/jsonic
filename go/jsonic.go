@@ -1,245 +1,160 @@
-// Package jsonic provides a lenient JSON parser that supports relaxed syntax
-// including unquoted keys, implicit objects/arrays, comments, trailing commas,
-// single-quoted strings, path diving (nested object shorthand), and more.
-//
-// It is a Go port of the jsonic TypeScript library, faithfully implementing
-// the same matcher-based lexer and rule-based parser architecture.
+// Copyright (c) 2013-2026 Richard Rodger, MIT License
+
 package jsonic
 
 import (
-	"strconv"
-	"strings"
+	tabnas "github.com/tabnas/parser/go"
 )
 
 // Version is the current version of the jsonic Go module.
 const Version = "0.1.22"
 
-// Error message templates matching TypeScript defaults (tabnas defaults.ts).
-// Each template has the offending source fragment appended by makeJsonicError.
-var errorMessages = map[string]string{
-	"unexpected":           "unexpected character(s): ",
-	"invalid_unicode":      "invalid unicode escape: ",
-	"invalid_ascii":        "invalid ascii escape: ",
-	"unprintable":          "unprintable character: ",
-	"unterminated_string":  "unterminated string: ",
-	"unterminated_comment": "unterminated comment: ",
-	"unknown_rule":         "unknown rule: ",
-	"end_of_source":        "unexpected end of source",
-	"unknown":              "unknown error: ",
+// grammarMark is the decoration key that records whether the relaxed-JSON
+// grammar has already been installed on an instance. It guards the Grammar
+// plugin so that re-running it (which the engine does on every SetOptions)
+// does not rebuild the base rules and clobber caller rule modifications,
+// while still letting Derive build the grammar fresh on a child (Derive
+// copies decorations only after re-running plugins).
+const grammarMark = "jsonic$grammar"
+
+// jsonicOptions are the option overrides the grammar plugin layers on top
+// of the engine's already-relaxed lexer defaults: the jsonic error
+// identity. Error message templates and the relaxed lexer config are
+// shared with the engine defaults, so only the branding differs.
+func jsonicOptions() Options {
+	return Options{
+		ErrMsg: &ErrMsgOptions{
+			Name: "jsonic",
+			Link: "https://jsonic.senecajs.org",
+		},
+	}
 }
 
-// JsonicError is the error type returned by Parse when parsing fails.
-// It includes structured details about the error location and cause.
-type JsonicError struct {
-	Code   string // Error code: "unterminated_string", "unterminated_comment", "unexpected"
-	Detail string // Human-readable detail message (e.g. "unterminated string: \"abc")
-	Pos    int    // 0-based character position in source
-	Row    int    // 1-based line number
-	Col    int    // 1-based column number
-	Src    string // Source fragment at the error (the token text)
-	Hint   string // Additional explanatory text for this error code
-
-	fullSource string      // Complete input source (for generating site extract)
-	tag        string      // Custom error tag name (TS: errmsg.name), defaults to "jsonic"
-	color      ColorConfig // ANSI palette applied by Error(); zero value disables colour
-}
-
-// Error returns a formatted error message matching the TypeScript JsonicError format:
+// Grammar is the idiomatic tabnas grammar plugin: it applies jsonic's
+// option defaults and registers the relaxed-JSON grammar (the val / map /
+// list / pair / elem rules) on the engine instance. Use it the standard
+// way, and `use` it before any plugin that builds on jsonic's rules:
 //
-//	[jsonic/<code>]: <message>
-//	  --> <row>:<col>
-//	 <line-2> | <source>
-//	 <line-1> | <source>
-//	    <line> | <source with error>
-//	             ^^^^ <message>
-//	 <line+1> | <source>
-//	 <line+2> | <source>
+//	j := tabnas.Make()
+//	j.Use(jsonic.Grammar)
+//	j.Use(csv) // builds on jsonic's value/map/list rules
+//	out, _ := j.Parse("a:1,b:[x,y,z]")
 //
-// When e.color.Active is true the header, arrow, caret, and line-number
-// gutter are wrapped in ANSI escapes — matching TS error.ts output.
-func (e *JsonicError) Error() string {
-	msg := e.Detail
-
-	hi, _, line, reset := e.color.Codes()
-
-	var b strings.Builder
-
-	// Line 1: [tag/<code>]: <message>
-	tag := e.tag
-	if tag == "" {
-		tag = "jsonic"
-	}
-	b.WriteString(hi)
-	b.WriteString("[")
-	b.WriteString(tag)
-	b.WriteString("/")
-	b.WriteString(e.Code)
-	b.WriteString("]:")
-	b.WriteString(reset)
-	b.WriteString(" ")
-	b.WriteString(msg)
-
-	// Line 2: --> <row>:<col>
-	b.WriteString("\n  ")
-	b.WriteString(line)
-	b.WriteString("-->")
-	b.WriteString(reset)
-	b.WriteString(" ")
-	b.WriteString(strconv.Itoa(e.Row))
-	b.WriteString(":")
-	b.WriteString(strconv.Itoa(e.Col))
-
-	// Source site extract
-	if e.fullSource != "" {
-		site := errsite(e.fullSource, e.Src, msg, e.Row, e.Col, e.color)
-		if site != "" {
-			b.WriteString("\n")
-			b.WriteString(site)
-		}
-	}
-
-	// Hint
-	if e.Hint != "" {
-		b.WriteString("\n  Hint: ")
-		b.WriteString(e.Hint)
-	}
-
-	return b.String()
+// The Jsonic-style helpers (Make, Parse, MakeJSON) are a legacy
+// compatibility layer that installs this same plugin.
+func Grammar(j *Jsonic, opts map[string]any) error {
+	j.SetOptions(jsonicOptions())
+	return grammarPlugin(j, opts)
 }
 
-// errsite generates a source code extract showing the error location,
-// matching the TypeScript errsite() function output format.  When color
-// is active, line-number gutters and the caret row are wrapped in the
-// configured ANSI Line/Reset codes.
-func errsite(src, sub, msg string, row, col int, color ColorConfig) string {
-	if row < 1 {
-		row = 1
+// grammarPlugin installs the relaxed-JSON rules without applying jsonic's
+// option branding. It is what the legacy Make registers (Make applies the
+// branding as a base option, before caller options, so a caller-supplied
+// errmsg.name wins). The decoration guard makes it idempotent under the
+// engine's SetOptions plugin re-run while still letting Derive build the
+// grammar fresh on a child.
+func grammarPlugin(j *Jsonic, _ map[string]any) error {
+	if mark, _ := j.Decoration(grammarMark).(bool); mark {
+		return nil
 	}
-	if col < 1 {
-		col = 1
-	}
-
-	_, _, line, reset := color.Codes()
-
-	lines := strings.Split(src, "\n")
-
-	// row is 1-based, convert to 0-based index
-	lineIdx := row - 1
-	if lineIdx >= len(lines) {
-		lineIdx = len(lines) - 1
-	}
-
-	// Determine padding width based on largest line number shown
-	maxLineNum := row + 2
-	pad := len(strconv.Itoa(maxLineNum)) + 2
-
-	// Build context lines: 2 before, error line, caret line, 2 after
-	var result []string
-
-	ln := func(num int, text string) string {
-		numStr := strconv.Itoa(num)
-		return line + strings.Repeat(" ", pad-len(numStr)) + numStr + " | " + reset + text
-	}
-
-	// 2 lines before
-	if lineIdx-2 >= 0 {
-		result = append(result, ln(row-2, lines[lineIdx-2]))
-	}
-	if lineIdx-1 >= 0 {
-		result = append(result, ln(row-1, lines[lineIdx-1]))
-	}
-
-	// Error line
-	if lineIdx >= 0 && lineIdx < len(lines) {
-		result = append(result, ln(row, lines[lineIdx]))
-	}
-
-	// Caret line
-	caretCount := len(sub)
-	if caretCount < 1 {
-		caretCount = 1
-	}
-	indent := strings.Repeat(" ", pad) + "   " + strings.Repeat(" ", col-1)
-	result = append(result, indent+line+strings.Repeat("^", caretCount)+" "+msg+reset)
-
-	// 2 lines after
-	if lineIdx+1 < len(lines) {
-		result = append(result, ln(row+1, lines[lineIdx+1]))
-	}
-	if lineIdx+2 < len(lines) {
-		result = append(result, ln(row+2, lines[lineIdx+2]))
-	}
-
-	return strings.Join(result, "\n")
+	j.Decorate(grammarMark, true)
+	buildGrammar(j.RSM(), j.Config())
+	return nil
 }
 
-// makeJsonicError creates a JsonicError with the proper Detail message.
-// The colour palette defaults to disabled (zero-value ColorConfig); for
-// parser-path errors use (*Parser).makeError instead, which injects the
-// resolved palette from config.
-func makeJsonicError(code, src, fullSource string, pos, row, col int) *JsonicError {
-	tmpl, ok := errorMessages[code]
-	if !ok {
-		tmpl = errorMessages["unknown"]
-	}
-	detail := tmpl + src
-
-	return &JsonicError{
-		Code:       code,
-		Detail:     detail,
-		Pos:        pos,
-		Row:        row,
-		Col:        col,
-		Src:        src,
-		fullSource: fullSource,
-	}
+// init registers jsonic as the engine's text parser so SetOptionsText and
+// GrammarText (which parse a jsonic-format options/grammar string) work —
+// the grammar-free engine has no parser of its own.
+func init() {
+	tabnas.RegisterTextParser(func(src string) (any, error) {
+		return Make().Parse(src)
+	})
 }
 
-// Parse parses a jsonic string and returns the resulting Go value.
-// The returned value can be:
-//   - map[string]any for objects
-//   - []any for arrays
-//   - float64 for numbers
-//   - string for strings
-//   - bool for booleans
-//   - nil for null or empty input
-//
-// Returns a *JsonicError if the input contains a syntax error.
+// Make creates a relaxed-JSON parser instance: a tabnas engine with the
+// jsonic grammar plugin installed, plus any caller options on top.
+// Equivalent to the historic jsonic.make().
+func Make(opts ...Options) *Jsonic {
+	var o Options
+	if len(opts) > 0 {
+		o = opts[0]
+	}
+
+	// Hold back rule include/exclude: they must filter the grammar only
+	// after it is built, not at construction.
+	base := o
+	var inc, exc string
+	if o.Rule != nil {
+		inc, exc = o.Rule.Include, o.Rule.Exclude
+		ruleCopy := *o.Rule
+		ruleCopy.Include = ""
+		ruleCopy.Exclude = ""
+		base.Rule = &ruleCopy
+	}
+
+	// Construct the engine with jsonic's branding as a base and caller
+	// options merged on top (so a caller errmsg.name / tag / lexer setting
+	// wins). Constructing with the merged options means the instance id,
+	// config, and any option-conditional grammar alternates (list.child,
+	// list.pair, …) are all decided against the final settings.
+	merged := Deep(jsonicOptions(), base).(Options)
+	j := tabnas.Make(merged)
+
+	// Register (not just run) the grammar so the engine re-applies it when
+	// deriving a child instance. The relaxed-JSON grammar is a plugin.
+	_ = j.Use(grammarPlugin, nil)
+
+	if inc != "" || exc != "" {
+		j.SetOptions(Options{Rule: &RuleOptions{Include: inc, Exclude: exc}})
+	}
+	return j
+}
+
+// Empty creates a parser instance with the jsonic configuration but no
+// grammar rules, for building a grammar from scratch. Matches the historic
+// jsonic.empty().
+func Empty(opts ...Options) *Jsonic {
+	j := Make(opts...)
+	for _, rs := range j.RSM() {
+		rs.Clear()
+	}
+	return j
+}
+
+// MakeJSON creates an instance configured to accept strict JSON only.
+// Mirrors the TypeScript Jsonic.make('json'): it installs the full jsonic
+// grammar, then restricts it to the json-tagged alternates and disables
+// the lenient lexer features. Rejects unquoted keys/values, comments,
+// hex/octal/binary numbers, trailing commas, leading-zero numbers,
+// single-quoted or backtick strings, and empty input.
+func MakeJSON() *Jsonic {
+	f := false
+	return Make(Options{
+		Text: &TextOptions{Lex: &f},
+		Number: &NumberOptions{
+			Hex: &f, Oct: &f, Bin: &f,
+			Sep: "",
+			Exclude: func(s string) bool {
+				return len(s) >= 2 && s[0] == '0' && s[1] == '0'
+			},
+		},
+		String: &StringOptions{
+			Chars:        `"`,
+			MultiChars:   "",
+			AllowUnknown: &f,
+		},
+		Comment: &CommentOptions{Lex: &f},
+		Map:     &MapOptions{Extend: &f},
+		Lex:     &LexOptions{Empty: &f},
+		Rule: &RuleOptions{
+			Finish:  &f,
+			Include: "json",
+		},
+	})
+}
+
+// Parse parses a jsonic source string with default settings and returns
+// the resulting value, or a *JsonicError on failure.
 func Parse(src string) (any, error) {
-	p := NewParser()
-	return p.Start(src)
-}
-
-// preprocessEscapes replaces literal backslash-n sequences with real newlines, etc.
-// This handles the case where TSV test files contain literal "\n" in the input.
-func preprocessEscapes(s string) string {
-	if len(s) == 0 {
-		return s
-	}
-
-	runes := []rune(s)
-	var out []rune
-	i := 0
-	for i < len(runes) {
-		if runes[i] == '\\' && i+1 < len(runes) {
-			switch runes[i+1] {
-			case 'n':
-				out = append(out, '\n')
-				i += 2
-			case 'r':
-				out = append(out, '\r')
-				i += 2
-			case 't':
-				out = append(out, '\t')
-				i += 2
-			default:
-				out = append(out, runes[i])
-				i++
-			}
-		} else {
-			out = append(out, runes[i])
-			i++
-		}
-	}
-	return string(out)
+	return Make().Parse(src)
 }

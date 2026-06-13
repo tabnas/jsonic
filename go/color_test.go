@@ -11,20 +11,20 @@ func TestColorDefaultsActive(t *testing.T) {
 	// With no Color option supplied, the resolved palette is active and
 	// uses the TS default codes.
 	j := Make()
-	if !j.parser.Config.Color.Active {
+	if !j.Config().Color.Active {
 		t.Fatal("Color.Active should default to true")
 	}
-	if j.parser.Config.Color.Reset != "\x1b[0m" {
-		t.Errorf("Reset: got %q, want %q", j.parser.Config.Color.Reset, "\x1b[0m")
+	if j.Config().Color.Reset != "\x1b[0m" {
+		t.Errorf("Reset: got %q, want %q", j.Config().Color.Reset, "\x1b[0m")
 	}
-	if j.parser.Config.Color.Hi != "\x1b[91m" {
-		t.Errorf("Hi: got %q, want %q", j.parser.Config.Color.Hi, "\x1b[91m")
+	if j.Config().Color.Hi != "\x1b[91m" {
+		t.Errorf("Hi: got %q, want %q", j.Config().Color.Hi, "\x1b[91m")
 	}
-	if j.parser.Config.Color.Lo != "\x1b[2m" {
-		t.Errorf("Lo: got %q, want %q", j.parser.Config.Color.Lo, "\x1b[2m")
+	if j.Config().Color.Lo != "\x1b[2m" {
+		t.Errorf("Lo: got %q, want %q", j.Config().Color.Lo, "\x1b[2m")
 	}
-	if j.parser.Config.Color.Line != "\x1b[34m" {
-		t.Errorf("Line: got %q, want %q", j.parser.Config.Color.Line, "\x1b[34m")
+	if j.Config().Color.Line != "\x1b[34m" {
+		t.Errorf("Line: got %q, want %q", j.Config().Color.Line, "\x1b[34m")
 	}
 }
 

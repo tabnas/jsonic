@@ -3,6 +3,32 @@
 Plugins extend jsonic by modifying the grammar, adding new token types,
 registering custom matchers, or subscribing to parse events.
 
+## jsonic is itself a plugin
+
+jsonic is a grammar plugin for the
+[`tabnas`](https://github.com/tabnas/parser) engine — the engine ships no
+grammar, jsonic supplies the relaxed-JSON one. The idiomatic way to use
+it, and to write plugins that build on it, is at the engine level:
+
+```js
+const { Tabnas } = require('tabnas')
+const { jsonic } = require('jsonic')
+
+const parser = new Tabnas().use(jsonic).use(myPlugin)
+```
+
+A `tabnas` plugin is a function `(tabnas, options) => void` that
+configures the engine instance it is given. Register dependencies first:
+a plugin that builds on jsonic's value/map/list rules must be `use`d
+*after* `jsonic`. To install only the grammar rules (without re-applying
+jsonic's option defaults), call the exported `registerJsonicGrammar(tabnas)`.
+
+The rest of this guide uses the callable `Jsonic` API and its `.use()`
+method, which is a legacy compatibility wrapper around the same engine.
+Plugins written against it receive the callable `Jsonic` instance instead
+of the bare engine, but the rule/token/option methods shown below are the
+same on both.
+
 ## Plugin Structure
 
 A plugin is a function that receives a jsonic instance and optional

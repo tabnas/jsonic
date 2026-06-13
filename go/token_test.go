@@ -56,21 +56,21 @@ func TestResolveVal_LazyFunctionReceivesRuleAndCtx(t *testing.T) {
 // The parser must call it at resolution time, not store the function.
 func TestResolveVal_LazyValueThroughParser(t *testing.T) {
 	matcher := LexMatcher(func(lex *Lex, _ *Rule) *Token {
-		if lex.pnt.SI >= len(lex.Src) || lex.Src[lex.pnt.SI] != '@' {
+		if lex.Cursor().SI >= len(lex.Src) || lex.Src[lex.Cursor().SI] != '@' {
 			return nil
 		}
-		start := lex.pnt.SI
-		lex.pnt.SI++
+		start := lex.Cursor().SI
+		lex.Cursor().SI++
 		return &Token{
 			Name: "#TX",
 			Tin:  TinTX,
-			Src:  lex.Src[start:lex.pnt.SI],
+			Src:  lex.Src[start:lex.Cursor().SI],
 			Val: TokenValFunc(func(r *Rule, ctx *Context) any {
 				return "resolved"
 			}),
 			SI: start,
-			RI: lex.pnt.RI,
-			CI: lex.pnt.CI,
+			RI: lex.Cursor().RI,
+			CI: lex.Cursor().CI,
 		}
 	})
 

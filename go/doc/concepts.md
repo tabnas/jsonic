@@ -6,18 +6,22 @@ it makes, and the mechanics specific to Go. For steps see the
 signatures see the [API reference](api.md). For the behavioral
 TypeScript ↔ Go comparison, see [differences](differences.md).
 
-## One self-contained package
+## A grammar plugin on the tabnas engine
 
-The TypeScript version of jsonic is a grammar layered on the separate
-`tabnas` parsing engine. The Go port is **not** split that way: this
-module bundles a port of the engine *and* the relaxed-JSON grammar into
-a single package with no external dependencies. You `go get` one thing
-and call `jsonic.Parse`.
+Like the TypeScript version, the Go port is a relaxed-JSON **grammar
+plugin** layered on the separate `tabnas` parsing engine — here the Go
+engine module `github.com/tabnas/parser/go`. The engine supplies the
+lexer, parser, rule machinery, options, and error formatting; this module
+supplies the grammar (`jsonic.Grammar`, a `tabnas.Plugin`) and a legacy
+`jsonic.Make`/`jsonic.Parse` API that installs it.
 
-That difference is an implementation detail of packaging, not of
-behavior — the parse results match the canonical TypeScript ones,
-verified by the shared `../ts/test/spec/*.tsv` fixtures that both test
-suites run.
+The standalone, idiomatic form is `tabnas.Make().Use(jsonic.Grammar)`;
+the `jsonic.*` helpers are a thin compatibility layer over it. Splitting
+grammar from engine is what lets other grammar plugins build on jsonic
+(register `jsonic.Grammar` first, then your plugin). The packaging is an
+implementation detail, not a behavior difference — parse results match
+the canonical TypeScript ones, verified by the shared
+`../ts/test/spec/*.tsv` fixtures both test suites run.
 
 ## Two stages: lexer, then parser
 
