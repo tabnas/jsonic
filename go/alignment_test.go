@@ -624,7 +624,7 @@ func TestAlignmentGrammarGTags(t *testing.T) {
 	}
 
 	for _, exp := range expected {
-		rs, ok := j.parser.RSM[exp.name]
+		rs, ok := j.RSM()[exp.name]
 		if !ok {
 			t.Errorf("rule %q not found in grammar", exp.name)
 			continue
@@ -660,7 +660,7 @@ func TestAlignmentExclude(t *testing.T) {
 	j := Make()
 
 	// Count alternates before and after exclude.
-	valSpec := j.parser.RSM["val"]
+	valSpec := j.RSM()["val"]
 	openBefore := len(valSpec.Open)
 	closeBefore := len(valSpec.Close)
 

@@ -228,7 +228,7 @@ func TestCommentSuffixLexMatcherTerminates(t *testing.T) {
 	// terminates the comment body and consumes 2 chars.
 	yes := true
 	matcher := LexMatcher(func(lex *Lex, _ *Rule) *Token {
-		if lex.pnt.SI+2 <= len(lex.Src) && lex.Src[lex.pnt.SI:lex.pnt.SI+2] == "!!" {
+		if lex.Cursor().SI+2 <= len(lex.Src) && lex.Src[lex.Cursor().SI:lex.Cursor().SI+2] == "!!" {
 			return &Token{Src: "!!"}
 		}
 		return nil
@@ -256,7 +256,7 @@ func TestCommentSuffixLexMatcherCannotAdvance(t *testing.T) {
 	// probe does not terminate, and parsing simply proceeds to EOL.
 	yes := true
 	matcher := LexMatcher(func(lex *Lex, _ *Rule) *Token {
-		lex.pnt.SI += 100  // malicious advance
+		lex.Cursor().SI += 100  // malicious advance
 		return &Token{Src: ""}
 	})
 	j := Make(Options{Comment: &CommentOptions{
@@ -319,34 +319,5 @@ func TestCommentSuffixFromTextArray(t *testing.T) {
 	m := out.(map[string]any)
 	if m["c"] != float64(3) {
 		t.Errorf("array-form suffix ignored: %v", m)
-	}
-}
-
-// --- Config-level normalization ---
-
-func TestNormalizeCommentSuffixStringForms(t *testing.T) {
-	strs, fn := normalizeCommentSuffix("abc")
-	if len(strs) != 1 || strs[0] != "abc" || fn != nil {
-		t.Errorf("string form: got %v fn=%v", strs, fn != nil)
-	}
-
-	strs, fn = normalizeCommentSuffix([]string{"a", "bbb", "cc"})
-	// Sorted longest-first, then lexicographic.
-	if len(strs) != 3 || strs[0] != "bbb" || strs[1] != "cc" || strs[2] != "a" {
-		t.Errorf("longest-first sort broken: %v", strs)
-	}
-	if fn != nil {
-		t.Errorf("unexpected fn for string-slice form")
-	}
-}
-
-func TestNormalizeCommentSuffixNilAndEmpty(t *testing.T) {
-	strs, fn := normalizeCommentSuffix(nil)
-	if len(strs) != 0 || fn != nil {
-		t.Errorf("nil should yield empty: %v %v", strs, fn != nil)
-	}
-	strs, fn = normalizeCommentSuffix("")
-	if len(strs) != 0 || fn != nil {
-		t.Errorf("empty string should yield empty: %v %v", strs, fn != nil)
 	}
 }

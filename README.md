@@ -17,11 +17,12 @@ single/backtick quotes, and path diving.
 | **TypeScript / JavaScript** (canonical, `jsonic` on npm) | [`ts/README.md`](ts/README.md) |
 | **Go** (`github.com/jsonicjs/jsonic/go`) | [`go/README.md`](go/README.md) |
 
-The TypeScript package is built on the
-[`tabnas`](https://github.com/tabnas/parser) parsing engine; the Go port
-is a single self-contained module. TypeScript is canonical — both
-runtimes share the conformance fixtures in [`ts/test/spec/`](ts/test/spec/)
-and produce the same parse results.
+Both packages are grammar plugins built on the
+[`tabnas`](https://github.com/tabnas/parser) parsing engine — the
+TypeScript package on the `tabnas` npm package, the Go module on
+`github.com/tabnas/parser/go`. TypeScript is canonical — both runtimes
+share the conformance fixtures in [`ts/test/spec/`](ts/test/spec/) and
+produce the same parse results.
 
 ## Documentation
 

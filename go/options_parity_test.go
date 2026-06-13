@@ -123,7 +123,7 @@ func TestLexCheckCanOverrideResult(t *testing.T) {
 func TestInfoMarkerDefault(t *testing.T) {
 	yes := true
 	j := Make(Options{Info: &InfoOptions{Map: &yes}})
-	if m := j.parser.Config.InfoMarker; m != "__info__" {
+	if m := j.Config().InfoMarker; m != "__info__" {
 		t.Errorf("expected default marker '__info__', got %q", m)
 	}
 }
@@ -131,7 +131,7 @@ func TestInfoMarkerDefault(t *testing.T) {
 func TestInfoMarkerOverride(t *testing.T) {
 	yes := true
 	j := Make(Options{Info: &InfoOptions{Map: &yes, Marker: "$meta"}})
-	if m := j.parser.Config.InfoMarker; m != "$meta" {
+	if m := j.Config().InfoMarker; m != "$meta" {
 		t.Errorf("expected marker '$meta', got %q", m)
 	}
 }
@@ -142,7 +142,7 @@ func TestInfoMarkerFromText(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if m := j.parser.Config.InfoMarker; m != "$$info" {
+	if m := j.Config().InfoMarker; m != "$$info" {
 		t.Errorf("expected '$$info', got %q", m)
 	}
 }

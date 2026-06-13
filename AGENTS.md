@@ -10,16 +10,16 @@ backtick-quoted strings, multiline strings, and path diving
 the shared test fixtures encode exactly this behavior.
 
 The parser is a rule-based parser over a configurable matcher-based
-lexer. In TypeScript that engine is the separate `tabnas` package and
-jsonic supplies the grammar; in Go the engine and grammar are bundled
-into one self-contained module.
+lexer. In both runtimes that engine is the separate `tabnas` package and
+jsonic supplies the grammar as a plugin: TypeScript depends on the
+`tabnas` npm package, Go on `github.com/tabnas/parser/go`.
 
 ## Repository map
 
 | Path | What it is |
 |---|---|
 | [`ts/`](ts/) | **Canonical** TypeScript/JavaScript implementation — the `jsonic` npm package. Supplies the relaxed-JSON grammar, the BNF converter, the debug plugin, and the CLIs on top of the [`tabnas`](https://github.com/tabnas/parser) engine (a dependency). |
-| [`go/`](go/) | Go port — a single self-contained module (`github.com/jsonicjs/jsonic/go`) that bundles a port of the engine *and* the grammar. No external dependencies. |
+| [`go/`](go/) | Go port — a grammar plugin (`github.com/jsonicjs/jsonic/go`) for the Go `tabnas` engine (`github.com/tabnas/parser/go`), mirroring the TS split. Supplies `jsonic.Grammar` (a `tabnas.Plugin`) and the legacy `jsonic.Make`/`Parse` API. Depends on a sibling `tabnas/parser` checkout via a `replace` directive (the Go analogue of the TS `file:` dependency). |
 | [`ts/test/spec/`](ts/test/spec/) | Shared `.tsv` conformance fixtures (`input → expected`, or `ERROR:<code>`). Run by both the TypeScript suite and the Go suite. |
 
 ## Authority and alignment rules
