@@ -9,6 +9,11 @@
 
 import type { Plugin } from 'tabnas'
 
+// The standard-JSON grammar core (val / map / list / pair / elem) is
+// provided by the @tabnas/json plugin; jsonic layers its relaxed
+// extensions on top of it instead of re-declaring the JSON grammar.
+import { registerJsonGrammar } from '@tabnas/json'
+
 import { Jsonic, Rule, RuleSpec, Context, Parser, FuncRef } from './jsonic'
 
 import { defaults } from './defaults'
@@ -72,195 +77,54 @@ function grammar(jsonic: Jsonic) {
 
   // Plain JSON
   // ----------
+  //
+  // The standard-JSON rule set (val / map / list / pair / elem) is now
+  // supplied by the @tabnas/json grammar plugin. jsonic installs that
+  // shared core and layers its relaxed extensions on top of it, rather
+  // than re-declaring the JSON grammar here.
+  registerJsonGrammar(jsonic as any)
 
-  jsonic.grammar({
-    ref: {
-      '@finish': (_rule: Rule, ctx: Context) => {
-        if (!ctx.cfg.rule.finish) {
-          // TODO: pass missing end char for replacement in error message
-          ctx.t0.err = 'end_of_source'
-          return ctx.t0
-        }
-      },
-
-      // TODO: define a way to "export" rule actions or other functions so that
-      // other plugins can use them.
-      '@pairkey': (r: Rule) => {
-        // Get key string value from first matching token of `Open` state.
-        const key_token = r.o0
-        const key =
-          ST === key_token.tin || TX === key_token.tin
-            ? key_token.val // Was text
-            : key_token.src // Was number, use original text
-
-        r.u.key = key
-      },
-
-      '@val-bo': (rule: Rule) => (rule.node = undefined),
-      '@val-bc': (r: Rule, ctx: Context) => {
-        // NOTE: val can be undefined when there is no value at all
-        // (eg. empty string, thus no matched opening token)
+  // @tabnas/json wires a strict @val-bc that overwrites the value node
+  // from the matched token. jsonic's relaxed grammar instead preserves a
+  // node a plugin set in a `val` open-alt action, and treats a value with
+  // no matched token as undefined (implicit null). Replace the val close
+  // action with jsonic's fuller version.
+  jsonic.rule('val', (rs: RuleSpec) => {
+    // The `@val-bc/replace` funcref takes ownership of the val close phase:
+    // it clears @tabnas/json's strict @val-bc and installs jsonic's, and
+    // because the phase is then "replaced" the strict one is not
+    // re-installed by later fnref() calls or on Derive/make().
+    rs.fnref({
+      '@val-bc/replace': (r: Rule, ctx: Context) => {
         r.node =
-          // If there's no node,
-          undefined === r.node
-            ? // ... or no child node (child map or list),
-            undefined === r.child.node
-              ? // ... or no matched tokens,
-              0 === r.os
-                ? // ... then the node has no value
-                undefined
-                : // .. otherwise use the token value
-                (() => {
+        // Keep a node a plugin already set,
+        undefined === r.node
+          ? // else a child map/list node,
+          undefined === r.child.node
+            ? // else the matched scalar token (none -> undefined),
+            0 === r.os
+              ? undefined
+              : (() => {
                   let val = r.o0.resolveVal(r, ctx)
-                  if (ctx.cfg.info.text &&
+                  if (
+                    ctx.cfg.info.text &&
                     typeof val === 'string' &&
-                    (r.o0.tin === ctx.cfg.t.ST || r.o0.tin === ctx.cfg.t.TX)) {
-                    let quote = r.o0.tin === ctx.cfg.t.ST && r.o0.src.length > 0
-                      ? r.o0.src[0] : ''
+                    (r.o0.tin === ctx.cfg.t.ST || r.o0.tin === ctx.cfg.t.TX)
+                  ) {
+                    let quote =
+                      r.o0.tin === ctx.cfg.t.ST && r.o0.src.length > 0
+                        ? r.o0.src[0]
+                        : ''
                     let sv = new String(val)
                     mark(sv, ctx.cfg.info.marker, { quote })
                     val = sv as any
                   }
                   return val
                 })()
-              : r.child.node
-            : r.node
+            : r.child.node
+          : r.node
       },
-
-      '@map-bo': (r: Rule, ctx: Context) => {
-        // Create a new empty map.
-        r.node = Object.create(null)
-        if (ctx.cfg.info.map) {
-          mark(r.node, ctx.cfg.info.marker, { implicit: false, meta: {} })
-        }
-      },
-
-      '@list-bo': (r: Rule, ctx: Context) => {
-        // Create a new empty list.
-        r.node = []
-        if (ctx.cfg.info.list) {
-          mark(r.node, ctx.cfg.info.marker, { implicit: false, meta: {} })
-        }
-      },
-
-      '@pair-bc': (r: Rule, ctx: Context) => {
-        if (r.u.pair) {
-          // Drop keys that match the info marker to preserve metadata.
-          if (ctx.cfg.info.map && r.u.key === ctx.cfg.info.marker) {
-            return
-          }
-          // Store previous value (if any, for extensions).
-          r.u.prev = r.node[r.u.key]
-          r.node[r.u.key] = r.child.node
-        }
-      },
-
-      '@elem-bc': (r: Rule) => {
-        if (true !== r.u.done && undefined !== r.child.node) {
-          r.node.push(r.child.node)
-        }
-      },
-    },
-
-
-    rule: {
-      val: {
-
-        // Opening token alternates.
-        open: [
-          // A map: `{ ...`
-          { s: '#OB', p: 'map', b: 1, g: 'map,json' },
-
-          // A list: `[ ...`
-          { s: '#OS', p: 'list', b: 1, g: 'list,json' },
-
-          // A plain value: `x` `"x"` `1` `true` ....
-          { s: '#VAL', g: 'val,json' },
-        ],
-
-        // Closing token alternates.
-        close: [
-          // End of input.
-          { s: '#ZZ', g: 'end,json' },
-
-          // There's more JSON.
-          { b: 1, g: 'more,json' },
-        ]
-      },
-
-
-      map: {
-        open: [
-          // An empty map: {}.
-          { s: '#OB #CB', b: 1, n: { pk: 0 }, g: 'map,json' },
-
-          // Start matching map key-value pairs: a:1.
-          // Reset counter n.pk as new map (for extensions).
-          { s: '#OB', p: 'pair', n: { pk: 0 }, g: 'map,json,pair' },
-        ],
-        close: [
-          // End of map.
-          { s: '#CB', g: 'end,json' },
-        ],
-      },
-
-
-      list: {
-        open: [
-          // An empty list: [].
-          { s: '#OS #CS', b: 1, g: 'list,json' },
-
-          // Start matching list elements: 1,2.
-          { s: '#OS', p: 'elem', g: 'list,elem,json' },
-        ],
-        close: [
-          // End of map.
-          { s: '#CS', g: 'end,json' },
-        ]
-      },
-
-
-      // sets key:val on node
-      pair: {
-        open: [
-          // Match key-colon start of pair. Marker `pair=true` allows flexibility.
-          {
-            s: '#KEY #CL',
-            p: 'val',
-            u: { pair: true },
-            a: '@pairkey',
-            g: 'map,pair,key,json',
-          },
-        ],
-
-        close: [
-          // Comma means a new pair at same pair-key level.
-          { s: '#CA', r: 'pair', g: 'map,pair,json' },
-
-          // End of map.
-          { s: '#CB', b: 1, g: 'map,pair,json' },
-        ]
-      },
-
-
-      // push onto node
-      elem: {
-        open: [
-          // List elements are values.
-          { p: 'val', g: 'list,elem,val,json' },
-        ],
-
-        close: [
-          // Next element.
-          { s: '#CA', r: 'elem', g: 'list,elem,json' },
-
-          // End of list.
-          { s: '#CS', b: 1, g: 'list,elem,json' },
-        ],
-      },
-
-
-    },
+    })
   })
 
 
@@ -788,6 +652,19 @@ function grammar(jsonic: Jsonic) {
 
       .open(
         [
+          // Re-declare the key alt so it binds jsonic's @pairkey (which
+          // uses the key token's *source* for number and value-keyword
+          // keys, e.g. `1:x` -> "1", `__proto__:1`), replacing the strict
+          // @tabnas/json version that uses the decoded token value. The
+          // `clear` below drops @tabnas/json's pair open alts first.
+          {
+            s: '#KEY #CL',
+            p: 'val',
+            u: { pair: true },
+            a: '@pairkey',
+            g: 'map,pair,key,json',
+          },
+
           // Ignore initial comma: {,a:1.
           { s: '#CA', g: 'map,pair,comma,jsonic' },
 
@@ -799,7 +676,7 @@ function grammar(jsonic: Jsonic) {
             g: 'map,pair,child,jsonic',
           },
         ],
-        { append: true },
+        { append: true, clear: true },
       )
 
       // NOTE: JSON pair.bc runs first, then this bc may override value.

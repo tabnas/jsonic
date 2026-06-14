@@ -43,8 +43,11 @@ That's it. No schema, no struct tags, no ceremony.
 
 jsonic is the relaxed-JSON **grammar plugin** for the
 [`tabnas`](https://github.com/tabnas/parser) engine
-(`github.com/tabnas/parser/go`). The engine ships no grammar; jsonic
-supplies it. Install it on an engine instance the idiomatic way:
+(`github.com/tabnas/parser/go`). The engine ships no grammar; the
+standard-JSON core comes from the
+[`@tabnas/json`](https://github.com/tabnas/json) plugin
+(`github.com/tabnas/json/go`), and jsonic layers its relaxed extensions on
+top of that core. Install it on an engine instance the idiomatic way:
 
 ```go
 import (
@@ -71,11 +74,12 @@ compatibility layer** that installs this same plugin. Reach for them when
 porting existing code; reach for `Use(jsonic.Grammar)` when composing
 grammars.
 
-> **Building from source.** Until `tabnas/parser` publishes a tagged Go
-> module, this module depends on a sibling checkout via a `replace`
-> directive in `go.mod` (the same development model the TypeScript package
-> uses). Clone `https://github.com/tabnas/parser.git` next to this repo so
-> the engine resolves at `../../parser/go`.
+> **Building from source.** Until `tabnas/parser` and `tabnas/json`
+> publish tagged Go modules, this module depends on sibling checkouts via
+> `replace` directives in `go.mod` (the same development model the
+> TypeScript package uses). Clone `https://github.com/tabnas/parser.git`
+> and `https://github.com/tabnas/json.git` next to this repo so they
+> resolve at `../../parser/go` and `../../json/go`.
 
 ## Configured Instance
 

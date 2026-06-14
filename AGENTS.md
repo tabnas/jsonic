@@ -11,8 +11,11 @@ the shared test fixtures encode exactly this behavior.
 
 The parser is a rule-based parser over a configurable matcher-based
 lexer. In both runtimes that engine is the separate `tabnas` package and
-jsonic supplies the grammar as a plugin: TypeScript depends on the
-`tabnas` npm package, Go on `github.com/tabnas/parser/go`.
+jsonic supplies the grammar as a plugin. The standard-JSON grammar core
+comes from the separate [`@tabnas/json`](https://github.com/tabnas/json)
+plugin; jsonic layers its relaxed extensions on top. So jsonic depends on
+two plugins: the `tabnas` engine and `@tabnas/json` (npm packages in TS;
+`github.com/tabnas/parser/go` and `github.com/tabnas/json/go` in Go).
 
 ## Repository map
 

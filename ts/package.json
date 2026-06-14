@@ -52,6 +52,7 @@
     "./debug": "./dist/debug.js"
   },
   "dependencies": {
+    "@tabnas/json": "file:../../json/ts",
     "tabnas": "file:../../parser/ts"
   },
   "devDependencies": {
