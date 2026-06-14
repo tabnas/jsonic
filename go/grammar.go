@@ -368,20 +368,33 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 		return alts
 	}
 
-	// ====== VAL rule ======
-	valSpec := &RuleSpec{Name: "val"}
+	// The standard-JSON core (val / map / list / pair / elem) was installed
+	// by tjson.RegisterJSONGrammar before buildGrammar runs. Read those rules
+	// so jsonic reuses @tabnas/json's alternates and base actions and weaves
+	// its relaxed extensions around them, rather than re-declaring the JSON
+	// grammar here.
+	jsonVal := rsm["val"]
+	jsonMap := rsm["map"]
+	jsonList := rsm["list"]
+	jsonElem := rsm["elem"]
 
-	valSpec.BO = []StateAction{ref["@val-bo"].(StateAction)}
+	// ====== VAL rule ======
+	// Reuse @tabnas/json's @val-bo (node = Undefined); replace its strict
+	// @val-bc with jsonic's fuller one (preserves plugin-set nodes and
+	// implicit-null empty values).
+	valSpec := &RuleSpec{Name: "val"}
+	valSpec.BO = jsonVal.BO
 	valSpec.BC = []StateAction{ref["@val-bc"].(StateAction)}
 
-	valOpen := resolve([]*GrammarAltSpec{
-		{S: "#OB", P: "map", B: 1, G: "map,json"},
-		{S: "#OS", P: "list", B: 1, G: "list,json"},
+	// Open: json [OB->map, OS->list, VAL] with jsonic's pair-key/dive alts
+	// woven in before VAL and the implicit map/list alts appended after.
+	jvo := jsonVal.Open
+	valOpen := []*AltSpec{jvo[0], jvo[1]}
+	valOpen = append(valOpen, resolve([]*GrammarAltSpec{
 		{S: "#KEY #CL", C: map[string]any{"d": 0}, P: "map", B: 2, G: "pair,jsonic,top"},
 		{S: "#KEY #CL", P: "map", B: 2, N: map[string]int{"pk": 1}, G: "pair,jsonic"},
-		{S: "#VAL", G: "val,json"},
-	})
-	// CB|CS in single slot:
+	})...)
+	valOpen = append(valOpen, jvo[2])
 	valOpen = append(valOpen, ResolveGrammarAltStatic(
 		&GrammarAltSpec{S: []string{"#CB #CS"}, C: map[string]any{"d": CGt(0)}, B: 1, G: "val,imp,null,jsonic"}, ref))
 	valOpen = append(valOpen, resolve([]*GrammarAltSpec{
@@ -391,10 +404,10 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 	})...)
 	valSpec.Open = valOpen
 
-	valClose := resolve([]*GrammarAltSpec{
-		{S: "#ZZ", G: "end,json"},
-	})
-	// CB|CS in single slot:
+	// Close: json [ZZ, more] with jsonic's implicit-list close alts woven
+	// between them.
+	jvc := jsonVal.Close
+	valClose := []*AltSpec{jvc[0]}
 	valClose = append(valClose, ResolveGrammarAltStatic(
 		&GrammarAltSpec{S: []string{"#CB #CS"}, B: 1, E: "@val-close-err", G: "val,json,close"}, ref))
 	valClose = append(valClose, resolve([]*GrammarAltSpec{
@@ -403,34 +416,32 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 		{C: map[string]any{"n.dlist": CLte(0), "n.dmap": CLte(0)},
 			R: "list", U: map[string]any{"implist": true}, B: 1, G: "list,val,imp,space,jsonic"},
 		{S: "#ZZ", G: "jsonic"},
-		{B: 1, G: "more,json"},
 	})...)
+	valClose = append(valClose, jvc[1])
 	valSpec.Close = valClose
 
 	// ====== MAP rule ======
+	// Reuse json's @map-bo (create node) and @map-bc (MapRef implicit), and
+	// append jsonic's depth counter to bo.
 	mapSpec := &RuleSpec{Name: "map"}
+	mapSpec.BO = append(append([]StateAction{}, jsonMap.BO...), ref["@map-bo-jsonic"].(StateAction))
+	mapSpec.BC = jsonMap.BC
 
-	mapSpec.BO = []StateAction{
-		ref["@map-bo"].(StateAction),
-		ref["@map-bo-jsonic"].(StateAction),
+	jmo := jsonMap.Open
+	mapOpen := []*AltSpec{
+		ResolveGrammarAltStatic(&GrammarAltSpec{S: "#OB #ZZ", B: 1, E: "@finish", G: "end,jsonic"}, ref),
 	}
-	mapSpec.BC = []StateAction{ref["@map-bc"].(StateAction)}
+	mapOpen = append(mapOpen, jmo[0], jmo[1])
+	mapOpen = append(mapOpen, ResolveGrammarAltStatic(
+		&GrammarAltSpec{S: "#KEY #CL", P: "pair", B: 2, G: "pair,list,val,imp,jsonic"}, ref))
+	mapSpec.Open = mapOpen
 
-	mapSpec.Open = resolve([]*GrammarAltSpec{
-		{S: "#OB #ZZ", B: 1, E: "@finish", G: "end,jsonic"},
-		{S: "#OB #CB", B: 1, N: map[string]int{"pk": 0}, G: "map,json"},
-		{S: "#OB", P: "pair", N: map[string]int{"pk": 0}, G: "map,json,pair"},
-		{S: "#KEY #CL", P: "pair", B: 2, G: "pair,list,val,imp,jsonic"},
-	})
-
-	// For map.Close, we need to merge token sets for the third alt.
-	// "#CA #CS" + VAL tokens in a single slot → need raw AltSpec for that one.
+	// Close is jsonic's (json's single CB close is replaced by the
+	// path-aware variants).
 	mapClose := resolve([]*GrammarAltSpec{
 		{S: "#CB", C: map[string]any{"n.pk": CLte(0)}, G: "end,json"},
 		{S: "#CB", B: 1, G: "path,jsonic"},
-		// slot 0 = merge(CA, CS, VAL) — handled below
 	})
-	// Third alt: CA|CS|VAL tokens in single slot
 	mapClose = append(mapClose, ResolveGrammarAltStatic(
 		&GrammarAltSpec{S: []string{"#CA #CS #VAL"}, B: 1, G: "end,path,jsonic"}, ref))
 	mapClose = append(mapClose, ResolveGrammarAltStatic(
@@ -438,34 +449,34 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 	mapSpec.Close = mapClose
 
 	// ====== LIST rule ======
+	// Reuse json's @list-bo (create node); append jsonic's depth/implist
+	// handling. Replace @list-bc with jsonic's (adds child$ handling).
 	listSpec := &RuleSpec{Name: "list"}
-
-	listSpec.BO = []StateAction{
-		ref["@list-bo"].(StateAction),
-		ref["@list-bo-jsonic"].(StateAction),
-	}
+	listSpec.BO = append(append([]StateAction{}, jsonList.BO...), ref["@list-bo-jsonic"].(StateAction))
 	listSpec.BC = []StateAction{ref["@list-bc"].(StateAction)}
 
-	// First alt uses a condition function directly (not declarative).
+	jlo := jsonList.Open
 	listOpen := []*AltSpec{
 		ResolveGrammarAltStatic(&GrammarAltSpec{C: "@implist-cond", P: "elem"}, ref),
 	}
+	listOpen = append(listOpen, jlo[0], jlo[1])
 	listOpen = append(listOpen, resolve([]*GrammarAltSpec{
-		{S: "#OS #CS", B: 1, G: "list,json"},
-		{S: "#OS", P: "elem", G: "list,elem,json"},
 		{S: "#CA", P: "elem", B: 1, G: "list,elem,val,imp,jsonic"},
 		{P: "elem", G: "list,elem,jsonic"},
 	})...)
 	listSpec.Open = listOpen
 
-	listSpec.Close = resolve([]*GrammarAltSpec{
-		{S: "#CS", G: "end,json"},
-		{S: "#ZZ", E: "@finish", G: "end,jsonic"},
-	})
+	jlc := jsonList.Close
+	listSpec.Close = []*AltSpec{
+		jlc[0],
+		ResolveGrammarAltStatic(&GrammarAltSpec{S: "#ZZ", E: "@finish", G: "end,jsonic"}, ref),
+	}
 
 	// ====== PAIR rule ======
+	// jsonic supplies its own pair rule: the key alt binds jsonic's @pairkey
+	// (number/keyword keys use the token source) over the KEY token set, not
+	// json's strict string-only @pairkey.
 	pairSpec := &RuleSpec{Name: "pair"}
-
 	pairSpec.BC = []StateAction{
 		ref["@pair-bc-json"].(StateAction),
 		ref["@pair-bc-jsonic"].(StateAction),
@@ -491,12 +502,9 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 		{S: "#CA", C: map[string]any{"n.dmap": CLte(1)}, R: "pair", G: "map,pair,jsonic"},
 		{S: "#KEY", C: map[string]any{"n.dmap": CLte(1)}, R: "pair", B: 1, G: "map,pair,imp,jsonic"},
 	})
-
-	// CB|CA|CS|KEY in single slot
 	pairSpec.Close = append(pairSpec.Close, ResolveGrammarAltStatic(
 		&GrammarAltSpec{S: []string{"#CB #CA #CS #KEY"}, C: map[string]any{"n.pk": CGt(0)},
 			B: 1, G: "map,pair,imp,path,jsonic"}, ref))
-	// Remaining pair close alts.
 	pairSpec.Close = append(pairSpec.Close, resolve([]*GrammarAltSpec{
 		{S: "#CS", E: "@elem-close-err", G: "end,jsonic"},
 		{S: "#ZZ", E: "@finish", G: "map,pair,json"},
@@ -504,8 +512,9 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 	})...)
 
 	// ====== ELEM rule ======
+	// jsonic's relaxed element rule; reuse json's plain value alt as the
+	// final open alternate.
 	elemSpec := &RuleSpec{Name: "elem"}
-
 	elemSpec.BC = []StateAction{
 		ref["@elem-bc-json"].(StateAction),
 		ref["@elem-bc-pair"].(StateAction),
@@ -528,12 +537,10 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 				U: map[string]any{"done": true, "child": true, "list": true},
 				G: "elem,child,jsonic"}, ref))
 	}
-	elemOpen = append(elemOpen, ResolveGrammarAltStatic(
-		&GrammarAltSpec{P: "val", G: "list,elem,val,json"}, ref))
+	elemOpen = append(elemOpen, jsonElem.Open[0])
 	elemSpec.Open = elemOpen
 
 	elemClose := []*AltSpec{
-		// CA in slot 0, CS|ZZ in slot 1:
 		ResolveGrammarAltStatic(&GrammarAltSpec{S: []string{"#CA", "#CS #ZZ"}, B: 1, G: "list,elem,comma,jsonic"}, ref),
 	}
 	elemClose = append(elemClose, resolve([]*GrammarAltSpec{

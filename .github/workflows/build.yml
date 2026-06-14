@@ -18,8 +18,9 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-    # jsonic is a grammar plugin for the tabnas engine; check both out as
-    # siblings so the `tabnas` file: dependency (../../parser/ts) resolves.
+    # jsonic is a grammar plugin built on the tabnas engine and the
+    # @tabnas/json standard-JSON grammar. Check all three out as siblings
+    # so the file: dependencies (../../parser/ts, ../../json/ts) resolve.
     - uses: actions/checkout@v4
       with:
         path: jsonic
@@ -27,13 +28,19 @@ jobs:
       with:
         repository: tabnas/parser
         path: parser
+    - uses: actions/checkout@v4
+      with:
+        repository: tabnas/json
+        path: json
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
-    # Build the tabnas engine first so jsonic can resolve and import it.
+    # Build the engine, then the JSON grammar plugin, then jsonic.
     - run: npm i && npm run build
       working-directory: ./parser/ts
+    - run: npm i && npm run build
+      working-directory: ./json/ts
     - run: npm i
       working-directory: ./jsonic/ts
     - run: npm run build --if-present
@@ -52,8 +59,9 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-    # The Go module depends on github.com/tabnas/parser/go via a replace
-    # directive (../../parser/go), so check the engine out as a sibling.
+    # The Go module depends on github.com/tabnas/parser/go and
+    # github.com/tabnas/json/go via replace directives (../../parser/go,
+    # ../../json/go), so check both engines out as siblings.
     - uses: actions/checkout@v4
       with:
         path: jsonic
@@ -61,6 +69,10 @@ jobs:
       with:
         repository: tabnas/parser
         path: parser
+    - uses: actions/checkout@v4
+      with:
+        repository: tabnas/json
+        path: json
     - name: Set up Go
       uses: actions/setup-go@v5
       with:

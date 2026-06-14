@@ -3,6 +3,7 @@
 package jsonic
 
 import (
+	tjson "github.com/tabnas/json/go"
 	tabnas "github.com/tabnas/parser/go"
 )
 
@@ -58,6 +59,10 @@ func grammarPlugin(j *Jsonic, _ map[string]any) error {
 		return nil
 	}
 	j.Decorate(grammarMark, true)
+	// Install the standard-JSON grammar core (val / map / list / pair /
+	// elem) from the @tabnas/json plugin, then layer jsonic's relaxed
+	// extensions on top of it.
+	tjson.RegisterJSONGrammar(j)
 	buildGrammar(j.RSM(), j.Config())
 	return nil
 }

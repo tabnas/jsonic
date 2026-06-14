@@ -18,9 +18,11 @@ single/backtick quotes, and path diving.
 | **Go** (`github.com/jsonicjs/jsonic/go`) | [`go/README.md`](go/README.md) |
 
 Both packages are grammar plugins built on the
-[`tabnas`](https://github.com/tabnas/parser) parsing engine — the
-TypeScript package on the `tabnas` npm package, the Go module on
-`github.com/tabnas/parser/go`. TypeScript is canonical — both runtimes
+[`tabnas`](https://github.com/tabnas/parser) parsing engine, layering
+jsonic's relaxed syntax on the standard-JSON core supplied by the
+[`@tabnas/json`](https://github.com/tabnas/json) plugin (TypeScript uses
+the npm packages, Go uses `github.com/tabnas/parser/go` and
+`github.com/tabnas/json/go`). TypeScript is canonical — both runtimes
 share the conformance fixtures in [`ts/test/spec/`](ts/test/spec/) and
 produce the same parse results.
 

@@ -3,17 +3,21 @@
 A Go port of jsonic, the relaxed-JSON parser: `jsonic.Parse("a:1, b:2")`
 just works. Like the TypeScript package, this is a **grammar plugin for
 the `tabnas` engine** (`github.com/tabnas/parser/go`), not a standalone
-parser. The engine ships no grammar; this module supplies the
-relaxed-JSON one (`jsonic.Grammar`, a `tabnas.Plugin`) plus a legacy
-`jsonic.Make`/`jsonic.Parse` API on top of it.
+parser. The engine ships no grammar; the standard-JSON core
+(`val`/`map`/`list`/`pair`/`elem`) comes from the
+[`@tabnas/json`](https://github.com/tabnas/json) plugin
+(`github.com/tabnas/json/go`) via `RegisterJSONGrammar`. This module
+layers jsonic's *relaxed* extensions on that core, exposing
+`jsonic.Grammar` (a `tabnas.Plugin`) plus a legacy `jsonic.Make` /
+`jsonic.Parse` API on top of it.
 
 **Dependency / build.** `go.mod` requires `github.com/tabnas/parser/go`
-with a `replace` directive pointing at a sibling checkout
-(`../../parser/go`) — the same development model the TS package uses for
-`tabnas` (`file:../../parser/ts`). Clone
-`https://github.com/tabnas/parser.git` next to this repo before building.
-There is no `go.sum` entry for the engine while the dependency is a local
-`replace`.
+and `github.com/tabnas/json/go`, each with a `replace` directive pointing
+at a sibling checkout (`../../parser/go`, `../../json/go`) — the same
+development model the TS package uses for `tabnas` and `@tabnas/json`
+(`file:` deps). Clone `https://github.com/tabnas/parser.git` and
+`https://github.com/tabnas/json.git` next to this repo before building.
+There is no `go.sum` entry while the dependencies are local `replace`s.
 
 ## Authority
 
@@ -58,9 +62,13 @@ three files plus tests:
   `Parse`, the idiomatic `Grammar` plugin (branding + grammar) and the
   internal `grammarPlugin` (grammar only), `jsonicOptions` (the jsonic
   error/identity branding), and `Version`.
-- `grammar.go` — the relaxed-JSON grammar: `buildGrammar` populates the
-  rule-spec map using the engine's exported `ResolveGrammarAltStatic`, and
-  the `node*` helpers operate on plain/`MapRef`/`ListRef` nodes.
+- `grammar.go` — the relaxed-JSON grammar. `grammarPlugin` (in
+  `jsonic.go`) first calls `tjson.RegisterJSONGrammar` to install the
+  standard-JSON core, then `buildGrammar` weaves jsonic's relaxed
+  extensions around json's core alternates (reusing them by reference) and
+  overrides `BO`/`BC` where jsonic needs fuller behavior (the `val` close
+  action, the `pair` key alt's `@pairkey`). The `node*` helpers operate on
+  plain/`MapRef`/`ListRef` nodes.
 - `engine.go` — re-exports the engine's public surface (types, funcs,
   consts, vars) under the historic jsonic names; `Jsonic = tabnas.Tabnas`,
   `JsonicError = tabnas.TabnasError`.
