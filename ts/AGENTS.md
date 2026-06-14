@@ -7,9 +7,12 @@ quotes, multiline strings, and path diving.
 
 The lexer, parser, rule machinery, errors, and utilities are **not**
 here — they live in the [`tabnas`](https://github.com/tabnas/parser)
-engine package, a dependency. This package supplies the grammar and the
-historic `Jsonic` API on top of that engine: a callable parse function
-with the management methods attached as properties.
+engine package, a dependency. The standard-JSON grammar core
+(`val`/`map`/`list`/`pair`/`elem`) is **also** not here: it comes from the
+[`@tabnas/json`](https://github.com/tabnas/json) plugin (a dependency)
+via its `registerJsonGrammar`. This package supplies jsonic's *relaxed*
+extensions on top of that core, and the historic `Jsonic` API: a callable
+parse function with the management methods attached as properties.
 
 ## Layout
 
@@ -19,9 +22,14 @@ with the management methods attached as properties.
   types/constructors for plugin authors, plus the engine class (`Tabnas`)
   and the idiomatic grammar plugin (`jsonic`) / grammar-only helper
   (`registerJsonicGrammar`).
-- `src/grammar.ts` — the relaxed-JSON grammar (the `val`/`map`/`list`/
-  `pair`/`elem` rules), plus the strict-JSON variant selected by
-  `Jsonic.make('json')`. Exports the idiomatic `tabnas` plugin
+- `src/grammar.ts` — installs the standard-JSON core via
+  `registerJsonGrammar` from `@tabnas/json`, then layers jsonic's relaxed
+  extensions on the `val`/`map`/`list`/`pair`/`elem` rules. It re-binds the
+  `val` close action and the `pair` key alt to jsonic's fuller versions
+  (the `@tabnas/json` ones are strict-only: they overwrite plugin-set
+  value nodes and decode number/keyword keys to the wrong type). Also
+  provides the strict-JSON variant selected by `Jsonic.make('json')` and
+  exports the idiomatic `tabnas` plugin
   `jsonic` (apply jsonic option defaults + register grammar) and the
   `registerJsonicGrammar` helper; the legacy `make()` path installs the
   same grammar. The package is **a normal `tabnas` grammar plugin**
@@ -48,8 +56,10 @@ TEST_PATTERN=name npm run test-some
 node --test --experimental-test-coverage test/**/*.test.js
 ```
 
-The `tabnas` dependency is `file:../../parser/ts` — a sibling checkout
-of `tabnas/parser` whose `ts/` package has been built. Tests run
+The `tabnas` (`file:../../parser/ts`) and `@tabnas/json`
+(`file:../../json/ts`) dependencies are sibling checkouts of
+`tabnas/parser` and `tabnas/json` whose `ts/` packages have been built
+(`@tabnas/json` itself depends on the engine as a sibling). Tests run
 against compiled output, so always `npm run build` after editing
 `src/` or `test/*.ts`.
 
