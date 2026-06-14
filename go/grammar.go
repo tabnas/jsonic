@@ -1,9 +1,13 @@
 package jsonic
 
-// buildGrammar populates the default jsonic grammar rules using declarative GrammarAltSpec.
-// This is a faithful port of grammar.ts, matching the exact alternate orderings
-// produced by the JSON phase followed by the Jsonic extension phase.
-func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
+import "fmt"
+
+// buildGrammar layers jsonic's relaxed extensions on the standard-JSON core
+// that @tabnas/json installed (read from rsm). It returns an error rather
+// than panicking if that core is missing or has an unexpected shape (e.g. a
+// @tabnas/json version mismatch), so grammar installation never crashes the
+// caller.
+func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) error {
 	// Named function references for the grammar.
 	// These closures capture cfg for runtime configuration access.
 	ref := map[FuncRef]any{
@@ -253,7 +257,7 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 				return
 			}
 			if cfg.ListPair {
-				key := r.U["key"].(string)
+				key, _ := r.U["key"].(string)
 				val := r.Child.Node
 				if IsUndefined(val) {
 					val = nil
@@ -377,6 +381,23 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 	jsonMap := rsm["map"]
 	jsonList := rsm["list"]
 	jsonElem := rsm["elem"]
+
+	// Guard the shape of the @tabnas/json core we weave around, so a missing
+	// rule or unexpected alternate count returns a clear error instead of an
+	// index-out-of-range panic.
+	for name, rs := range map[string]*RuleSpec{
+		"val": jsonVal, "map": jsonMap, "list": jsonList, "elem": jsonElem,
+	} {
+		if rs == nil {
+			return fmt.Errorf("jsonic: @tabnas/json did not install the %q rule", name)
+		}
+	}
+	if len(jsonVal.Open) < 3 || len(jsonVal.Close) < 2 ||
+		len(jsonMap.Open) < 2 || len(jsonList.Open) < 2 ||
+		len(jsonList.Close) < 1 || len(jsonElem.Open) < 1 {
+		return fmt.Errorf("jsonic: unexpected @tabnas/json grammar shape " +
+			"(val/map/list/elem alternate counts) — incompatible version?")
+	}
 
 	// ====== VAL rule ======
 	// Reuse @tabnas/json's @val-bo (node = Undefined); replace its strict
@@ -557,6 +578,8 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 	rsm["list"] = listSpec
 	rsm["pair"] = pairSpec
 	rsm["elem"] = elemSpec
+
+	return nil
 }
 
 // nodeListAppend appends a value to a list node (plain []any or ListRef).
