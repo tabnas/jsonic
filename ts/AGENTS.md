@@ -24,15 +24,21 @@ parse function with the management methods attached as properties.
   (`registerJsonicGrammar`).
 - `src/grammar.ts` — installs the standard-JSON core via
   `registerJsonGrammar` from `@tabnas/json`, then layers jsonic's relaxed
-  extensions on the `val`/`map`/`list`/`pair`/`elem` rules. It overrides
-  the `val` close action and the `pair` key alt with jsonic's fuller
-  versions (the `@tabnas/json` ones are strict-only: they overwrite
-  plugin-set value nodes and decode number/keyword keys to the wrong
-  type), using the engine's plugin-override API: the `@val-bc/replace`
-  funcref (takes ownership of the close phase so the strict action is not
-  re-installed on later `fnref()`/`make()`/derive) and the `clear` alt-mod
-  on the `pair` open list. Also provides the strict-JSON variant selected
-  by `Jsonic.make('json')` and exports the idiomatic `tabnas` plugin
+  extensions on the `val`/`map`/`list`/`pair`/`elem` rules. **Maintenance
+  hazard:** `@tabnas/json`'s rule actions are strict-only and get
+  simplified over time (dead-branch removal), so jsonic must *own* the
+  close actions whose behavior the relaxed grammar depends on rather than
+  layer over them. It overrides, via the engine's plugin-override API:
+  the `val` close action (`@val-bc/replace` — preserve plugin-set value
+  nodes / implicit-null empty values), the `elem` close action
+  (`@elem-bc/replace` — the strict one pushes every child, double-adding
+  jsonic's `done`-flagged elements; jsonic owns the guarded normal push
+  plus pair/child handling), and the `pair` key alt (`clear` alt-mod on
+  the open list — decode number/keyword keys from the token source).
+  `/replace` takes ownership of a phase so the strict action is not
+  re-installed on later `fnref()`/`make()`/derive. Also provides the
+  strict-JSON variant selected by `Jsonic.make('json')` and exports the
+  idiomatic `tabnas` plugin
   `jsonic` (apply jsonic option defaults + register grammar) and the
   `registerJsonicGrammar` helper; the legacy `make()` path installs the
   same grammar. The package is **a normal `tabnas` grammar plugin**

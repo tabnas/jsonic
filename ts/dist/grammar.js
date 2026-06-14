@@ -662,7 +662,15 @@ function grammar(jsonic) {
         rs
             .fnref({
             ...fnm,
-            '@elem-bc': (r, ctx) => {
+            // Take ownership of the elem close phase: @tabnas/json's strict
+            // @elem-bc pushes every child node, so it would double-add jsonic's
+            // done-flagged elements (implicit nulls, pair, child). Replace it
+            // with the full handler — normal push (done-guarded) plus jsonic's
+            // pair/child handling.
+            '@elem-bc/replace': (r, ctx) => {
+                if (true !== r.u.done && undefined !== r.child.node) {
+                    r.node.push(r.child.node);
+                }
                 if (true === r.u.pair) {
                     if (ctx.cfg.list.pair) {
                         // list.pair: push pair as object element into the list
