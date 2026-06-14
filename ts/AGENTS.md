@@ -24,12 +24,15 @@ parse function with the management methods attached as properties.
   (`registerJsonicGrammar`).
 - `src/grammar.ts` — installs the standard-JSON core via
   `registerJsonGrammar` from `@tabnas/json`, then layers jsonic's relaxed
-  extensions on the `val`/`map`/`list`/`pair`/`elem` rules. It re-binds the
-  `val` close action and the `pair` key alt to jsonic's fuller versions
-  (the `@tabnas/json` ones are strict-only: they overwrite plugin-set
-  value nodes and decode number/keyword keys to the wrong type). Also
-  provides the strict-JSON variant selected by `Jsonic.make('json')` and
-  exports the idiomatic `tabnas` plugin
+  extensions on the `val`/`map`/`list`/`pair`/`elem` rules. It overrides
+  the `val` close action and the `pair` key alt with jsonic's fuller
+  versions (the `@tabnas/json` ones are strict-only: they overwrite
+  plugin-set value nodes and decode number/keyword keys to the wrong
+  type), using the engine's plugin-override API: the `@val-bc/replace`
+  funcref (takes ownership of the close phase so the strict action is not
+  re-installed on later `fnref()`/`make()`/derive) and the `clear` alt-mod
+  on the `pair` open list. Also provides the strict-JSON variant selected
+  by `Jsonic.make('json')` and exports the idiomatic `tabnas` plugin
   `jsonic` (apply jsonic option defaults + register grammar) and the
   `registerJsonicGrammar` helper; the legacy `make()` path installs the
   same grammar. The package is **a normal `tabnas` grammar plugin**

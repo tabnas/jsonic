@@ -90,11 +90,13 @@ function grammar(jsonic: Jsonic) {
   // no matched token as undefined (implicit null). Replace the val close
   // action with jsonic's fuller version.
   jsonic.rule('val', (rs: RuleSpec) => {
-    // Drop @tabnas/json's strict @val-bc; install jsonic's below. (State
-    // actions accumulate, so the strict one must be removed, not layered.)
-    ;(rs as any).def.bc.length = 0
-    rs.bc((r: Rule, ctx: Context) => {
-      r.node =
+    // The `@val-bc/replace` funcref takes ownership of the val close phase:
+    // it clears @tabnas/json's strict @val-bc and installs jsonic's, and
+    // because the phase is then "replaced" the strict one is not
+    // re-installed by later fnref() calls or on Derive/make().
+    rs.fnref({
+      '@val-bc/replace': (r: Rule, ctx: Context) => {
+        r.node =
         // Keep a node a plugin already set,
         undefined === r.node
           ? // else a child map/list node,
@@ -121,6 +123,7 @@ function grammar(jsonic: Jsonic) {
                 })()
             : r.child.node
           : r.node
+      },
     })
   })
 
@@ -653,7 +656,7 @@ function grammar(jsonic: Jsonic) {
           // uses the key token's *source* for number and value-keyword
           // keys, e.g. `1:x` -> "1", `__proto__:1`), replacing the strict
           // @tabnas/json version that uses the decoded token value. The
-          // `delete: [0]` below removes that strict alt.
+          // `clear` below drops @tabnas/json's pair open alts first.
           {
             s: '#KEY #CL',
             p: 'val',
@@ -673,7 +676,7 @@ function grammar(jsonic: Jsonic) {
             g: 'map,pair,child,jsonic',
           },
         ],
-        { append: true, delete: [0] },
+        { append: true, clear: true },
       )
 
       // NOTE: JSON pair.bc runs first, then this bc may override value.
