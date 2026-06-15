@@ -6,7 +6,7 @@ For full field lists and signatures, follow the links into the
 [API reference](api.md) and [options reference](options.md).
 
 ```js
-const { Jsonic, JsonicError } = require('jsonic')
+const { Jsonic, JsonicError } = require('@tabnas/jsonic')
 ```
 
 ## Parse strict JSON only
@@ -16,10 +16,15 @@ relaxation (unquoted keys, comments, trailing commas, single/backtick
 quotes, hex/octal/binary numbers, empty input):
 
 ```js
+const { Jsonic } = require('@tabnas/jsonic')
 const json = Jsonic.make('json')
 
-json('{"a":1}')   // { a: 1 }
-json('a:1')        // throws JsonicError — unquoted key rejected
+json('{"a":1}')   // => { a: 1 }
+
+// `json('a:1')` throws — an unquoted key is rejected:
+let threw = false
+try { json('a:1') } catch (e) { threw = true }
+threw             // => true
 ```
 
 ## Keep numbers as strings
@@ -27,9 +32,10 @@ json('a:1')        // throws JsonicError — unquoted key rejected
 Turn the number matcher off so numeric-looking values stay text:
 
 ```js
+const { Jsonic } = require('@tabnas/jsonic')
 const j = Jsonic.make({ number: { lex: false } })
 
-j('a:1, b:2')      // { a: '1', b: '2' }
+j('a:1, b:2')      // => { a: '1', b: '2' }
 ```
 
 To keep numbers but drop one format, set `number.hex`, `number.oct`, or
@@ -38,10 +44,15 @@ To keep numbers but drop one format, set `number.hex`, `number.oct`, or
 ## Disable comments
 
 ```js
+const { Jsonic } = require('@tabnas/jsonic')
 const j = Jsonic.make({ comment: { lex: false } })
 
-j('a:1')           // { a: 1 }
-j('a:1 # x')       // throws — `#` is no longer a comment
+j('a:1')           // => { a: 1 }
+
+// `j('a:1 # x')` throws — `#` is no longer a comment:
+let threw = false
+try { j('a:1 # x') } catch (e) { threw = true }
+threw              // => true
 ```
 
 ## Add a keyword
@@ -49,11 +60,12 @@ j('a:1 # x')       // throws — `#` is no longer a comment
 Map a source word to a fixed value with `value.def`:
 
 ```js
+const { Jsonic } = require('@tabnas/jsonic')
 const j = Jsonic.make({
   value: { def: { yes: { val: true }, no: { val: false } } },
 })
 
-j('a: yes, b: no') // { a: true, b: false }
+j('a: yes, b: no') // => { a: true, b: false }
 ```
 
 ## Match a value with a pattern
@@ -63,6 +75,7 @@ under `match.value`. The `match` regex must be anchored with `^`; `val`
 maps the match array to the parsed value:
 
 ```js
+const { Jsonic } = require('@tabnas/jsonic')
 const j = Jsonic.make({
   match: {
     lex: true,
@@ -72,7 +85,7 @@ const j = Jsonic.make({
   },
 })
 
-j('d: 2024-01-15') // { d: Date('2024-01-15') }
+j('d: 2024-01-15') // => { d: new Date('2024-01-15') }
 ```
 
 See the [`match` option](options.md#match).
@@ -84,11 +97,12 @@ parent's configuration and plugins, then merges your overrides on top.
 The parent is left unchanged.
 
 ```js
+const { Jsonic } = require('@tabnas/jsonic')
 const base  = Jsonic.make({ number: { hex: false } })
 const child = base.make({ comment: { lex: false } })
 
-child('0xa')       // '0xa'  — hex still off (inherited), comments off too
-base('0xa')        // '0xa'  — parent unaffected
+child('0xa')       // => '0xa'
+base('0xa')        // => '0xa'
 ```
 
 ## Handle parse errors
@@ -96,13 +110,15 @@ base('0xa')        // '0xa'  — parent unaffected
 A failed parse throws a `JsonicError`. Catch it and read its fields:
 
 ```js
+const { Jsonic, JsonicError } = require('@tabnas/jsonic')
+
 try {
   Jsonic('"abc')   // unterminated string
 } catch (err) {
   if (err instanceof JsonicError) {
-    err.code         // 'unterminated_string'
-    err.lineNumber   // 1   (1-based row of the offending token)
-    err.columnNumber // 1   (1-based column)
+    err.code         // => 'unterminated_string'
+    err.lineNumber   // => 1
+    err.columnNumber // => 1
     err.message      // formatted, multi-line, with source context
   } else {
     throw err
@@ -131,6 +147,7 @@ For step-by-step tracing while developing a grammar, use the debug
 plugin instead:
 
 ```js
-const { Debug } = require('jsonic/debug')
+const { Jsonic } = require('@tabnas/jsonic')
+const { Debug } = require('@tabnas/jsonic/debug')
 const j = Jsonic.make().use(Debug)
 ```

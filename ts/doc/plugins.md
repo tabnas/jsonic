@@ -12,7 +12,7 @@ it, and to write plugins that build on it, is at the engine level:
 
 ```js
 const { Tabnas } = require('@tabnas/parser')
-const { jsonic } = require('jsonic')
+const { jsonic } = require('@tabnas/jsonic')
 
 const parser = new Tabnas().use(jsonic).use(myPlugin)
 ```
@@ -143,6 +143,7 @@ For syntax that doesn't fit the built-in matchers, add a custom lexer matcher
 via the `match` option:
 
 ```js
+const { Jsonic } = require('@tabnas/jsonic')
 const j = Jsonic.make({
   match: {
     lex: true,
@@ -155,7 +156,7 @@ const j = Jsonic.make({
   }
 })
 
-j('d: 2024-01-15')  // { d: Date('2024-01-15') }
+j('d: 2024-01-15')  // => { d: new Date('2024-01-15') }
 ```
 
 ## Subscribing to Events

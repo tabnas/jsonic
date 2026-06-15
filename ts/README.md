@@ -24,9 +24,9 @@ npm install @tabnas/jsonic
 const { Jsonic } = require('@tabnas/jsonic')
 
 // Relaxed syntax, just works
-Jsonic('a:1, b:2')           // {"a": 1, "b": 2}
-Jsonic('x, y, z')            // ["x", "y", "z"]
-Jsonic('{a: {b: 1, c: 2}}') // {"a": {"b": 1, "c": 2}}
+Jsonic('a:1, b:2')           // => { a: 1, b: 2 }
+Jsonic('x, y, z')            // => ['x', 'y', 'z']
+Jsonic('{a: {b: 1, c: 2}}') // => { a: { b: 1, c: 2 } }
 ```
 
 ```ts
@@ -47,7 +47,7 @@ const { Tabnas } = require('@tabnas/parser')
 const { jsonic } = require('@tabnas/jsonic')
 
 const parser = new Tabnas().use(jsonic)
-parser.parse('a:1, b:[x,y,z]')   // { a: 1, b: ['x','y','z'] }
+parser.parse('a:1, b:[x,y,z]')   // => { a: 1, b: ['x','y','z'] }
 ```
 
 Because it is a normal plugin, other grammar plugins can depend on it and
@@ -123,6 +123,7 @@ understand the internals to do it.
 Let's start simple. Create a configured instance with `Jsonic.make()`:
 
 ```js
+const { Jsonic } = require('@tabnas/jsonic')
 const lenient = Jsonic.make({
   comment: { lex: false },         // disable comments
   number: { hex: false },          // disable hex numbers
@@ -131,7 +132,7 @@ const lenient = Jsonic.make({
   }
 })
 
-lenient('yes')  // true
+lenient('yes')  // => true
 ```
 
 Options compose. You turn things off, you turn things on, you define new
@@ -145,6 +146,8 @@ When options aren't enough, plugins let you reach deeper. They can
 modify the grammar, add matchers, or hook into parse events:
 
 ```js
+const { Jsonic } = require('@tabnas/jsonic')
+
 function myPlugin(jsonic, options) {
   // Register a custom fixed token
   jsonic.options({ fixed: { token: { '#TL': '~' } } })
@@ -161,7 +164,7 @@ function myPlugin(jsonic, options) {
 
 const j = Jsonic.make()
 j.use(myPlugin, { tildeValue: 42 })
-j('~')  // 42
+j('~')  // => 42
 ```
 
 Consider what just happened: we invented a new syntax element (`~`),
