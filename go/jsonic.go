@@ -3,6 +3,8 @@
 package jsonic
 
 import (
+	"fmt"
+
 	tjson "github.com/tabnas/json/go"
 	tabnas "github.com/tabnas/parser/go"
 )
@@ -43,7 +45,13 @@ func jsonicOptions() Options {
 //
 // The Jsonic-style helpers (Make, Parse, MakeJSON) are a legacy
 // compatibility layer that installs this same plugin.
-func Grammar(j *Jsonic, opts map[string]any) error {
+func Grammar(j *Jsonic, opts map[string]any) (err error) {
+	// Never let grammar installation panic out of the plugin; report it.
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("jsonic: Grammar plugin failed: %v", r)
+		}
+	}()
 	j.SetOptions(jsonicOptions())
 	return grammarPlugin(j, opts)
 }
@@ -54,7 +62,14 @@ func Grammar(j *Jsonic, opts map[string]any) error {
 // errmsg.name wins). The decoration guard makes it idempotent under the
 // engine's SetOptions plugin re-run while still letting Derive build the
 // grammar fresh on a child.
-func grammarPlugin(j *Jsonic, _ map[string]any) error {
+func grammarPlugin(j *Jsonic, _ map[string]any) (err error) {
+	// Convert any unexpected panic (e.g. from the @tabnas/json dependency)
+	// into an error so plugin application never crashes the caller.
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("jsonic: grammar installation failed: %v", r)
+		}
+	}()
 	if mark, _ := j.Decoration(grammarMark).(bool); mark {
 		return nil
 	}
@@ -63,8 +78,7 @@ func grammarPlugin(j *Jsonic, _ map[string]any) error {
 	// elem) from the @tabnas/json plugin, then layer jsonic's relaxed
 	// extensions on top of it.
 	tjson.RegisterJSONGrammar(j)
-	buildGrammar(j.RSM(), j.Config())
-	return nil
+	return buildGrammar(j.RSM(), j.Config())
 }
 
 // init registers jsonic as the engine's text parser so SetOptionsText and
@@ -102,11 +116,20 @@ func Make(opts ...Options) *Jsonic {
 	// wins). Constructing with the merged options means the instance id,
 	// config, and any option-conditional grammar alternates (list.child,
 	// list.pair, …) are all decided against the final settings.
-	merged := Deep(jsonicOptions(), base).(Options)
+	merged, ok := Deep(jsonicOptions(), base).(Options)
+	if !ok {
+		// Deep merging two Options always yields Options; fall back rather
+		// than panic on the impossible case.
+		merged = base
+	}
 	j := tabnas.Make(merged)
 
 	// Register (not just run) the grammar so the engine re-applies it when
 	// deriving a child instance. The relaxed-JSON grammar is a plugin.
+	// grammarPlugin never panics (it recovers internally); its error only
+	// fires on an incompatible @tabnas/json core and cannot be surfaced
+	// through Make's legacy *Jsonic signature — use the Grammar plugin
+	// directly (it returns the error) when that matters.
 	_ = j.Use(grammarPlugin, nil)
 
 	if inc != "" || exc != "" {

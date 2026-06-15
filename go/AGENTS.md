@@ -9,14 +9,16 @@ parser. The engine ships no grammar; the standard-JSON core
 (`github.com/tabnas/json/go`) via `RegisterJSONGrammar`. This module
 layers jsonic's *relaxed* extensions on that core, exposing
 `jsonic.Grammar` (a `tabnas.Plugin`) plus a legacy `jsonic.Make` /
-`jsonic.Parse` API on top of it.
+`jsonic.Parse` API on top of it. The `Debug` plugin and `Describe`
+function are re-exported from `@tabnas/debug`
+(`github.com/tabnas/debug/go`); note `Describe` returns `(string, error)`.
 
-**Dependency / build.** `go.mod` requires `github.com/tabnas/parser/go`
-and `github.com/tabnas/json/go`, each with a `replace` directive pointing
-at a sibling checkout (`../../parser/go`, `../../json/go`) — the same
-development model the TS package uses for `tabnas` and `@tabnas/json`
-(`file:` deps). Clone `https://github.com/tabnas/parser.git` and
-`https://github.com/tabnas/json.git` next to this repo before building.
+**Dependency / build.** `go.mod` requires `github.com/tabnas/parser/go`,
+`github.com/tabnas/json/go` and `github.com/tabnas/debug/go`, each with a
+`replace` directive pointing at a sibling checkout (`../../parser/go`,
+`../../json/go`, `../../debug/go`) — the same development model the TS
+package uses (`file:` deps). Clone `tabnas/parser`, `tabnas/json` and
+`tabnas/debug` next to this repo before building.
 There is no `go.sum` entry while the dependencies are local `replace`s.
 
 ## Authority

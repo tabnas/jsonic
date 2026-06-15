@@ -163,7 +163,7 @@ func TestPluginRuleModification(t *testing.T) {
 	upperPlugin := func(j *Jsonic, opts map[string]any) error {
 		j.Rule("val", func(rs *RuleSpec, _ *Parser) {
 			// Add an after-close action that uppercases string nodes.
-			rs.AC = append(rs.AC, func(r *Rule, ctx *Context) {
+			rs.AddAC(func(r *Rule, ctx *Context) {
 				if s, ok := r.Node.(string); ok {
 					r.Node = strings.ToUpper(s)
 				}
@@ -192,17 +192,17 @@ func TestPluginRuleAddAlternate(t *testing.T) {
 
 		// Add a new rule that produces 100.
 		j.Rule("hundred", func(rs *RuleSpec, _ *Parser) {
-			rs.AO = append(rs.AO, func(r *Rule, ctx *Context) {
+			rs.AddAO(func(r *Rule, ctx *Context) {
 				r.Node = float64(100)
 			})
 		})
 
 		// Modify val rule to recognize 'H' and push to "hundred".
 		j.Rule("val", func(rs *RuleSpec, _ *Parser) {
-			rs.Open = append([]*AltSpec{{
+			rs.PrependOpen([]*AltSpec{{
 				S: [][]Tin{{TH}},
 				P: "hundred",
-			}}, rs.Open...)
+			}}...)
 		})
 		return nil
 	}
@@ -498,12 +498,12 @@ func TestMultiCharFixedToken(t *testing.T) {
 	TA := j.Token("#TA", "=>")
 
 	j.Rule("val", func(rs *RuleSpec, _ *Parser) {
-		rs.Open = append([]*AltSpec{{
+		rs.PrependOpen([]*AltSpec{{
 			S: [][]Tin{{TA}},
 			A: func(r *Rule, ctx *Context) {
 				r.Node = "ARROW"
 			},
-		}}, rs.Open...)
+		}}...)
 	})
 
 	result, err := j.Parse("=>")
@@ -524,7 +524,7 @@ func TestMultiCharFixedTokenLongestMatch(t *testing.T) {
 	matchedArrow := false
 
 	j.Rule("val", func(rs *RuleSpec, _ *Parser) {
-		rs.Open = append([]*AltSpec{
+		rs.PrependOpen([]*AltSpec{
 			{
 				S: [][]Tin{{TARROW}},
 				A: func(r *Rule, ctx *Context) {
@@ -539,7 +539,7 @@ func TestMultiCharFixedTokenLongestMatch(t *testing.T) {
 					r.Node = "EQ"
 				},
 			},
-		}, rs.Open...)
+		}...)
 	})
 
 	// "=>" should match the arrow (longer), not just "=".
@@ -863,7 +863,7 @@ func TestExclude(t *testing.T) {
 	// Count alternates with exact "json" group tag before exclude.
 	hasJsonGroup := false
 	for _, rs := range j.RSM() {
-		for _, alt := range rs.Open {
+		for _, alt := range rs.OpenAlts() {
 			if hasExactTag(alt.G, "json") {
 				hasJsonGroup = true
 				break
@@ -885,12 +885,12 @@ func TestExclude(t *testing.T) {
 	j.SetOptions(Options{Rule: &RuleOptions{Exclude: "json"}})
 
 	for _, rs := range j.RSM() {
-		for _, alt := range rs.Open {
+		for _, alt := range rs.OpenAlts() {
 			if hasExactTag(alt.G, "json") {
 				t.Errorf("rule %s still has 'json' group alt after Exclude", rs.Name)
 			}
 		}
-		for _, alt := range rs.Close {
+		for _, alt := range rs.CloseAlts() {
 			if hasExactTag(alt.G, "json") {
 				t.Errorf("rule %s still has 'json' close alt after Exclude", rs.Name)
 			}
@@ -904,7 +904,7 @@ func TestExcludeCustomGroup(t *testing.T) {
 	// Add a custom alternate with a group tag.
 	TT := j.Token("#TT", "!")
 	j.Rule("val", func(rs *RuleSpec, _ *Parser) {
-		rs.Open = append(rs.Open, &AltSpec{
+		rs.AddOpen(&AltSpec{
 			S: [][]Tin{{TT}},
 			G: "custom,test",
 			A: func(r *Rule, ctx *Context) { r.Node = "BANG" },
@@ -916,7 +916,7 @@ func TestExcludeCustomGroup(t *testing.T) {
 
 	// The custom alt should be removed.
 	found := false
-	for _, alt := range j.RSM()["val"].Open {
+	for _, alt := range j.RSM()["val"].OpenAlts() {
 		if strings.Contains(alt.G, "custom") {
 			found = true
 		}
@@ -934,7 +934,7 @@ func TestParseMeta(t *testing.T) {
 	// Add a rule action that reads metadata.
 	var capturedMeta map[string]any
 	j.Rule("val", func(rs *RuleSpec, _ *Parser) {
-		rs.AO = append(rs.AO, func(r *Rule, ctx *Context) {
+		rs.AddAO(func(r *Rule, ctx *Context) {
 			capturedMeta = ctx.Meta
 		})
 	})
@@ -1436,14 +1436,12 @@ func TestLexCheckSkipMatcher(t *testing.T) {
 // --- RuleSpec helpers ---
 
 func TestRuleSpecClear(t *testing.T) {
-	rs := &RuleSpec{
-		Name:  "test",
-		Open:  []*AltSpec{{}, {}},
-		Close: []*AltSpec{{}},
-		BO:    []StateAction{func(r *Rule, ctx *Context) {}},
-	}
+	rs := &RuleSpec{Name: "test"}
+	rs.AddOpen(&AltSpec{}, &AltSpec{})
+	rs.AddClose(&AltSpec{})
+	rs.AddBO(func(r *Rule, ctx *Context) {})
 	rs.Clear()
-	if len(rs.Open) != 0 || len(rs.Close) != 0 || len(rs.BO) != 0 {
+	if len(rs.OpenAlts()) != 0 || len(rs.CloseAlts()) != 0 || len(rs.Actions("bo")) != 0 {
 		t.Error("Clear() should empty all slices")
 	}
 }
@@ -1451,10 +1449,10 @@ func TestRuleSpecClear(t *testing.T) {
 func TestRuleSpecAddOpen(t *testing.T) {
 	rs := &RuleSpec{Name: "test"}
 	rs.AddOpen(&AltSpec{P: "a"}, &AltSpec{P: "b"})
-	if len(rs.Open) != 2 {
-		t.Errorf("expected 2 open alts, got %d", len(rs.Open))
+	if len(rs.OpenAlts()) != 2 {
+		t.Errorf("expected 2 open alts, got %d", len(rs.OpenAlts()))
 	}
-	if rs.Open[0].P != "a" || rs.Open[1].P != "b" {
+	if rs.OpenAlts()[0].P != "a" || rs.OpenAlts()[1].P != "b" {
 		t.Error("open alts not in expected order")
 	}
 }
@@ -1463,18 +1461,18 @@ func TestRuleSpecPrependOpen(t *testing.T) {
 	rs := &RuleSpec{Name: "test"}
 	rs.AddOpen(&AltSpec{P: "b"})
 	rs.PrependOpen(&AltSpec{P: "a"})
-	if len(rs.Open) != 2 {
-		t.Errorf("expected 2 open alts, got %d", len(rs.Open))
+	if len(rs.OpenAlts()) != 2 {
+		t.Errorf("expected 2 open alts, got %d", len(rs.OpenAlts()))
 	}
-	if rs.Open[0].P != "a" {
-		t.Errorf("expected first alt 'a', got '%s'", rs.Open[0].P)
+	if rs.OpenAlts()[0].P != "a" {
+		t.Errorf("expected first alt 'a', got '%s'", rs.OpenAlts()[0].P)
 	}
 }
 
 func TestRuleSpecAddClose(t *testing.T) {
 	rs := &RuleSpec{Name: "test"}
 	rs.AddClose(&AltSpec{P: "x"})
-	if len(rs.Close) != 1 || rs.Close[0].P != "x" {
+	if len(rs.CloseAlts()) != 1 || rs.CloseAlts()[0].P != "x" {
 		t.Error("AddClose failed")
 	}
 }
@@ -1483,7 +1481,7 @@ func TestRuleSpecPrependClose(t *testing.T) {
 	rs := &RuleSpec{Name: "test"}
 	rs.AddClose(&AltSpec{P: "b"})
 	rs.PrependClose(&AltSpec{P: "a"})
-	if len(rs.Close) != 2 || rs.Close[0].P != "a" {
+	if len(rs.CloseAlts()) != 2 || rs.CloseAlts()[0].P != "a" {
 		t.Error("PrependClose failed")
 	}
 }
@@ -1496,7 +1494,7 @@ func TestRuleSpecStateActions(t *testing.T) {
 	rs.AddAO(action)
 	rs.AddBC(action)
 	rs.AddAC(action)
-	if len(rs.BO) != 1 || len(rs.AO) != 1 || len(rs.BC) != 1 || len(rs.AC) != 1 {
+	if len(rs.Actions("bo")) != 1 || len(rs.Actions("ao")) != 1 || len(rs.Actions("bc")) != 1 || len(rs.Actions("ac")) != 1 {
 		t.Error("state action addition failed")
 	}
 }
@@ -1508,21 +1506,22 @@ func TestDebugDescribe(t *testing.T) {
 	j.Token("#TL", "~")
 	j.Use(Debug)
 
-	desc := Describe(j)
+	desc, err := Describe(j)
+	if err != nil {
+		t.Fatalf("Describe error: %v", err)
+	}
 	if desc == "" {
 		t.Fatal("Describe returned empty string")
 	}
-	if !strings.Contains(desc, "test-instance") {
-		t.Error("description should contain tag")
-	}
+	// @tabnas/debug's describe lists tokens, rules and alternates.
 	if !strings.Contains(desc, "#TL") {
 		t.Error("description should contain custom token")
 	}
 	if !strings.Contains(desc, "val") {
 		t.Error("description should contain val rule")
 	}
-	if !strings.Contains(desc, "FixedLex: true") {
-		t.Error("description should contain config settings")
+	if !strings.Contains(desc, "TOKENS") || !strings.Contains(desc, "RULES") {
+		t.Error("description should contain the tokens and rules sections")
 	}
 }
 
@@ -1544,7 +1543,7 @@ func TestRuleExcludeFromOptions(t *testing.T) {
 	// Add tagged alternates.
 	TT := j.Token("#TT", "!")
 	j.Rule("val", func(rs *RuleSpec, _ *Parser) {
-		rs.Open = append(rs.Open, &AltSpec{
+		rs.AddOpen(&AltSpec{
 			S: [][]Tin{{TT}},
 			G: "experimental",
 			A: func(r *Rule, ctx *Context) { r.Node = "BANG" },
@@ -1558,7 +1557,7 @@ func TestRuleExcludeFromOptions(t *testing.T) {
 	// Manually add the same alt.
 	TT2 := j2.Token("#TT", "!")
 	j2.Rule("val", func(rs *RuleSpec, _ *Parser) {
-		rs.Open = append(rs.Open, &AltSpec{
+		rs.AddOpen(&AltSpec{
 			S: [][]Tin{{TT2}},
 			G: "experimental",
 			A: func(r *Rule, ctx *Context) { r.Node = "BANG" },
@@ -1568,7 +1567,7 @@ func TestRuleExcludeFromOptions(t *testing.T) {
 
 	// The experimental alt should be excluded.
 	found := false
-	for _, alt := range j2.RSM()["val"].Open {
+	for _, alt := range j2.RSM()["val"].OpenAlts() {
 		if strings.Contains(alt.G, "experimental") {
 			found = true
 		}
@@ -1621,13 +1620,13 @@ func makeTokenPlugin(char, val string) Plugin {
 		j.Rule("val", func(rs *RuleSpec, _ *Parser) {
 			capturedVal := val
 			capturedTT := TT
-			rs.Open = append([]*AltSpec{{
+			rs.PrependOpen([]*AltSpec{{
 				S: [][]Tin{{capturedTT}},
 				G: "cv" + strings.ToLower(capturedVal),
 				A: func(r *Rule, ctx *Context) {
 					r.Node = capturedVal
 				},
-			}}, rs.Open...)
+			}}...)
 		})
 		return nil
 	}
@@ -1882,7 +1881,7 @@ func TestContextInst(t *testing.T) {
 	var capturedInst *Jsonic
 
 	j.Rule("val", func(rs *RuleSpec, _ *Parser) {
-		rs.AO = append(rs.AO, func(r *Rule, ctx *Context) {
+		rs.AddAO(func(r *Rule, ctx *Context) {
 			capturedInst = ctx.Inst
 		})
 	})
@@ -1899,7 +1898,7 @@ func TestContextOpts(t *testing.T) {
 	var capturedOpts *Options
 
 	j.Rule("val", func(rs *RuleSpec, _ *Parser) {
-		rs.AO = append(rs.AO, func(r *Rule, ctx *Context) {
+		rs.AddAO(func(r *Rule, ctx *Context) {
 			capturedOpts = ctx.Opts
 		})
 	})
@@ -1919,7 +1918,7 @@ func TestContextCfg(t *testing.T) {
 	var capturedCfg *LexConfig
 
 	j.Rule("val", func(rs *RuleSpec, _ *Parser) {
-		rs.AO = append(rs.AO, func(r *Rule, ctx *Context) {
+		rs.AddAO(func(r *Rule, ctx *Context) {
 			capturedCfg = ctx.Cfg
 		})
 	})
@@ -1939,7 +1938,7 @@ func TestContextSrc(t *testing.T) {
 	var capturedSrc string
 
 	j.Rule("val", func(rs *RuleSpec, _ *Parser) {
-		rs.AO = append(rs.AO, func(r *Rule, ctx *Context) {
+		rs.AddAO(func(r *Rule, ctx *Context) {
 			capturedSrc = ctx.Src
 		})
 	})
@@ -1957,10 +1956,10 @@ func TestContextU(t *testing.T) {
 	var capturedU map[string]any
 
 	j.Rule("val", func(rs *RuleSpec, _ *Parser) {
-		rs.AO = append(rs.AO, func(r *Rule, ctx *Context) {
+		rs.AddAO(func(r *Rule, ctx *Context) {
 			ctx.U["plugin-data"] = "hello"
 		})
-		rs.AC = append(rs.AC, func(r *Rule, ctx *Context) {
+		rs.AddAC(func(r *Rule, ctx *Context) {
 			capturedU = ctx.U
 		})
 	})
@@ -1980,7 +1979,7 @@ func TestContextMeta(t *testing.T) {
 	var capturedMeta map[string]any
 
 	j.Rule("val", func(rs *RuleSpec, _ *Parser) {
-		rs.AO = append(rs.AO, func(r *Rule, ctx *Context) {
+		rs.AddAO(func(r *Rule, ctx *Context) {
 			capturedMeta = ctx.Meta
 		})
 	})
@@ -2155,11 +2154,11 @@ func TestFixedOptionsTokenViaMake(t *testing.T) {
 func TestModifyOpen(t *testing.T) {
 	j := Make()
 	j.Rule("val", func(rs *RuleSpec, _ *Parser) {
-		origLen := len(rs.Open)
+		origLen := len(rs.OpenAlts())
 		// Delete the first alternate.
 		rs.ModifyOpen(&AltModListOpts{Delete: []int{0}})
-		if len(rs.Open) >= origLen {
-			t.Errorf("expected fewer open alts after delete, got %d (was %d)", len(rs.Open), origLen)
+		if len(rs.OpenAlts()) >= origLen {
+			t.Errorf("expected fewer open alts after delete, got %d (was %d)", len(rs.OpenAlts()), origLen)
 		}
 	})
 }
@@ -2187,7 +2186,7 @@ func TestContextRoot(t *testing.T) {
 	var capturedRoot *Rule
 
 	j.Rule("val", func(rs *RuleSpec, _ *Parser) {
-		rs.AO = append(rs.AO, func(r *Rule, ctx *Context) {
+		rs.AddAO(func(r *Rule, ctx *Context) {
 			capturedRoot = ctx.Root
 		})
 	})
@@ -2210,7 +2209,7 @@ func TestContextSentinels(t *testing.T) {
 	var gotNoRule *Rule
 
 	j.Rule("val", func(rs *RuleSpec, _ *Parser) {
-		rs.AO = append(rs.AO, func(r *Rule, ctx *Context) {
+		rs.AddAO(func(r *Rule, ctx *Context) {
 			gotNoToken = ctx.NOTOKEN
 			gotNoRule = ctx.NORULE
 		})
@@ -2250,7 +2249,7 @@ func TestContextF(t *testing.T) {
 	var formatted string
 
 	j.Rule("val", func(rs *RuleSpec, _ *Parser) {
-		rs.AO = append(rs.AO, func(r *Rule, ctx *Context) {
+		rs.AddAO(func(r *Rule, ctx *Context) {
 			if ctx.F != nil {
 				formatted = ctx.F("hello")
 			}
@@ -2360,9 +2359,9 @@ func TestEmpty(t *testing.T) {
 	j := Empty()
 	// All rules should be cleared.
 	for name, rs := range j.RSM() {
-		if len(rs.Open) > 0 || len(rs.Close) > 0 {
+		if len(rs.OpenAlts()) > 0 || len(rs.CloseAlts()) > 0 {
 			t.Errorf("Empty() rule %q should have no alts, got %d open, %d close",
-				name, len(rs.Open), len(rs.Close))
+				name, len(rs.OpenAlts()), len(rs.CloseAlts()))
 		}
 	}
 }

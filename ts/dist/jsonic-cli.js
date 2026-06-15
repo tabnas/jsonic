@@ -39,6 +39,8 @@ async function run(argv, console) {
                 args.meta.push(argv[++aI]);
             } //
             else if ('--debug' === arg || '-d' === arg) {
+                // @tabnas/debug's Debug is typed against the bare engine; it runs
+                // fine on the jsonic wrapper (which forwards engine methods).
                 plugins.debug = debug_1.Debug;
                 args.meta.push('log=-1');
             } //

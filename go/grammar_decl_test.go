@@ -527,7 +527,7 @@ func TestGrammarMissingFuncRefReturnsError(t *testing.T) {
 func TestGrammarInjectAppend(t *testing.T) {
 	// With Append: true, new alts go after existing ones.
 	j := Make()
-	origCloseLen := len(j.RSM()["val"].Close)
+	origCloseLen := len(j.RSM()["val"].CloseAlts())
 
 	mustGrammar(t, j, &GrammarSpec{
 		Ref: map[FuncRef]any{
@@ -545,7 +545,7 @@ func TestGrammarInjectAppend(t *testing.T) {
 		},
 	})
 
-	valClose := j.RSM()["val"].Close
+	valClose := j.RSM()["val"].CloseAlts()
 	// The appended alt should be at the end.
 	last := valClose[len(valClose)-1]
 	if last.G != "appended" {
@@ -586,7 +586,7 @@ func TestGrammarInjectPrepend(t *testing.T) {
 		},
 	})
 
-	valClose := j.RSM()["val"].Close
+	valClose := j.RSM()["val"].CloseAlts()
 	// Second prepend goes before first prepend.
 	if valClose[0].G != "second" {
 		t.Errorf("expected first alt group=second, got %q", valClose[0].G)
@@ -701,10 +701,10 @@ func TestSetOptionsPreservesRuleModifications(t *testing.T) {
 	// Add a custom close alt to val via Rule().
 	tagged := false
 	j.Rule("val", func(rs *RuleSpec, _ *Parser) {
-		rs.Close = append([]*AltSpec{{
+		rs.PrependClose([]*AltSpec{{
 			A: func(r *Rule, ctx *Context) { tagged = true },
 			G: "custom-tag",
-		}}, rs.Close...)
+		}}...)
 	})
 
 	// Now call SetOptions — this must NOT destroy the rule modification.
@@ -714,7 +714,7 @@ func TestSetOptionsPreservesRuleModifications(t *testing.T) {
 	})
 
 	// The custom alt should still be in val.Close.
-	valClose := j.RSM()["val"].Close
+	valClose := j.RSM()["val"].CloseAlts()
 	found := false
 	for _, alt := range valClose {
 		if alt.G == "custom-tag" {
@@ -777,14 +777,14 @@ func TestRuleThenOptionsThenParse(t *testing.T) {
 
 	customVal := ""
 	j.Rule("val", func(rs *RuleSpec, _ *Parser) {
-		rs.Close = append([]*AltSpec{{
+		rs.PrependClose([]*AltSpec{{
 			A: func(r *Rule, ctx *Context) {
 				if s, ok := r.Node.(string); ok {
 					customVal = s
 				}
 			},
 			G: "plugin-mod",
-		}}, rs.Close...)
+		}}...)
 	})
 
 	// Options change after rule modification — must not lose the modification.
@@ -1460,7 +1460,7 @@ func TestGrammarTextRulesWithFuncRef(t *testing.T) {
 
 	// Verify the rule alt was added.
 	found := false
-	for _, alt := range j.RSM()["val"].Close {
+	for _, alt := range j.RSM()["val"].CloseAlts() {
 		if alt.G == "custom-from-text" {
 			found = true
 			break
@@ -1583,7 +1583,7 @@ func TestGrammarTextThenSetOptionsPreserved(t *testing.T) {
 
 	// Rule alt from GrammarText should still exist.
 	found := false
-	for _, alt := range j.RSM()["val"].Close {
+	for _, alt := range j.RSM()["val"].CloseAlts() {
 		if alt.G == "from-text" {
 			found = true
 			break
@@ -1797,7 +1797,7 @@ func TestGroupTagsValidFormat(t *testing.T) {
 	j := Make()
 	tagRe := regexp.MustCompile(`^[a-z]+$`)
 	for name, rs := range j.RSM() {
-		for _, alt := range rs.Open {
+		for _, alt := range rs.OpenAlts() {
 			if alt.G != "" {
 				for _, tag := range strings.Split(alt.G, ",") {
 					if !tagRe.MatchString(tag) {
@@ -1808,7 +1808,7 @@ func TestGroupTagsValidFormat(t *testing.T) {
 				}
 			}
 		}
-		for _, alt := range rs.Close {
+		for _, alt := range rs.CloseAlts() {
 			if alt.G != "" {
 				for _, tag := range strings.Split(alt.G, ",") {
 					if !tagRe.MatchString(tag) {

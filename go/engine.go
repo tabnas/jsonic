@@ -13,6 +13,7 @@
 package jsonic
 
 import (
+	tdebug "github.com/tabnas/debug/go"
 	tabnas "github.com/tabnas/parser/go"
 )
 
@@ -164,15 +165,17 @@ var (
 	TinSetVAL = tabnas.TinSetVAL
 	TinSetKEY = tabnas.TinSetKEY
 
-	// Debug is the engine's debug/introspection plugin.
-	Debug = tabnas.Debug
+	// Debug is the @tabnas/debug tracing/introspection plugin.
+	Debug = tdebug.Debug
 )
 
 // --- Function re-exports ----------------------------------------------
 
 var (
-	Deep                    = tabnas.Deep
-	Describe                = tabnas.Describe
+	Deep = tabnas.Deep
+	// Describe renders a human-readable description of an instance's
+	// grammar/config; from @tabnas/debug, it returns (string, error).
+	Describe                = tdebug.Describe
 	IsUndefined             = tabnas.IsUndefined
 	UnwrapUndefined         = tabnas.UnwrapUndefined
 	MakeRule                = tabnas.MakeRule

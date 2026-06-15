@@ -40,7 +40,9 @@ export async function run(argv: string[], console: Console) {
         args.meta.push(argv[++aI])
       } //
       else if ('--debug' === arg || '-d' === arg) {
-        plugins.debug = Debug
+        // @tabnas/debug's Debug is typed against the bare engine; it runs
+        // fine on the jsonic wrapper (which forwards engine methods).
+        plugins.debug = Debug as unknown as Plugin
         args.meta.push('log=-1')
       } //
       else if ('--help' === arg || '-h' === arg) {

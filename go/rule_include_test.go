@@ -28,7 +28,7 @@ func TestRuleIncludeKeepsOnlyTaggedAlts(t *testing.T) {
 
 	j.SetOptions(Options{Rule: &RuleOptions{Include: "keep"}})
 
-	kept := j.RSM()["val"].Close
+	kept := j.RSM()["val"].CloseAlts()
 
 	// Expected: the two alts tagged "keep" are preserved; the "drop"
 	// alt and all built-in val-close alts without "keep" are gone.
@@ -70,7 +70,7 @@ func TestRuleIncludeDropsUntaggedAlts(t *testing.T) {
 
 	j.SetOptions(Options{Rule: &RuleOptions{Include: "keep"}})
 
-	for _, a := range j.RSM()["val"].Close {
+	for _, a := range j.RSM()["val"].CloseAlts() {
 		if a.G == "" {
 			t.Error("expected alts with no G to be dropped by include filter")
 		}
@@ -80,11 +80,11 @@ func TestRuleIncludeDropsUntaggedAlts(t *testing.T) {
 func TestRuleIncludeEmptyIsNoop(t *testing.T) {
 	// Empty include string must not filter anything.
 	j := Make()
-	originalCount := len(j.RSM()["val"].Close)
+	originalCount := len(j.RSM()["val"].CloseAlts())
 
 	j.SetOptions(Options{Rule: &RuleOptions{Include: ""}})
 
-	if got := len(j.RSM()["val"].Close); got != originalCount {
+	if got := len(j.RSM()["val"].CloseAlts()); got != originalCount {
 		t.Errorf("empty Include should be noop; before=%d after=%d", originalCount, got)
 	}
 }
@@ -113,7 +113,7 @@ func TestRuleIncludeMultipleTags(t *testing.T) {
 	sawAlpha := false
 	sawBeta := false
 	sawGamma := false
-	for _, a := range j.RSM()["val"].Close {
+	for _, a := range j.RSM()["val"].CloseAlts() {
 		for _, part := range strings.Split(a.G, ",") {
 			switch strings.TrimSpace(part) {
 			case "alpha":
@@ -157,7 +157,7 @@ func TestRuleIncludeThenExclude(t *testing.T) {
 	j.SetOptions(Options{Rule: &RuleOptions{Include: "keep", Exclude: "drop"}})
 
 	gotKeepOnly := false
-	for _, a := range j.RSM()["val"].Close {
+	for _, a := range j.RSM()["val"].CloseAlts() {
 		if a.G == "keep" {
 			gotKeepOnly = true
 		}
@@ -193,7 +193,7 @@ func TestGrammarTextAppliesInclude(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for _, a := range j.RSM()["val"].Close {
+	for _, a := range j.RSM()["val"].CloseAlts() {
 		if a.G == "" {
 			t.Error("untagged alt should be dropped by include")
 		}
@@ -231,7 +231,7 @@ func TestSetOptionsTextInclude(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for _, a := range j.RSM()["val"].Close {
+	for _, a := range j.RSM()["val"].CloseAlts() {
 		for _, tag := range strings.Split(a.G, ",") {
 			if strings.TrimSpace(tag) == "dropped" {
 				t.Errorf("alt with G=%q survived include=picked", a.G)
@@ -249,10 +249,10 @@ func TestRuleIncludePreservesParsingForTaggedAlts(t *testing.T) {
 	// must keep the whole grammar, so normal parsing still works.
 	j := Make()
 	for _, rs := range j.RSM() {
-		for _, a := range rs.Open {
+		for _, a := range rs.OpenAlts() {
 			a.G = appendTag(a.G, "json")
 		}
-		for _, a := range rs.Close {
+		for _, a := range rs.CloseAlts() {
 			a.G = appendTag(a.G, "json")
 		}
 	}

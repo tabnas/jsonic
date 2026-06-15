@@ -24,15 +24,21 @@ parse function with the management methods attached as properties.
   (`registerJsonicGrammar`).
 - `src/grammar.ts` — installs the standard-JSON core via
   `registerJsonGrammar` from `@tabnas/json`, then layers jsonic's relaxed
-  extensions on the `val`/`map`/`list`/`pair`/`elem` rules. It overrides
-  the `val` close action and the `pair` key alt with jsonic's fuller
-  versions (the `@tabnas/json` ones are strict-only: they overwrite
-  plugin-set value nodes and decode number/keyword keys to the wrong
-  type), using the engine's plugin-override API: the `@val-bc/replace`
-  funcref (takes ownership of the close phase so the strict action is not
-  re-installed on later `fnref()`/`make()`/derive) and the `clear` alt-mod
-  on the `pair` open list. Also provides the strict-JSON variant selected
-  by `Jsonic.make('json')` and exports the idiomatic `tabnas` plugin
+  extensions on the `val`/`map`/`list`/`pair`/`elem` rules. **Maintenance
+  hazard:** `@tabnas/json`'s rule actions are strict-only and get
+  simplified over time (dead-branch removal), so jsonic must *own* the
+  close actions whose behavior the relaxed grammar depends on rather than
+  layer over them. It overrides, via the engine's plugin-override API:
+  the `val` close action (`@val-bc/replace` — preserve plugin-set value
+  nodes / implicit-null empty values), the `elem` close action
+  (`@elem-bc/replace` — the strict one pushes every child, double-adding
+  jsonic's `done`-flagged elements; jsonic owns the guarded normal push
+  plus pair/child handling), and the `pair` key alt (`clear` alt-mod on
+  the open list — decode number/keyword keys from the token source).
+  `/replace` takes ownership of a phase so the strict action is not
+  re-installed on later `fnref()`/`make()`/derive. Also provides the
+  strict-JSON variant selected by `Jsonic.make('json')` and exports the
+  idiomatic `tabnas` plugin
   `jsonic` (apply jsonic option defaults + register grammar) and the
   `registerJsonicGrammar` helper; the legacy `make()` path installs the
   same grammar. The package is **a normal `tabnas` grammar plugin**
@@ -41,8 +47,10 @@ parse function with the management methods attached as properties.
 - `src/bnf.ts` + `src/jsonic-bnf-cli.ts` — the BNF→jsonic grammar
   converter and its CLI (`bin/jsonic-bnf`).
 - `src/jsonic-cli.ts` — the `jsonic` CLI (`bin/jsonic`).
-- `src/debug.ts` — the debug plugin (subpath export `jsonic/debug`):
-  trace lexing/parsing while diagnosing grammar behavior.
+- `src/debug.ts` — re-exports the `Debug` plugin from the standalone
+  `@tabnas/debug` package (the extracted debug plugin: trace lexing/parsing
+  and a `describe()` method). Kept as the subpath export `jsonic/debug` for
+  back-compat.
 - `src/defaults.ts` — jsonic-specific option/error/hint defaults layered
   on the engine defaults.
 - `src/error.ts`, `src/utility.ts` — thin re-exports of the engine's
@@ -59,10 +67,12 @@ TEST_PATTERN=name npm run test-some
 node --test --experimental-test-coverage test/**/*.test.js
 ```
 
-The `tabnas` (`file:../../parser/ts`) and `@tabnas/json`
-(`file:../../json/ts`) dependencies are sibling checkouts of
-`tabnas/parser` and `tabnas/json` whose `ts/` packages have been built
-(`@tabnas/json` itself depends on the engine as a sibling). Tests run
+The `tabnas` (`file:../../parser/ts`), `@tabnas/json`
+(`file:../../json/ts`) and `@tabnas/debug` (`file:../../debug/ts`)
+dependencies are sibling checkouts of `tabnas/parser`, `tabnas/json` and
+`tabnas/debug` whose `ts/` packages have been built (`@tabnas/json` and
+`@tabnas/debug` themselves depend on the engine as a sibling; point
+`@tabnas/debug`'s `tabnas` devDependency at `../../parser/ts`). Tests run
 against compiled output, so always `npm run build` after editing
 `src/` or `test/*.ts`.
 
