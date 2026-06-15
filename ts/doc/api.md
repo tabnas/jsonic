@@ -8,9 +8,9 @@ Parse a string using default settings. `Jsonic` is both a callable function
 and a namespace for the API below.
 
 ```js
-const { Jsonic } = require('jsonic')
+const { Jsonic } = require('@tabnas/jsonic')
 
-Jsonic('a:1')  // {"a": 1}
+Jsonic('a:1')  // => { a: 1 }
 ```
 
 The optional `meta` parameter passes arbitrary data through to plugins and
@@ -21,8 +21,9 @@ rule actions.
 A configured instance is also directly callable.
 
 ```js
+const { Jsonic } = require('@tabnas/jsonic')
 const j = Jsonic.make({ comment: { lex: false } })
-j('a:1')  // {"a": 1}
+j('a:1')  // => { a: 1 }
 ```
 
 ## Instance Management

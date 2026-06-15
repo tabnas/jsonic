@@ -12,7 +12,7 @@ For a recipe-style index of individual tasks, see the
 ## 1. Install
 
 ```bash
-npm install jsonic
+npm install @tabnas/jsonic
 ```
 
 ## 2. Parse a string
@@ -20,9 +20,9 @@ npm install jsonic
 `Jsonic` is a function. Call it with a string:
 
 ```js
-const { Jsonic } = require('jsonic')
+const { Jsonic } = require('@tabnas/jsonic')
 
-Jsonic('a:1, b:2')   // { a: 1, b: 2 }
+Jsonic('a:1, b:2')   // => { a: 1, b: 2 }
 ```
 
 You wrote `a:1, b:2` — no braces, no quotes around the key — and got
@@ -32,7 +32,7 @@ still accepts ordinary JSON, so `Jsonic('{"a":1}')` works too.
 In TypeScript the import is the same:
 
 ```ts
-import { Jsonic } from 'jsonic'
+import { Jsonic } from '@tabnas/jsonic'
 
 Jsonic('x, y, z')    // ['x', 'y', 'z']
 ```
@@ -47,11 +47,12 @@ array; key-value pairs become an object.
 callable — with the behavior you choose:
 
 ```js
+const { Jsonic } = require('@tabnas/jsonic')
 const noNumbers = Jsonic.make({
   number: { lex: false },   // do not interpret numeric literals
 })
 
-noNumbers('a:1, b:2')       // { a: '1', b: '2' }   (strings, not numbers)
+noNumbers('a:1, b:2')       // => { a: '1', b: '2' }
 ```
 
 The instance is reusable; call it as many times as you like. Options
@@ -64,11 +65,12 @@ Suppose you want `yes` and `no` to parse as booleans. Define them with
 the `value.def` option:
 
 ```js
+const { Jsonic } = require('@tabnas/jsonic')
 const j = Jsonic.make({
   value: { def: { yes: { val: true }, no: { val: false } } },
 })
 
-j('active: yes')            // { active: true }
+j('active: yes')            // => { active: true }
 ```
 
 The built-in keywords are `true`, `false`, and `null`; you have just
@@ -80,15 +82,15 @@ When the input cannot be parsed, jsonic throws a `JsonicError`. Catch
 it and read its fields:
 
 ```js
-const { Jsonic, JsonicError } = require('jsonic')
+const { Jsonic, JsonicError } = require('@tabnas/jsonic')
 
 try {
   Jsonic('"abc')             // a string that is never closed
 } catch (err) {
   if (err instanceof JsonicError) {
-    err.code                 // 'unterminated_string'
-    err.lineNumber           // 1
-    err.columnNumber         // 1
+    err.code                 // => 'unterminated_string'
+    err.lineNumber           // => 1
+    err.columnNumber         // => 1
     err.message              // formatted, with a caret under the source
   }
 }
