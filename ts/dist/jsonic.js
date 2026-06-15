@@ -15,30 +15,30 @@ exports.make = make;
  *  that — it just constructs `tabnas` engine instances and dresses them
  *  up in the callable-with-properties shape jsonic users expect.
  */
-const tabnas_1 = require("tabnas");
-Object.defineProperty(exports, "JsonicError", { enumerable: true, get: function () { return tabnas_1.TabnasError; } });
-Object.defineProperty(exports, "util", { enumerable: true, get: function () { return tabnas_1.util; } });
-Object.defineProperty(exports, "S", { enumerable: true, get: function () { return tabnas_1.S; } });
-Object.defineProperty(exports, "OPEN", { enumerable: true, get: function () { return tabnas_1.OPEN; } });
-Object.defineProperty(exports, "CLOSE", { enumerable: true, get: function () { return tabnas_1.CLOSE; } });
-Object.defineProperty(exports, "BEFORE", { enumerable: true, get: function () { return tabnas_1.BEFORE; } });
-Object.defineProperty(exports, "AFTER", { enumerable: true, get: function () { return tabnas_1.AFTER; } });
-Object.defineProperty(exports, "EMPTY", { enumerable: true, get: function () { return tabnas_1.EMPTY; } });
-Object.defineProperty(exports, "SKIP", { enumerable: true, get: function () { return tabnas_1.SKIP; } });
-Object.defineProperty(exports, "makeLex", { enumerable: true, get: function () { return tabnas_1.makeLex; } });
-Object.defineProperty(exports, "makeParser", { enumerable: true, get: function () { return tabnas_1.makeParser; } });
-Object.defineProperty(exports, "makeToken", { enumerable: true, get: function () { return tabnas_1.makeToken; } });
-Object.defineProperty(exports, "makePoint", { enumerable: true, get: function () { return tabnas_1.makePoint; } });
-Object.defineProperty(exports, "makeRule", { enumerable: true, get: function () { return tabnas_1.makeRule; } });
-Object.defineProperty(exports, "makeRuleSpec", { enumerable: true, get: function () { return tabnas_1.makeRuleSpec; } });
-Object.defineProperty(exports, "makeFixedMatcher", { enumerable: true, get: function () { return tabnas_1.makeFixedMatcher; } });
-Object.defineProperty(exports, "makeSpaceMatcher", { enumerable: true, get: function () { return tabnas_1.makeSpaceMatcher; } });
-Object.defineProperty(exports, "makeLineMatcher", { enumerable: true, get: function () { return tabnas_1.makeLineMatcher; } });
-Object.defineProperty(exports, "makeStringMatcher", { enumerable: true, get: function () { return tabnas_1.makeStringMatcher; } });
-Object.defineProperty(exports, "makeCommentMatcher", { enumerable: true, get: function () { return tabnas_1.makeCommentMatcher; } });
-Object.defineProperty(exports, "makeNumberMatcher", { enumerable: true, get: function () { return tabnas_1.makeNumberMatcher; } });
-Object.defineProperty(exports, "makeTextMatcher", { enumerable: true, get: function () { return tabnas_1.makeTextMatcher; } });
-const utility_1 = require("tabnas/utility");
+const parser_1 = require("@tabnas/parser");
+Object.defineProperty(exports, "JsonicError", { enumerable: true, get: function () { return parser_1.TabnasError; } });
+Object.defineProperty(exports, "util", { enumerable: true, get: function () { return parser_1.util; } });
+Object.defineProperty(exports, "S", { enumerable: true, get: function () { return parser_1.S; } });
+Object.defineProperty(exports, "OPEN", { enumerable: true, get: function () { return parser_1.OPEN; } });
+Object.defineProperty(exports, "CLOSE", { enumerable: true, get: function () { return parser_1.CLOSE; } });
+Object.defineProperty(exports, "BEFORE", { enumerable: true, get: function () { return parser_1.BEFORE; } });
+Object.defineProperty(exports, "AFTER", { enumerable: true, get: function () { return parser_1.AFTER; } });
+Object.defineProperty(exports, "EMPTY", { enumerable: true, get: function () { return parser_1.EMPTY; } });
+Object.defineProperty(exports, "SKIP", { enumerable: true, get: function () { return parser_1.SKIP; } });
+Object.defineProperty(exports, "makeLex", { enumerable: true, get: function () { return parser_1.makeLex; } });
+Object.defineProperty(exports, "makeParser", { enumerable: true, get: function () { return parser_1.makeParser; } });
+Object.defineProperty(exports, "makeToken", { enumerable: true, get: function () { return parser_1.makeToken; } });
+Object.defineProperty(exports, "makePoint", { enumerable: true, get: function () { return parser_1.makePoint; } });
+Object.defineProperty(exports, "makeRule", { enumerable: true, get: function () { return parser_1.makeRule; } });
+Object.defineProperty(exports, "makeRuleSpec", { enumerable: true, get: function () { return parser_1.makeRuleSpec; } });
+Object.defineProperty(exports, "makeFixedMatcher", { enumerable: true, get: function () { return parser_1.makeFixedMatcher; } });
+Object.defineProperty(exports, "makeSpaceMatcher", { enumerable: true, get: function () { return parser_1.makeSpaceMatcher; } });
+Object.defineProperty(exports, "makeLineMatcher", { enumerable: true, get: function () { return parser_1.makeLineMatcher; } });
+Object.defineProperty(exports, "makeStringMatcher", { enumerable: true, get: function () { return parser_1.makeStringMatcher; } });
+Object.defineProperty(exports, "makeCommentMatcher", { enumerable: true, get: function () { return parser_1.makeCommentMatcher; } });
+Object.defineProperty(exports, "makeNumberMatcher", { enumerable: true, get: function () { return parser_1.makeNumberMatcher; } });
+Object.defineProperty(exports, "makeTextMatcher", { enumerable: true, get: function () { return parser_1.makeTextMatcher; } });
+const utility_1 = require("@tabnas/parser/utility");
 const defaults_1 = require("./defaults");
 const grammar_1 = require("./grammar");
 Object.defineProperty(exports, "jsonic", { enumerable: true, get: function () { return grammar_1.jsonicPlugin; } });
@@ -74,7 +74,7 @@ function make(param_options, parent) {
     }
     else {
         const opts = (0, utility_1.deep)({}, false === param_options?.defaults$ ? {} : defaults_1.defaults, param_options || {});
-        tabnas = new tabnas_1.Tabnas(opts);
+        tabnas = new parser_1.Tabnas(opts);
     }
     // Internal state record — mirrors the historic shape, but the live
     // values come straight off the engine instance (it swaps its parser
@@ -104,7 +104,7 @@ function make(param_options, parent) {
     // engine instance — is what rule actions and plugins see as
     // `ctx.inst()`.
     const jsonic = function Jsonic(src, meta, parent_ctx) {
-        if (tabnas_1.S.string === typeof src) {
+        if (parser_1.S.string === typeof src) {
             const opts_parser = tabnas.options.parser;
             const parser = opts_parser?.start ? (0, utility_1.parserwrap)(opts_parser) : tabnas.internal().parser;
             return parser.start(src, jsonic, meta, parent_ctx);
@@ -127,7 +127,7 @@ function make(param_options, parent) {
         config: () => tabnas.config(),
         // TODO: how to handle null plugin?
         use: function use(plugin, plugin_options) {
-            if (tabnas_1.S.function !== typeof plugin) {
+            if (parser_1.S.function !== typeof plugin) {
                 throw new Error('Jsonic.use: the first argument must be a function ' +
                     'defining a plugin. See https://jsonic.senecajs.org/plugin');
             }
@@ -168,7 +168,7 @@ function make(param_options, parent) {
             tabnas.sub(spec);
             return jsonic;
         },
-        util: tabnas_1.util,
+        util: parser_1.util,
         grammar: (gs, setting) => {
             if ('string' === typeof gs) {
                 const parsed = make()(gs);
@@ -196,7 +196,7 @@ function make(param_options, parent) {
     };
     // `api.make` reports its name as 'make' even though the enclosing
     // function is also named `make`.
-    (0, utility_1.defprop)(api.make, tabnas_1.S.name, { value: tabnas_1.S.make });
+    (0, utility_1.defprop)(api.make, parser_1.S.name, { value: parser_1.S.make });
     // Assemble the public surface.
     if (injectFullAPI) {
         (0, utility_1.assign)(jsonic, api);
@@ -270,41 +270,41 @@ let Jsonic = (exports.root = root = make('jsonic'));
 exports.Jsonic = Jsonic;
 // Provide deconstruction export names.
 root.Jsonic = root;
-root.JsonicError = tabnas_1.TabnasError;
-root.makeLex = tabnas_1.makeLex;
-root.makeParser = tabnas_1.makeParser;
-root.makeToken = tabnas_1.makeToken;
-root.makePoint = tabnas_1.makePoint;
-root.makeRule = tabnas_1.makeRule;
-root.makeRuleSpec = tabnas_1.makeRuleSpec;
-root.makeFixedMatcher = tabnas_1.makeFixedMatcher;
-root.makeSpaceMatcher = tabnas_1.makeSpaceMatcher;
-root.makeLineMatcher = tabnas_1.makeLineMatcher;
-root.makeStringMatcher = tabnas_1.makeStringMatcher;
-root.makeCommentMatcher = tabnas_1.makeCommentMatcher;
-root.makeNumberMatcher = tabnas_1.makeNumberMatcher;
-root.makeTextMatcher = tabnas_1.makeTextMatcher;
-root.OPEN = tabnas_1.OPEN;
-root.CLOSE = tabnas_1.CLOSE;
-root.BEFORE = tabnas_1.BEFORE;
-root.AFTER = tabnas_1.AFTER;
-root.EMPTY = tabnas_1.EMPTY;
-root.SKIP = tabnas_1.SKIP;
-root.util = tabnas_1.util;
+root.JsonicError = parser_1.TabnasError;
+root.makeLex = parser_1.makeLex;
+root.makeParser = parser_1.makeParser;
+root.makeToken = parser_1.makeToken;
+root.makePoint = parser_1.makePoint;
+root.makeRule = parser_1.makeRule;
+root.makeRuleSpec = parser_1.makeRuleSpec;
+root.makeFixedMatcher = parser_1.makeFixedMatcher;
+root.makeSpaceMatcher = parser_1.makeSpaceMatcher;
+root.makeLineMatcher = parser_1.makeLineMatcher;
+root.makeStringMatcher = parser_1.makeStringMatcher;
+root.makeCommentMatcher = parser_1.makeCommentMatcher;
+root.makeNumberMatcher = parser_1.makeNumberMatcher;
+root.makeTextMatcher = parser_1.makeTextMatcher;
+root.OPEN = parser_1.OPEN;
+root.CLOSE = parser_1.CLOSE;
+root.BEFORE = parser_1.BEFORE;
+root.AFTER = parser_1.AFTER;
+root.EMPTY = parser_1.EMPTY;
+root.SKIP = parser_1.SKIP;
+root.util = parser_1.util;
 root.make = make;
-root.S = tabnas_1.S;
+root.S = parser_1.S;
 // The idiomatic `tabnas` grammar plugin and its grammar-only
 // registration helper, plus the engine class, so CJS consumers can reach
 // them off the default export (`require('jsonic').jsonic`) and ESM
 // consumers via the named exports below.
 root.jsonic = grammar_1.jsonicPlugin;
 root.registerJsonicGrammar = grammar_1.registerJsonicGrammar;
-root.Tabnas = tabnas_1.Tabnas;
+root.Tabnas = parser_1.Tabnas;
 // The `tabnas` engine class and its native plugin type, re-exported so
 // that plugin authors who build on the jsonic grammar can construct an
 // engine and type their plugins without a separate `tabnas` import.
-var tabnas_2 = require("tabnas");
-Object.defineProperty(exports, "Tabnas", { enumerable: true, get: function () { return tabnas_2.Tabnas; } });
+var parser_2 = require("@tabnas/parser");
+Object.defineProperty(exports, "Tabnas", { enumerable: true, get: function () { return parser_2.Tabnas; } });
 exports.default = Jsonic;
 if ('undefined' !== typeof module) {
     module.exports = Jsonic;

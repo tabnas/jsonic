@@ -7,7 +7,7 @@
  *  Jsonic format.
  */
 
-import type { Plugin } from 'tabnas'
+import type { Plugin } from '@tabnas/parser'
 
 // The standard-JSON grammar core (val / map / list / pair / elem) is
 // provided by the @tabnas/json plugin; jsonic layers its relaxed
@@ -913,7 +913,7 @@ const registerJsonicGrammar = grammar
 // adds the jsonic error/hint branding) and then registers the
 // relaxed-JSON grammar:
 //
-//   import { Tabnas } from 'tabnas'
+//   import { Tabnas } from '@tabnas/parser'
 //   import { jsonic } from '@tabnas/jsonic'
 //   const parser = new Tabnas().use(jsonic)
 //   parser.parse('a:1,b:[x,y,z]')   // { a: 1, b: ['x','y','z'] }

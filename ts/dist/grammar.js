@@ -798,7 +798,7 @@ exports.registerJsonicGrammar = registerJsonicGrammar;
 // adds the jsonic error/hint branding) and then registers the
 // relaxed-JSON grammar:
 //
-//   import { Tabnas } from 'tabnas'
+//   import { Tabnas } from '@tabnas/parser'
 //   import { jsonic } from '@tabnas/jsonic'
 //   const parser = new Tabnas().use(jsonic)
 //   parser.parse('a:1,b:[x,y,z]')   // { a: 1, b: ['x','y','z'] }

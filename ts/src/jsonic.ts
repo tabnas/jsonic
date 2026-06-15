@@ -37,9 +37,9 @@ import {
   makeCommentMatcher,
   makeNumberMatcher,
   makeTextMatcher,
-} from 'tabnas'
+} from '@tabnas/parser'
 
-import { deep, assign, defprop, filterRules, parserwrap } from 'tabnas/utility'
+import { deep, assign, defprop, filterRules, parserwrap } from '@tabnas/parser/utility'
 
 import type {
   AltAction,
@@ -436,8 +436,8 @@ export type {
 // The `tabnas` engine class and its native plugin type, re-exported so
 // that plugin authors who build on the jsonic grammar can construct an
 // engine and type their plugins without a separate `tabnas` import.
-export { Tabnas } from 'tabnas'
-export type { Plugin as TabnasPlugin } from 'tabnas'
+export { Tabnas } from '@tabnas/parser'
+export type { Plugin as TabnasPlugin } from '@tabnas/parser'
 
 export {
   // Jsonic is both a type and a value.

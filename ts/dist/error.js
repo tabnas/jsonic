@@ -7,7 +7,7 @@ exports.JsonicError = exports.TabnasError = exports.prop = exports.strinject = e
  *  this module re-exports it, keeping the historic `JsonicError` name
  *  available alongside the engine's `TabnasError`.
  */
-var error_1 = require("tabnas/error");
+var error_1 = require("@tabnas/parser/error");
 Object.defineProperty(exports, "errdesc", { enumerable: true, get: function () { return error_1.errdesc; } });
 Object.defineProperty(exports, "errinject", { enumerable: true, get: function () { return error_1.errinject; } });
 Object.defineProperty(exports, "errsite", { enumerable: true, get: function () { return error_1.errsite; } });

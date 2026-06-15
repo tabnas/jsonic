@@ -1,1 +1,1 @@
-export * from 'tabnas/utility';
+export * from '@tabnas/parser/utility';

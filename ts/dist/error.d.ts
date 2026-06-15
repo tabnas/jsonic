@@ -1,1 +1,1 @@
-export { errdesc, errinject, errsite, errmsg, trimstk, strinject, prop, TabnasError, TabnasError as JsonicError, } from 'tabnas/error';
+export { errdesc, errinject, errsite, errmsg, trimstk, strinject, prop, TabnasError, TabnasError as JsonicError, } from '@tabnas/parser/error';

@@ -11,7 +11,7 @@ grammar, jsonic supplies the relaxed-JSON one. The idiomatic way to use
 it, and to write plugins that build on it, is at the engine level:
 
 ```js
-const { Tabnas } = require('tabnas')
+const { Tabnas } = require('@tabnas/parser')
 const { jsonic } = require('jsonic')
 
 const parser = new Tabnas().use(jsonic).use(myPlugin)

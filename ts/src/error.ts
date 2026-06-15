@@ -16,4 +16,4 @@ export {
   prop,
   TabnasError,
   TabnasError as JsonicError,
-} from 'tabnas/error'
+} from '@tabnas/parser/error'

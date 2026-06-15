@@ -43,7 +43,7 @@ ships no grammar; jsonic supplies it. Install it on an engine instance
 the idiomatic way:
 
 ```js
-const { Tabnas } = require('tabnas')
+const { Tabnas } = require('@tabnas/parser')
 const { jsonic } = require('@tabnas/jsonic')
 
 const parser = new Tabnas().use(jsonic)

@@ -40,7 +40,7 @@ import type {
   TabnasOptions,
   Tin,
   Token,
-} from 'tabnas'
+} from '@tabnas/parser'
 
 // Re-export the engine types verbatim. (NOTE: `Plugin` is *not*
 // re-exported — jsonic plugins receive the callable `Jsonic` instance,
@@ -78,7 +78,7 @@ export type {
 }
 
 // Re-export the engine constants.
-export { OPEN, CLOSE, BEFORE, AFTER, EMPTY, SKIP } from 'tabnas'
+export { OPEN, CLOSE, BEFORE, AFTER, EMPTY, SKIP } from '@tabnas/parser'
 
 
 // Jsonic shorthand for an open-ended object.

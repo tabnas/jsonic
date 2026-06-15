@@ -6,4 +6,4 @@
  *  that import named helpers directly).
  */
 
-export * from 'tabnas/utility'
+export * from '@tabnas/parser/utility'

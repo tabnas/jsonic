@@ -20,5 +20,5 @@ Object.defineProperty(exports, "__esModule", { value: true });
  *  package; this module re-exports it for back-compat (and for tests
  *  that import named helpers directly).
  */
-__exportStar(require("tabnas/utility"), exports);
+__exportStar(require("@tabnas/parser/utility"), exports);
 //# sourceMappingURL=utility.js.map

@@ -1,4 +1,4 @@
-import type { Plugin } from 'tabnas';
+import type { Plugin } from '@tabnas/parser';
 import { Jsonic } from './jsonic';
 declare function grammar(jsonic: Jsonic): void;
 declare function makeJSON(jsonic: any): any;

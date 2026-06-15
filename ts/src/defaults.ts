@@ -18,7 +18,7 @@ import {
   makeCommentMatcher,
   makeNumberMatcher,
   makeTextMatcher,
-} from 'tabnas/lexer'
+} from '@tabnas/parser/lexer'
 
 
 const defaults: Options = {

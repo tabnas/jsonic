@@ -1,6 +1,6 @@
-import type { AltAction, AltCond, AltError, AltMatch, AltModifier, AltSpec, Config, Context, Counters, FuncRef, GrammarSetting, GrammarSpec, Lex, LexCheck, LexMatcher, LexSub, MakeLexMatcher, NormAltSpec, Parser, Point, Rule, RuleDefiner, RuleSpec, RuleSpecMap, RuleState, RuleSub, StateAction, TabnasOptions, Tin, Token } from 'tabnas';
+import type { AltAction, AltCond, AltError, AltMatch, AltModifier, AltSpec, Config, Context, Counters, FuncRef, GrammarSetting, GrammarSpec, Lex, LexCheck, LexMatcher, LexSub, MakeLexMatcher, NormAltSpec, Parser, Point, Rule, RuleDefiner, RuleSpec, RuleSpecMap, RuleState, RuleSub, StateAction, TabnasOptions, Tin, Token } from '@tabnas/parser';
 export type { AltAction, AltCond, AltError, AltMatch, AltModifier, AltSpec, Config, Context, Counters, FuncRef, GrammarSetting, GrammarSpec, Lex, LexCheck, LexMatcher, LexSub, MakeLexMatcher, NormAltSpec, Parser, Point, Rule, RuleDefiner, RuleSpec, RuleSpecMap, RuleState, RuleSub, StateAction, Tin, Token, };
-export { OPEN, CLOSE, BEFORE, AFTER, EMPTY, SKIP } from 'tabnas';
+export { OPEN, CLOSE, BEFORE, AFTER, EMPTY, SKIP } from '@tabnas/parser';
 export type Bag = {
     [key: string]: any;
 };
