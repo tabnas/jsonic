@@ -925,9 +925,9 @@ const registerJsonicGrammar = grammar
 // The callable `Jsonic` API exported from this package is a legacy
 // compatibility wrapper around this same plugin; new code that composes
 // grammars should prefer the plugin.
-const jsonicPlugin: Plugin = function jsonic(am: any, _options?: any) {
-  am.options(defaults)
-  registerJsonicGrammar(am as unknown as Jsonic)
+const jsonicPlugin: Plugin = function jsonic(tn: any, _options?: any) {
+  tn.options(defaults)
+  registerJsonicGrammar(tn as unknown as Jsonic)
 }
 
 

@@ -810,9 +810,9 @@ exports.registerJsonicGrammar = registerJsonicGrammar;
 // The callable `Jsonic` API exported from this package is a legacy
 // compatibility wrapper around this same plugin; new code that composes
 // grammars should prefer the plugin.
-const jsonicPlugin = function jsonic(am, _options) {
-    am.options(defaults_1.defaults);
-    registerJsonicGrammar(am);
+const jsonicPlugin = function jsonic(tn, _options) {
+    tn.options(defaults_1.defaults);
+    registerJsonicGrammar(tn);
 };
 exports.jsonicPlugin = jsonicPlugin;
 //# sourceMappingURL=grammar.js.map

@@ -48,8 +48,8 @@ describe('tabnas-plugin', function () {
     // A second plugin builds on the grammar jsonic registered — the
     // "play nice as a dependency" use case. It adds a keyword value on
     // top of jsonic's map/value rules. Register jsonic first.
-    function yesno(am) {
-      am.options({ value: { def: { yes: { val: true }, no: { val: false } } } })
+    function yesno(tn) {
+      tn.options({ value: { def: { yes: { val: true }, no: { val: false } } } })
     }
     const p = new Tabnas().use(jsonic).use(yesno)
     assert.deepEqual(p.parse('a:yes,b:no,c:[yes,no]'), {
