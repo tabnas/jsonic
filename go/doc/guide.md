@@ -7,7 +7,7 @@ lists see the [API reference](api.md) and [options reference](options.md).
 All recipes assume this import and the pointer helper:
 
 ```go
-import "github.com/jsonicjs/jsonic/go"
+import "github.com/tabnas/jsonic/go"
 
 func boolp(b bool) *bool { return &b }
 ```

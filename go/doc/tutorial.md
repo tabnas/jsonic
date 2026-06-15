@@ -11,7 +11,7 @@ For a recipe-style index of individual tasks, see the
 ## 1. Install
 
 ```bash
-go get github.com/jsonicjs/jsonic/go@latest
+go get github.com/tabnas/jsonic/go@latest
 ```
 
 jsonic is a grammar plugin for the `tabnas` engine
@@ -29,7 +29,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/jsonicjs/jsonic/go"
+	"github.com/tabnas/jsonic/go"
 )
 
 func main() {
@@ -105,7 +105,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/jsonicjs/jsonic/go"
+	"github.com/tabnas/jsonic/go"
 )
 
 _, err := jsonic.Parse(`"abc`)

@@ -799,7 +799,7 @@ exports.registerJsonicGrammar = registerJsonicGrammar;
 // relaxed-JSON grammar:
 //
 //   import { Tabnas } from 'tabnas'
-//   import { jsonic } from 'jsonic'
+//   import { jsonic } from '@tabnas/jsonic'
 //   const parser = new Tabnas().use(jsonic)
 //   parser.parse('a:1,b:[x,y,z]')   // { a: 1, b: ['x','y','z'] }
 //

@@ -22,7 +22,7 @@ two plugins: the `tabnas` engine and `@tabnas/json` (npm packages in TS;
 | Path | What it is |
 |---|---|
 | [`ts/`](ts/) | **Canonical** TypeScript/JavaScript implementation — the `jsonic` npm package. Supplies the relaxed-JSON grammar, the BNF converter, the debug plugin, and the CLIs on top of the [`tabnas`](https://github.com/tabnas/parser) engine (a dependency). |
-| [`go/`](go/) | Go port — a grammar plugin (`github.com/jsonicjs/jsonic/go`) for the Go `tabnas` engine (`github.com/tabnas/parser/go`), mirroring the TS split. Supplies `jsonic.Grammar` (a `tabnas.Plugin`) and the legacy `jsonic.Make`/`Parse` API. Depends on a sibling `tabnas/parser` checkout via a `replace` directive (the Go analogue of the TS `file:` dependency). |
+| [`go/`](go/) | Go port — a grammar plugin (`github.com/tabnas/jsonic/go`) for the Go `tabnas` engine (`github.com/tabnas/parser/go`), mirroring the TS split. Supplies `jsonic.Grammar` (a `tabnas.Plugin`) and the legacy `jsonic.Make`/`Parse` API. Depends on a sibling `tabnas/parser` checkout via a `replace` directive (the Go analogue of the TS `file:` dependency). |
 | [`ts/test/spec/`](ts/test/spec/) | Shared `.tsv` conformance fixtures (`input → expected`, or `ERROR:<code>`). Run by both the TypeScript suite and the Go suite. |
 
 ## Authority and alignment rules

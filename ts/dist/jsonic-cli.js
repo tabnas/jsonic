@@ -134,10 +134,10 @@ function handle_plugins(plugins) {
         }
         catch (e) {
             let err = e;
-            // Might be @jsonic plugin
+            // Might be @tabnas plugin
             if (!name.startsWith('@')) {
                 try {
-                    out[name] = require('@jsonic/' + name);
+                    out[name] = require('@tabnas/' + name);
                 }
                 catch (e) {
                     throw err; // NOTE: throws original error
@@ -262,7 +262,7 @@ Examples:
 {"a":1} 
 
 
-# Using plugins (e.g. npm install @jsonic/csv)
+# Using plugins (e.g. npm install @tabnas/csv)
 > jsonic -p csv  -o plugin.csv.record.separators=^ "a,b^1,2"
 [{"a":"1","b":"2"}]
 

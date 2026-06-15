@@ -13,7 +13,7 @@ plugins that build on it, is at the engine level:
 ```go
 import (
     tabnas "github.com/tabnas/parser/go"
-    jsonic "github.com/jsonicjs/jsonic/go"
+    jsonic "github.com/tabnas/jsonic/go"
 )
 
 j := tabnas.Make()

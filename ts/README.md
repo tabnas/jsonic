@@ -15,13 +15,13 @@ Available for [TypeScript/JavaScript](#install) and [Go](../go/).
 ## Install
 
 ```bash
-npm install jsonic
+npm install @tabnas/jsonic
 ```
 
 ## Quick Example
 
 ```js
-const { Jsonic } = require('jsonic')
+const { Jsonic } = require('@tabnas/jsonic')
 
 // Relaxed syntax, just works
 Jsonic('a:1, b:2')           // {"a": 1, "b": 2}
@@ -30,7 +30,7 @@ Jsonic('{a: {b: 1, c: 2}}') // {"a": {"b": 1, "c": 2}}
 ```
 
 ```ts
-import { Jsonic } from 'jsonic'
+import { Jsonic } from '@tabnas/jsonic'
 
 Jsonic('a:1, b:2') // {"a": 1, "b": 2}
 ```
@@ -44,7 +44,7 @@ the idiomatic way:
 
 ```js
 const { Tabnas } = require('tabnas')
-const { jsonic } = require('jsonic')
+const { jsonic } = require('@tabnas/jsonic')
 
 const parser = new Tabnas().use(jsonic)
 parser.parse('a:1, b:[x,y,z]')   // { a: 1, b: ['x','y','z'] }
@@ -194,7 +194,7 @@ same relaxations, same results. See the [Go documentation](../go/) for
 installation and usage.
 
 ```go
-import "github.com/jsonicjs/jsonic/go"
+import "github.com/tabnas/jsonic/go"
 
 result, err := jsonic.Parse("a:1, b:2")
 ```

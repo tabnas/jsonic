@@ -7,7 +7,7 @@
 # `make test` so both the TS and Go sides exercise the current fix.
 #
 # TS side: node_modules/jsonic is replaced with a symlink to $JSONIC_DIR.
-# Go side: a `replace github.com/jsonicjs/jsonic/go => $JSONIC_DIR/go`
+# Go side: a `replace github.com/tabnas/jsonic/go => $JSONIC_DIR/go`
 # directive is added via `go mod edit` to each plugin's go.mod.
 #
 # Both overrides are reverted after each plugin runs, whether the test
@@ -27,7 +27,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 JSONIC_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 JSONICJS_DIR="$(cd "$JSONIC_DIR/.." && pwd)"
 
-JSONIC_MOD="github.com/jsonicjs/jsonic/go"
+JSONIC_MOD="github.com/tabnas/jsonic/go"
 
 log()  { printf '\033[1;34m[parity]\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m[parity]\033[0m %s\n' "$*"; }

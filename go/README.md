@@ -2,7 +2,7 @@
 
 Version: 0.1.22
 
-A Go port of [jsonic](https://github.com/jsonicjs/jsonic), the lenient
+A Go port of [jsonic](https://github.com/tabnas/jsonic), the lenient
 JSON parser. Same architecture, same syntax, same results. If you
 already use jsonic in TypeScript, you know what this does. If you don't,
 read on.
@@ -15,7 +15,7 @@ meant, not just what you typed.
 ## Install
 
 ```bash
-go get github.com/jsonicjs/jsonic/go@latest
+go get github.com/tabnas/jsonic/go@latest
 ```
 
 ## Quick Example
@@ -25,7 +25,7 @@ package main
 
 import (
     "fmt"
-    "github.com/jsonicjs/jsonic/go"
+    "github.com/tabnas/jsonic/go"
 )
 
 func main() {
@@ -52,7 +52,7 @@ top of that core. Install it on an engine instance the idiomatic way:
 ```go
 import (
     tabnas "github.com/tabnas/parser/go"
-    jsonic "github.com/jsonicjs/jsonic/go"
+    jsonic "github.com/tabnas/jsonic/go"
 )
 
 j := tabnas.Make()

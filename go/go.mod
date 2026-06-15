@@ -1,4 +1,4 @@
-module github.com/jsonicjs/jsonic/go
+module github.com/tabnas/jsonic/go
 
 go 1.24.7
 

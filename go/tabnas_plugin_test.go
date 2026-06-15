@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	jsonic "github.com/jsonicjs/jsonic/go"
+	jsonic "github.com/tabnas/jsonic/go"
 	tabnas "github.com/tabnas/parser/go"
 )
 

@@ -10,7 +10,7 @@ import (
 // Minimal directive-style plugin defined inline for the test. A directive
 // binds a fixed OPEN token to a named rule that reads the following val
 // and replaces it with the result of an action callback. Mirrors the
-// essential shape of the JS @jsonic/directive plugin — token + rule +
+// essential shape of the JS @tabnas/directive plugin — token + rule +
 // transform — without the close-token, rule-filtering, or error-plumbing
 // surface area. Kept in-test so the core repo carries no plugin dependency.
 func defineDirective(j *Jsonic, name, open string, action func(any) any) {

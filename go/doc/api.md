@@ -1,7 +1,7 @@
 # API Reference (Go)
 
 ```go
-import "github.com/jsonicjs/jsonic/go"
+import "github.com/tabnas/jsonic/go"
 ```
 
 ## Parsing

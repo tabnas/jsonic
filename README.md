@@ -15,7 +15,7 @@ single/backtick quotes, and path diving.
 | Runtime | Start here |
 |---|---|
 | **TypeScript / JavaScript** (canonical, `jsonic` on npm) | [`ts/README.md`](ts/README.md) |
-| **Go** (`github.com/jsonicjs/jsonic/go`) | [`go/README.md`](go/README.md) |
+| **Go** (`github.com/tabnas/jsonic/go`) | [`go/README.md`](go/README.md) |
 
 Both packages are grammar plugins built on the
 [`tabnas`](https://github.com/tabnas/parser) parsing engine, layering
