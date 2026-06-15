@@ -21,7 +21,7 @@ func TestFnrefNoReinstallOnSubsequentCall(t *testing.T) {
 
 	var pairRS *RuleSpec
 	j.Rule("pair", func(rs *RuleSpec, _ *Parser) { pairRS = rs })
-	pairBefore := len(pairRS.BC)
+	pairBefore := len(pairRS.Actions("bc"))
 
 	// Register an unrelated @pair-ao via Grammar. This must not touch BC.
 	err := j.Grammar(&GrammarSpec{
@@ -35,7 +35,7 @@ func TestFnrefNoReinstallOnSubsequentCall(t *testing.T) {
 	}
 
 	j.Rule("pair", func(rs *RuleSpec, _ *Parser) { pairRS = rs })
-	pairAfter := len(pairRS.BC)
+	pairAfter := len(pairRS.Actions("bc"))
 	if pairAfter != pairBefore {
 		t.Fatalf("pair BC count changed: before=%d after=%d (unrelated @pair-ao must not re-install @pair-bc)",
 			pairBefore, pairAfter)

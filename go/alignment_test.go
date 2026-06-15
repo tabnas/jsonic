@@ -631,10 +631,10 @@ func TestAlignmentGrammarGTags(t *testing.T) {
 		}
 
 		// Check open alts.
-		if len(rs.Open) != len(exp.open) {
-			t.Errorf("rule %q open: got %d alts, want %d", exp.name, len(rs.Open), len(exp.open))
+		if len(rs.OpenAlts()) != len(exp.open) {
+			t.Errorf("rule %q open: got %d alts, want %d", exp.name, len(rs.OpenAlts()), len(exp.open))
 		} else {
-			for i, alt := range rs.Open {
+			for i, alt := range rs.OpenAlts() {
 				if alt.G != exp.open[i] {
 					t.Errorf("rule %q open[%d]: G=%q, want %q", exp.name, i, alt.G, exp.open[i])
 				}
@@ -642,10 +642,10 @@ func TestAlignmentGrammarGTags(t *testing.T) {
 		}
 
 		// Check close alts.
-		if len(rs.Close) != len(exp.close) {
-			t.Errorf("rule %q close: got %d alts, want %d", exp.name, len(rs.Close), len(exp.close))
+		if len(rs.CloseAlts()) != len(exp.close) {
+			t.Errorf("rule %q close: got %d alts, want %d", exp.name, len(rs.CloseAlts()), len(exp.close))
 		} else {
-			for i, alt := range rs.Close {
+			for i, alt := range rs.CloseAlts() {
 				if alt.G != exp.close[i] {
 					t.Errorf("rule %q close[%d]: G=%q, want %q", exp.name, i, alt.G, exp.close[i])
 				}
@@ -661,13 +661,13 @@ func TestAlignmentExclude(t *testing.T) {
 
 	// Count alternates before and after exclude.
 	valSpec := j.RSM()["val"]
-	openBefore := len(valSpec.Open)
-	closeBefore := len(valSpec.Close)
+	openBefore := len(valSpec.OpenAlts())
+	closeBefore := len(valSpec.CloseAlts())
 
 	j.SetOptions(Options{Rule: &RuleOptions{Exclude: "jsonic"}})
 
-	openAfter := len(valSpec.Open)
-	closeAfter := len(valSpec.Close)
+	openAfter := len(valSpec.OpenAlts())
+	closeAfter := len(valSpec.CloseAlts())
 
 	// After excluding "jsonic", there should be fewer alternates.
 	if openAfter >= openBefore {
@@ -680,14 +680,14 @@ func TestAlignmentExclude(t *testing.T) {
 	}
 
 	// Remaining alts should not contain the "jsonic" tag.
-	for _, alt := range valSpec.Open {
+	for _, alt := range valSpec.OpenAlts() {
 		for _, tag := range strings.Split(alt.G, ",") {
 			if strings.TrimSpace(tag) == "jsonic" {
 				t.Errorf("exclude: val.Open alt still has jsonic tag in %q", alt.G)
 			}
 		}
 	}
-	for _, alt := range valSpec.Close {
+	for _, alt := range valSpec.CloseAlts() {
 		for _, tag := range strings.Split(alt.G, ",") {
 			if strings.TrimSpace(tag) == "jsonic" {
 				t.Errorf("exclude: val.Close alt still has jsonic tag in %q", alt.G)

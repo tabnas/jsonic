@@ -21,7 +21,7 @@ func TestNLookaheadThreeTokens(t *testing.T) {
 	var gotLegacy string
 
 	j.Rule("val", func(rs *RuleSpec, _ *Parser) {
-		rs.Open = append([]*AltSpec{{
+		rs.PrependOpen([]*AltSpec{{
 			S: [][]Tin{{TA}, {TB}, {TC}},
 			A: func(r *Rule, ctx *Context) {
 				for _, tkn := range r.O {
@@ -30,7 +30,7 @@ func TestNLookaheadThreeTokens(t *testing.T) {
 				gotLegacy = string(r.O0.Src) + string(r.O1.Src)
 				r.Node = "ABC"
 			},
-		}}, rs.Open...)
+		}}...)
 	})
 
 	result, err := j.Parse("ABC")
@@ -61,13 +61,13 @@ func TestNLookaheadFiveTokensNoCap(t *testing.T) {
 	var matchedN int
 
 	j.Rule("val", func(rs *RuleSpec, _ *Parser) {
-		rs.Open = append([]*AltSpec{{
+		rs.PrependOpen([]*AltSpec{{
 			S: [][]Tin{{TA}, {TB}, {TC}, {TD}, {TE}},
 			A: func(r *Rule, ctx *Context) {
 				matchedN = r.ON
 				r.Node = "five"
 			},
-		}}, rs.Open...)
+		}}...)
 	})
 
 	result, err := j.Parse("ABCDE")
@@ -93,7 +93,7 @@ func TestNLookaheadFirstMatchWins(t *testing.T) {
 	TD := j.Token("#TD", "D")
 
 	j.Rule("val", func(rs *RuleSpec, _ *Parser) {
-		rs.Open = append([]*AltSpec{
+		rs.PrependOpen([]*AltSpec{
 			{
 				S: [][]Tin{{TA}, {TB}, {TC}},
 				A: func(r *Rule, ctx *Context) { r.Node = "abc" },
@@ -110,7 +110,7 @@ func TestNLookaheadFirstMatchWins(t *testing.T) {
 				S: [][]Tin{{TA}},
 				A: func(r *Rule, ctx *Context) { r.Node = "a" },
 			},
-		}, rs.Open...)
+		}...)
 	})
 
 	cases := []struct {
@@ -146,7 +146,7 @@ func TestNLookaheadCtxTSlice(t *testing.T) {
 	var seenLegacyT0, seenLegacyT1 string
 
 	j.Rule("val", func(rs *RuleSpec, _ *Parser) {
-		rs.Open = append([]*AltSpec{{
+		rs.PrependOpen([]*AltSpec{{
 			S: [][]Tin{{TA}, {TB}, {TC}},
 			C: func(r *Rule, ctx *Context) bool {
 				// After the lookahead fetch but before the alt is
@@ -164,7 +164,7 @@ func TestNLookaheadCtxTSlice(t *testing.T) {
 			A: func(r *Rule, ctx *Context) {
 				r.Node = "ok"
 			},
-		}}, rs.Open...)
+		}}...)
 	})
 
 	_, err := j.Parse("ABC")
@@ -190,14 +190,14 @@ func TestNLookaheadNullMiddleSlotIsWildcard(t *testing.T) {
 	TC := j.Token("#TC", "C")
 
 	j.Rule("val", func(rs *RuleSpec, _ *Parser) {
-		rs.Open = append([]*AltSpec{{
+		rs.PrependOpen([]*AltSpec{{
 			// Middle position empty = wildcard (no Tin constraint).
 			// Outer positions must still match.
 			S: [][]Tin{{TA}, nil, {TC}},
 			A: func(r *Rule, ctx *Context) {
 				r.Node = "ok"
 			},
-		}}, rs.Open...)
+		}}...)
 	})
 
 	cases := []struct {
@@ -242,44 +242,44 @@ func TestNLookaheadBacktrackN3(t *testing.T) {
 	// val: match A B C with b:3, push to `collect`.
 	// collect: consume A, then B, then C one at a time, logging each.
 	j.Rule("val", func(rs *RuleSpec, _ *Parser) {
-		rs.Open = append([]*AltSpec{{
+		rs.PrependOpen([]*AltSpec{{
 			S: [][]Tin{{TA}, {TB}, {TC}},
 			B: 3,
 			P: "collect",
-		}}, rs.Open...)
+		}}...)
 	})
 
 	j.Rule("collect", func(rs *RuleSpec, _ *Parser) {
-		rs.Open = []*AltSpec{{
+		rs.ClearOpen().AddOpen([]*AltSpec{{
 			S: [][]Tin{{TA}},
 			A: func(r *Rule, ctx *Context) {
 				seen = append(seen, string(r.O[0].Src))
 			},
 			R: "collectB",
-		}}
-		rs.Close = []*AltSpec{{}}
+		}}...)
+		rs.ClearClose().AddClose([]*AltSpec{{}}...)
 	})
 
 	j.Rule("collectB", func(rs *RuleSpec, _ *Parser) {
-		rs.Open = []*AltSpec{{
+		rs.ClearOpen().AddOpen([]*AltSpec{{
 			S: [][]Tin{{TB}},
 			A: func(r *Rule, ctx *Context) {
 				seen = append(seen, string(r.O[0].Src))
 			},
 			R: "collectC",
-		}}
-		rs.Close = []*AltSpec{{}}
+		}}...)
+		rs.ClearClose().AddClose([]*AltSpec{{}}...)
 	})
 
 	j.Rule("collectC", func(rs *RuleSpec, _ *Parser) {
-		rs.Open = []*AltSpec{{
+		rs.ClearOpen().AddOpen([]*AltSpec{{
 			S: [][]Tin{{TC}},
 			A: func(r *Rule, ctx *Context) {
 				seen = append(seen, string(r.O[0].Src))
 				r.Node = "done"
 			},
-		}}
-		rs.Close = []*AltSpec{{}}
+		}}...)
+		rs.ClearClose().AddClose([]*AltSpec{{}}...)
 	})
 
 	_, err := j.Parse("ABC")
