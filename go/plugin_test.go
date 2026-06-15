@@ -1506,21 +1506,22 @@ func TestDebugDescribe(t *testing.T) {
 	j.Token("#TL", "~")
 	j.Use(Debug)
 
-	desc := Describe(j)
+	desc, err := Describe(j)
+	if err != nil {
+		t.Fatalf("Describe error: %v", err)
+	}
 	if desc == "" {
 		t.Fatal("Describe returned empty string")
 	}
-	if !strings.Contains(desc, "test-instance") {
-		t.Error("description should contain tag")
-	}
+	// @tabnas/debug's describe lists tokens, rules and alternates.
 	if !strings.Contains(desc, "#TL") {
 		t.Error("description should contain custom token")
 	}
 	if !strings.Contains(desc, "val") {
 		t.Error("description should contain val rule")
 	}
-	if !strings.Contains(desc, "FixedLex: true") {
-		t.Error("description should contain config settings")
+	if !strings.Contains(desc, "TOKENS") || !strings.Contains(desc, "RULES") {
+		t.Error("description should contain the tokens and rules sections")
 	}
 }
 

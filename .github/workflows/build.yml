@@ -19,8 +19,9 @@ jobs:
 
     steps:
     # jsonic is a grammar plugin built on the tabnas engine and the
-    # @tabnas/json standard-JSON grammar. Check all three out as siblings
-    # so the file: dependencies (../../parser/ts, ../../json/ts) resolve.
+    # @tabnas/json grammar, and re-exports @tabnas/debug. Check all four out
+    # as siblings so the file: dependencies (../../parser/ts, ../../json/ts,
+    # ../../debug/ts) resolve.
     - uses: actions/checkout@v4
       with:
         path: jsonic
@@ -32,15 +33,28 @@ jobs:
       with:
         repository: tabnas/json
         path: json
+    - uses: actions/checkout@v4
+      with:
+        repository: tabnas/debug
+        path: debug
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
-    # Build the engine, then the JSON grammar plugin, then jsonic.
+    # @tabnas/debug resolves the engine from a vendor path; point it at the
+    # sibling checkout instead (matching how jsonic and @tabnas/json depend
+    # on the engine).
+    - name: Point @tabnas/debug at the sibling engine
+      run: npm pkg set "devDependencies.tabnas=file:../../parser/ts"
+      working-directory: ./debug/ts
+    # Build the engine, the JSON grammar plugin and the debug plugin, then
+    # jsonic.
     - run: npm i && npm run build
       working-directory: ./parser/ts
     - run: npm i && npm run build
       working-directory: ./json/ts
+    - run: npm i && npm run build
+      working-directory: ./debug/ts
     - run: npm i
       working-directory: ./jsonic/ts
     - run: npm run build --if-present
@@ -59,9 +73,9 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-    # The Go module depends on github.com/tabnas/parser/go and
-    # github.com/tabnas/json/go via replace directives (../../parser/go,
-    # ../../json/go), so check both engines out as siblings.
+    # The Go module depends on github.com/tabnas/{parser,json,debug}/go via
+    # replace directives (../../parser/go, ../../json/go, ../../debug/go), so
+    # check all three out as siblings.
     - uses: actions/checkout@v4
       with:
         path: jsonic
@@ -73,6 +87,10 @@ jobs:
       with:
         repository: tabnas/json
         path: json
+    - uses: actions/checkout@v4
+      with:
+        repository: tabnas/debug
+        path: debug
     - name: Set up Go
       uses: actions/setup-go@v5
       with:

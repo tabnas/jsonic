@@ -47,8 +47,10 @@ parse function with the management methods attached as properties.
 - `src/bnf.ts` + `src/jsonic-bnf-cli.ts` — the BNF→jsonic grammar
   converter and its CLI (`bin/jsonic-bnf`).
 - `src/jsonic-cli.ts` — the `jsonic` CLI (`bin/jsonic`).
-- `src/debug.ts` — the debug plugin (subpath export `jsonic/debug`):
-  trace lexing/parsing while diagnosing grammar behavior.
+- `src/debug.ts` — re-exports the `Debug` plugin from the standalone
+  `@tabnas/debug` package (the extracted debug plugin: trace lexing/parsing
+  and a `describe()` method). Kept as the subpath export `jsonic/debug` for
+  back-compat.
 - `src/defaults.ts` — jsonic-specific option/error/hint defaults layered
   on the engine defaults.
 - `src/error.ts`, `src/utility.ts` — thin re-exports of the engine's
@@ -65,10 +67,12 @@ TEST_PATTERN=name npm run test-some
 node --test --experimental-test-coverage test/**/*.test.js
 ```
 
-The `tabnas` (`file:../../parser/ts`) and `@tabnas/json`
-(`file:../../json/ts`) dependencies are sibling checkouts of
-`tabnas/parser` and `tabnas/json` whose `ts/` packages have been built
-(`@tabnas/json` itself depends on the engine as a sibling). Tests run
+The `tabnas` (`file:../../parser/ts`), `@tabnas/json`
+(`file:../../json/ts`) and `@tabnas/debug` (`file:../../debug/ts`)
+dependencies are sibling checkouts of `tabnas/parser`, `tabnas/json` and
+`tabnas/debug` whose `ts/` packages have been built (`@tabnas/json` and
+`@tabnas/debug` themselves depend on the engine as a sibling; point
+`@tabnas/debug`'s `tabnas` devDependency at `../../parser/ts`). Tests run
 against compiled output, so always `npm run build` after editing
 `src/` or `test/*.ts`.
 
