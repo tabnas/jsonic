@@ -13,7 +13,6 @@ const {
   eliminateLeftRecursion,
   BnfParseError,
 } = require('../dist/bnf')
-const BnfCli = require('../dist/jsonic-bnf-cli')
 
 
 const FIXTURES = Path.join(__dirname, 'grammar')
@@ -935,100 +934,4 @@ item = 1*ALPHA
 
   })
 
-
-  describe('cli', () => {
-
-    it('converts a fixture file', async () => {
-      const cn = makeConsole()
-      await BnfCli.run(
-        [0, 0, '-f', Path.join(FIXTURES, 'greet.bnf')],
-        cn,
-      )
-      const out = JSON.parse(cn.d.log[0][0])
-      // CLI output serialises actions as FuncRef strings; only assert
-      // that the dispatch to the user's start rule is in place.
-      assert.equal(out.rule.__start__.open[0].p, 'greet')
-      // Case-insensitive literals appear in match.token after
-      // JSON serialisation as the RegExp's stringified form.
-      assert.deepEqual(Object.keys(out.options.match.token).sort(),
-        ['#HELLO', '#HI'])
-    })
-
-
-    it('accepts inline bnf source', async () => {
-      const cn = makeConsole()
-      await BnfCli.run([0, 0, 'g = "x"'], cn)
-      const out = JSON.parse(cn.d.log[0][0])
-      assert.equal(out.rule.__start__.open[0].p, 'g')
-    })
-
-
-    it('honours --start', async () => {
-      const cn = makeConsole()
-      await BnfCli.run(
-        [0, 0, '--start', 'b', 'a = "x" b = "y"'],
-        cn,
-      )
-      const out = JSON.parse(cn.d.log[0][0])
-      assert.equal(out.rule.__start__.open[0].p, 'b')
-    })
-
-
-    it('reads from stdin when invoked with -', async () => {
-      const cn = makeConsole()
-      cn.test$ = 'g = "x"'
-      await BnfCli.run([0, 0, '-'], cn)
-      const out = JSON.parse(cn.d.log[0][0])
-      assert.equal(out.rule.__start__.open[0].p, 'g')
-    })
-
-
-    it('prints help with -h', async () => {
-      const cn = makeConsole()
-      await BnfCli.run([0, 0, '-h'], cn)
-      assert.match(cn.d.log[0][0], /Usage:/)
-    })
-
-
-    it('--parse validates a sample and prints the tree', async () => {
-      const cn = makeConsole()
-      const prevExitCode = process.exitCode
-      await BnfCli.run(
-        [0, 0, 'g = "hi" / "hello"', '--parse', 'hi'],
-        cn,
-      )
-      // Validation prints an `ok:` line to stdout; no spec dump.
-      assert.equal(cn.d.log.length, 1)
-      assert.match(cn.d.log[0][0], /^ok: "hi" ->/)
-      // A successful --parse leaves the process exit code unchanged.
-      assert.equal(process.exitCode, prevExitCode)
-    })
-
-
-    it('--parse flags mismatched samples as failures', async () => {
-      const cn = makeConsole()
-      const prevExitCode = process.exitCode
-      await BnfCli.run(
-        [0, 0, 'g = "hi"', '--parse', 'bye'],
-        cn,
-      )
-      assert.equal(cn.d.log.length, 0)
-      assert.equal(cn.d.err.length, 1)
-      assert.match(cn.d.err[0][0], /^fail: "bye":/)
-      assert.equal(process.exitCode, 1)
-      process.exitCode = prevExitCode
-    })
-
-  })
-
 })
-
-
-function makeConsole() {
-  const d = { log: [], err: [] }
-  return {
-    d,
-    log: (...rest) => d.log.push(rest),
-    error: (...rest) => d.err.push(rest),
-  }
-}

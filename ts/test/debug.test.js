@@ -5,7 +5,7 @@ const { describe, it } = require('node:test')
 const assert = require('node:assert')
 
 const { Jsonic, JsonicError } = require('..')
-const { Debug } = require('../dist/debug')
+const { Debug } = require('@tabnas/debug')
 
 describe('debug', function () {
   it('plugin', () => {

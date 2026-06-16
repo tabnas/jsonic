@@ -5,7 +5,7 @@ const { describe, it } = require('node:test')
 const assert = require('node:assert')
 
 const { Jsonic, JsonicError, makeRule, makeFixedMatcher } = require('..')
-const { Debug } = require('../dist/debug')
+const { Debug } = require('@tabnas/debug')
 
 let j = Jsonic
 let { keys } = j.util
