@@ -42,6 +42,15 @@ Organized by what you are trying to do:
 Working on the codebase? Each directory has an `AGENTS.md` with build,
 layout, and contribution notes; start with [`AGENTS.md`](AGENTS.md).
 
+## Grammar diagram
+
+The grammar as a railroad/syntax diagram, generated from the live grammar
+with [`@tabnas/railroad`](https://github.com/tabnas/railroad):
+
+![jsonic grammar railroad diagram](ts/doc/grammar.svg)
+
+ASCII version: [`ts/doc/grammar.txt`](ts/doc/grammar.txt).
+
 ## License
 
 MIT. Copyright (c) Richard Rodger.
