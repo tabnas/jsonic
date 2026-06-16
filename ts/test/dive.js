@@ -1,5 +1,5 @@
 const { Jsonic, util } = require('..')
-const { Debug } = require('../dist/debug')
+const { Debug } = require('@tabnas/debug')
 
 let j = Jsonic.make()
   .use(function dive(jsonic) {

@@ -3,7 +3,7 @@
 let Jsonic = require('..')
 let { util } = Jsonic
 
-let { Debug } = require('../dist/debug')
+let { Debug } = require('@tabnas/debug')
 
 let j = Jsonic.make({
   // rule: { finish: false },

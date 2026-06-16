@@ -13,7 +13,6 @@
 package jsonic
 
 import (
-	tdebug "github.com/tabnas/debug/go"
 	tabnas "github.com/tabnas/parser/go"
 )
 
@@ -58,33 +57,33 @@ type (
 	GrammarSettingRule = tabnas.GrammarSettingRule
 	GrammarSpec        = tabnas.GrammarSpec
 
-	InfoOptions    = tabnas.InfoOptions
-	Lex            = tabnas.Lex
-	LexCheck       = tabnas.LexCheck
-	LexCheckResult = tabnas.LexCheckResult
-	LexConfig      = tabnas.LexConfig
-	LexMatcher     = tabnas.LexMatcher
-	LexOptions     = tabnas.LexOptions
-	LexSub         = tabnas.LexSub
-	LineOptions    = tabnas.LineOptions
-	ListOptions    = tabnas.ListOptions
-	ListRef        = tabnas.ListRef
-	MakeLexMatcher = tabnas.MakeLexMatcher
-	MapMergeFunc   = tabnas.MapMergeFunc
-	MapOptions     = tabnas.MapOptions
-	MapRef         = tabnas.MapRef
-	MatchOptions     = tabnas.MatchOptions
-	MatchSpec        = tabnas.MatchSpec
-	MatchTokenEntry  = tabnas.MatchTokenEntry
-	MatchValueEntry  = tabnas.MatchValueEntry
-	MatchValueSpec   = tabnas.MatchValueSpec
-	MatcherEntry     = tabnas.MatcherEntry
-	ModListOpts    = tabnas.ModListOpts
-	NumberOptions  = tabnas.NumberOptions
-	Options        = tabnas.Options
-	ParseOptions   = tabnas.ParseOptions
-	Parser         = tabnas.Parser
-	ParserOptions  = tabnas.ParserOptions
+	InfoOptions     = tabnas.InfoOptions
+	Lex             = tabnas.Lex
+	LexCheck        = tabnas.LexCheck
+	LexCheckResult  = tabnas.LexCheckResult
+	LexConfig       = tabnas.LexConfig
+	LexMatcher      = tabnas.LexMatcher
+	LexOptions      = tabnas.LexOptions
+	LexSub          = tabnas.LexSub
+	LineOptions     = tabnas.LineOptions
+	ListOptions     = tabnas.ListOptions
+	ListRef         = tabnas.ListRef
+	MakeLexMatcher  = tabnas.MakeLexMatcher
+	MapMergeFunc    = tabnas.MapMergeFunc
+	MapOptions      = tabnas.MapOptions
+	MapRef          = tabnas.MapRef
+	MatchOptions    = tabnas.MatchOptions
+	MatchSpec       = tabnas.MatchSpec
+	MatchTokenEntry = tabnas.MatchTokenEntry
+	MatchValueEntry = tabnas.MatchValueEntry
+	MatchValueSpec  = tabnas.MatchValueSpec
+	MatcherEntry    = tabnas.MatcherEntry
+	ModListOpts     = tabnas.ModListOpts
+	NumberOptions   = tabnas.NumberOptions
+	Options         = tabnas.Options
+	ParseOptions    = tabnas.ParseOptions
+	Parser          = tabnas.Parser
+	ParserOptions   = tabnas.ParserOptions
 
 	// Plugin is a function that configures a parser instance. It is the
 	// engine's plugin type; jsonic's own grammar (see Grammar) is one.
@@ -164,18 +163,12 @@ var (
 	// TinSetVAL / TinSetKEY are the default value and key token sets.
 	TinSetVAL = tabnas.TinSetVAL
 	TinSetKEY = tabnas.TinSetKEY
-
-	// Debug is the @tabnas/debug tracing/introspection plugin.
-	Debug = tdebug.Debug
 )
 
 // --- Function re-exports ----------------------------------------------
 
 var (
-	Deep = tabnas.Deep
-	// Describe renders a human-readable description of an instance's
-	// grammar/config; from @tabnas/debug, it returns (string, error).
-	Describe                = tdebug.Describe
+	Deep                    = tabnas.Deep
 	IsUndefined             = tabnas.IsUndefined
 	UnwrapUndefined         = tabnas.UnwrapUndefined
 	MakeRule                = tabnas.MakeRule

@@ -3,6 +3,8 @@ package jsonic
 import (
 	"strings"
 	"testing"
+
+	tdebug "github.com/tabnas/debug/go"
 )
 
 // hasExactTag checks if tagStr (comma-separated) contains the exact tag.
@@ -1352,7 +1354,7 @@ func TestSetTokenSetVALPerInstance(t *testing.T) {
 func TestDeriveInheritsValKeySet(t *testing.T) {
 	parent := Make()
 	parent.SetTokenSet("VAL", []Tin{TinTX, TinNR, TinST}) // Remove VL
-	parent.SetTokenSet("KEY", []Tin{TinTX})                 // Only TX
+	parent.SetTokenSet("KEY", []Tin{TinTX})               // Only TX
 
 	child, _ := parent.Derive()
 
@@ -1504,9 +1506,9 @@ func TestRuleSpecStateActions(t *testing.T) {
 func TestDebugDescribe(t *testing.T) {
 	j := Make(Options{Tag: "test-instance"})
 	j.Token("#TL", "~")
-	j.Use(Debug)
+	j.Use(tdebug.Debug)
 
-	desc, err := Describe(j)
+	desc, err := tdebug.Describe(j)
 	if err != nil {
 		t.Fatalf("Describe error: %v", err)
 	}
@@ -1529,7 +1531,7 @@ func TestDebugPlugin(t *testing.T) {
 	j := Make()
 	// Debug without trace should not add subscribers. Plugin count is the
 	// grammar plugin plus Debug.
-	j.Use(Debug)
+	j.Use(tdebug.Debug)
 	if len(j.Plugins()) != 2 {
 		t.Errorf("expected 2 plugins, got %d", len(j.Plugins()))
 	}
