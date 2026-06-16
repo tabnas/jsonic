@@ -121,14 +121,34 @@ Get the fixed token mapping (source characters to token types).
 
 ### `instance.use(plugin, options?)`
 
-Register and execute a plugin. The plugin function receives the jsonic
-instance and the options object.
+The shortcut for adding plugins. Registers and immediately executes a
+plugin; the plugin function receives the jsonic instance and the resolved
+options (its `plugin.defaults` deep-merged with `options`).
 
 ```js
-jsonic.use(myPlugin, { key: 'value' })
+const j = Jsonic.make().use(myPlugin, { key: 'value' })
 ```
 
-Plugins are re-applied when deriving child instances.
+`use()` **returns the instance, so registrations chain**:
+
+```js
+const j = Jsonic.make().use(grammarPlugin).use(myPlugin, { opt: 1 })
+```
+
+A plugin may return a replacement instance (for example a wrapper); in
+that case `use()` returns whatever the plugin returns, otherwise the same
+instance. Plugins are **re-applied when deriving a child instance with
+`make()`**, so `.use()` decorations propagate to children.
+
+Plugins may also be supplied at construction time — equivalent to calling
+`.use()` for each, in order:
+
+```js
+const j = Jsonic.make({ plugins: [grammarPlugin, myPlugin] })
+```
+
+The same shortcut works on the underlying engine when composing grammars:
+`new Tabnas().use(jsonic).use(myPlugin)` (see [Writing Plugins](plugins.md)).
 
 ## Events
 
