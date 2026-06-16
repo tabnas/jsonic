@@ -18,50 +18,34 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-    # jsonic is a grammar plugin built on the tabnas engine and the
-    # @tabnas/json grammar, and re-exports @tabnas/debug. Check all four out
-    # as siblings so the file: dependencies (../../parser/ts, ../../json/ts,
-    # ../../debug/ts) resolve.
     - uses: actions/checkout@v4
       with:
         path: jsonic
-    - uses: actions/checkout@v4
-      with:
-        repository: tabnas/parser
-        path: parser
-    - uses: actions/checkout@v4
-      with:
-        repository: tabnas/json
-        path: json
-    - uses: actions/checkout@v4
-      with:
-        repository: tabnas/debug
-        path: debug
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
-    # @tabnas/debug resolves the engine from a vendor path; point it at the
-    # sibling checkout instead (matching how jsonic and @tabnas/json depend
-    # on the engine).
-    - name: Point @tabnas/debug at the sibling engine
-      run: npm pkg set "devDependencies.tabnas=file:../../parser/ts"
-      working-directory: ./debug/ts
-    # Build the engine, the JSON grammar plugin and the debug plugin, then
-    # jsonic.
-    - run: npm i && npm run build
-      working-directory: ./parser/ts
-    - run: npm i && npm run build
-      working-directory: ./json/ts
-    - run: npm i && npm run build
-      working-directory: ./debug/ts
-    - run: npm i
-      working-directory: ./jsonic/ts
-    - run: npm run build --if-present
-      working-directory: ./jsonic/ts
-    - run: npm test
-      working-directory: ./jsonic/ts
-
+    # The @tabnas siblings are not published to npm; clone them so the
+    # file: dependencies resolve, then build everything (this repo included)
+    # in dependency order so each package sees its built dependencies.
+    - name: Clone tabnas dependencies
+      shell: bash
+      run: |
+        set -e
+        for dep in parser debug json railroad; do
+          git clone --depth 1 "https://github.com/tabnas/$dep.git" "$dep"
+        done
+    - name: Build (dependencies, then this repo)
+      shell: bash
+      run: |
+        set -e
+        for pkg in parser debug json railroad jsonic; do
+          ( cd "$pkg/ts" && npm i && npm run build --if-present )
+        done
+    - name: Test
+      shell: bash
+      working-directory: jsonic/ts
+      run: npm test
 
   build-go:
 
@@ -73,31 +57,14 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-    # The Go module depends on github.com/tabnas/{parser,json,debug}/go via
-    # replace directives (../../parser/go, ../../json/go, ../../debug/go), so
-    # check all three out as siblings.
     - uses: actions/checkout@v4
-      with:
-        path: jsonic
-    - uses: actions/checkout@v4
-      with:
-        repository: tabnas/parser
-        path: parser
-    - uses: actions/checkout@v4
-      with:
-        repository: tabnas/json
-        path: json
-    - uses: actions/checkout@v4
-      with:
-        repository: tabnas/debug
-        path: debug
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
         go-version: '1.24'
     - name: Build
+      working-directory: go
       run: go build ./...
-      working-directory: ./jsonic/go
     - name: Test
-      run: go test ./...
-      working-directory: ./jsonic/go
+      working-directory: go
+      run: go test -v ./...
