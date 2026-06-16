@@ -94,3 +94,7 @@ elem:
                     │ "}" │
                     ╰──┬──╯
                        │
+
+Tokens:
+  KEY = map key (text, number, string, or value)
+  VAL = a value (text, number, string, or value)
