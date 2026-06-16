@@ -215,6 +215,16 @@ Organized by what you are trying to do:
 - **Understanding** — [Concepts](doc/concepts.md): how the parser is
   built and why.
 
+
+## Grammar diagram
+
+The installed grammar as a railroad/syntax diagram, generated from the live
+grammar with [`@tabnas/railroad`](https://github.com/tabnas/railroad):
+
+![jsonic grammar railroad diagram](doc/grammar.svg)
+
+A vertical ASCII version is in [`doc/grammar.txt`](doc/grammar.txt).
+
 ## License
 
 MIT. Copyright (c) Richard Rodger.
