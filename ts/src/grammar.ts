@@ -96,35 +96,67 @@ function grammar(jsonic: Jsonic) {
     // re-installed by later fnref() calls or on Derive/make().
     rs.fnref({
       '@val-bc/replace': (r: Rule, ctx: Context) => {
+        // Stash the value a plugin set in a val OPEN action (before any
+        // coalescing). @tabnas/json's @value$ close ALT action still runs
+        // after this and re-resolves the matched token, which would
+        // overwrite a plugin value; the @val-ac after-close hook below
+        // restores it. A normal value rule @reset$s its node in open, so
+        // this is undefined except when a plugin deliberately set it.
+        r.u.openval = r.node
+
+        const resolveToken = () => {
+          let val = r.o0.resolveVal(r, ctx)
+          if (
+            ctx.cfg.info.text &&
+            typeof val === 'string' &&
+            (r.o0.tin === ctx.cfg.t.ST || r.o0.tin === ctx.cfg.t.TX)
+          ) {
+            let quote =
+              r.o0.tin === ctx.cfg.t.ST && r.o0.src.length > 0 ? r.o0.src[0] : ''
+            let sv = new String(val)
+            mark(sv, ctx.cfg.info.marker, { quote })
+            val = sv as any
+          }
+          return val
+        }
+
         r.node =
-        // Keep a node a plugin already set,
-        undefined === r.node
-          ? // else a child map/list node,
-          undefined === r.child.node
-            ? // else the matched scalar token (none -> undefined),
-            0 === r.os
-              ? undefined
-              : (() => {
-                  let val = r.o0.resolveVal(r, ctx)
-                  if (
-                    ctx.cfg.info.text &&
-                    typeof val === 'string' &&
-                    (r.o0.tin === ctx.cfg.t.ST || r.o0.tin === ctx.cfg.t.TX)
-                  ) {
-                    let quote =
-                      r.o0.tin === ctx.cfg.t.ST && r.o0.src.length > 0
-                        ? r.o0.src[0]
-                        : ''
-                    let sv = new String(val)
-                    mark(sv, ctx.cfg.info.marker, { quote })
-                    val = sv as any
-                  }
-                  return val
-                })()
-            : r.child.node
-          : r.node
+        // A child map/list node wins (the value was a container),
+        undefined !== r.child.node
+          ? r.child.node
+          : // else a deliberate PRIMITIVE value a plugin set in a val open
+            // action (a stale parent-seeded node is always a container, so
+            // a non-object node here is an intentional scalar value),
+            null != r.node && 'object' !== typeof r.node
+              ? r.node
+              : // else the matched scalar token — this beats a stale
+                // parent-seeded container node,
+                0 !== r.os
+                  ? resolveToken()
+                  : // else a deliberate container a plugin set (no token),
+                    undefined !== r.node
+                      ? r.node
+                      : // else no value -> undefined (implicit null).
+                        undefined
       },
     })
+      // After-close: @tabnas/json's @value$ close alt re-resolves the
+      // matched token and so overwrites a value a plugin set in a val open
+      // action (e.g. `{ s:[NOT], a:r=>r.node='<not>' }`). Restore the
+      // plugin's value, but only a PRIMITIVE one set with no child: a
+      // parent-seeded stale node is always a container (object/array), so
+      // restricting to non-objects restores deliberate scalar plugin
+      // values without disturbing normal coalescing.
+      .ac((r: Rule) => {
+        const ov = r.u.openval
+        if (
+          null != ov &&
+          'object' !== typeof ov &&
+          undefined === r.child.node
+        ) {
+          r.node = ov
+        }
+      })
   })
 
 
@@ -139,7 +171,6 @@ function grammar(jsonic: Jsonic) {
   function pairval(r: Rule, ctx: Context) {
     let key = r.u.key
     let val = r.child.node
-    const prev = r.u.prev
 
     // Convert undefined to null when there was no pair value
     val = undefined === val ? null : val
@@ -155,6 +186,11 @@ function grammar(jsonic: Jsonic) {
     if (ctx.cfg.info.map && key === ctx.cfg.info.marker) {
       return
     }
+
+    // The previous value at this key (the engine's @setval$ builtin no
+    // longer threads it through r.u.prev): read it straight off the node
+    // so a repeated key (`a:1,a:2`) or a deep object can merge/extend.
+    const prev = r.node[key]
 
     val = null == prev
       ? val
@@ -180,47 +216,66 @@ function grammar(jsonic: Jsonic) {
           alts: [
             // A pair key: `a: ...`
             // Implicit map at top level.
+            // @reset$ clears the parent-seeded node (mirrors json's #OB/#OS
+            // open alts) so val-close coalesces to the pushed map, not the
+            // inherited parent container.
             {
               s: '#KEY #CL',
               c: { d: 0 },
               p: 'map',
               b: 2,
+              a: '@reset$',
               g: 'pair,jsonic,top',
             },
 
             // A pair dive: `a:b: ...`
             // Increment counter n.pk to indicate pair-key depth (for extensions).
             // a:9 -> pk=undef, a:b:9 -> pk=1, a:b:c:9 -> pk=2, etc
+            // @reset$ as above: without it a dive inside an explicit map
+            // (`{a:b:1}`) coalesces a's value to the outer map (a circular
+            // self-reference) instead of the nested `{b:1}`.
             {
               s: '#KEY #CL',
               p: 'map',
               b: 2,
               n: { pk: 1 },
+              a: '@reset$',
               g: 'pair,jsonic',
             },
 
             // A plain value: `x` `"x"` `1` `true` ....
-            { s: '#VAL', g: 'val,json' },
+            // @reset$ clears the parent-seeded node so the scalar doesn't
+            // inherit the parent container (mirrors @tabnas/json's #VAL
+            // open alt that the `delete:[2]` below removes).
+            { s: '#VAL', a: '@reset$', g: 'val,json' },
 
             // Implicit ends `{a:}` -> {"a":null}, `[a:]` -> [{"a":null}]
+            // @reset$ so the empty value resolves to null (via @val-bc)
+            // rather than keeping the inherited parent container.
             {
               s: ['#CB #CS'],
               b: 1,
               c: { d: { $gt: 0 } },
+              a: '@reset$',
               g: 'val,imp,null,jsonic',
             },
 
-            // Implicit list at top level: a,b.
+            // Implicit list at top level starting with a comma: `,` -> [null].
+            // Allocate the (implicit) array here — this path does not go
+            // through @list-bo's implist promotion, and @tabnas/json's
+            // @array$ only runs for `[`.
             {
               s: '#CA',
               c: { d: 0 },
               p: 'list',
               b: 1,
+              a: '@array$',
+              k: { array$: { implicit: true } },
               g: 'list,imp,jsonic',
             },
 
             // Value is implicitly null when empty before commas.
-            { s: '#CA', b: 1, g: 'list,val,imp,null,jsonic' },
+            { s: '#CA', b: 1, a: '@reset$', g: 'list,val,imp,null,jsonic' },
 
             { s: '#ZZ', g: 'jsonic' },
 
@@ -283,13 +338,24 @@ function grammar(jsonic: Jsonic) {
         r.n.dmap = 1 + (r.n.dmap ? r.n.dmap : 0)
       })
       .open([
-        // Auto-close; fail if rule.finish option is false.
-        { s: '#OB #ZZ', b: 1, e: '@finish', g: 'end,jsonic' },
+        // Auto-close; fail if rule.finish option is false. Allocate the
+        // (empty) object so `{` -> `{}` when finish is allowed.
+        { s: '#OB #ZZ', b: 1, a: '@object$', e: '@finish', g: 'end,jsonic' },
       ])
       .open(
         [
-          // Pair from implicit map.
-          { s: '#KEY #CL', p: 'pair', b: 2, g: 'pair,list,val,imp,jsonic' },
+          // Pair from implicit map (no braces). @tabnas/json's map-open
+          // alts only match `#OB`, so the brace-less entry must allocate
+          // the container itself: @object$ with the static implicit:true
+          // flag (the brace-less counterpart of json's implicit:false).
+          {
+            s: '#KEY #CL',
+            p: 'pair',
+            b: 2,
+            a: '@object$',
+            k: { object$: { implicit: true } },
+            g: 'pair,list,val,imp,jsonic',
+          },
         ],
         { append: true },
       )
@@ -325,11 +391,19 @@ function grammar(jsonic: Jsonic) {
     rs
       .fnref({
         ...fnm,
-        '@list-bo': (r: Rule) => {
+        '@list-bo': (r: Rule, ctx: Context) => {
           // Increment depth of lists.
           r.n.dlist = 1 + (r.n.dlist ? r.n.dlist : 0)
 
+          // For an implicit (bracket-less) list, @tabnas/json's @array$
+          // never runs (its list-open alts only match `#OS`), so allocate
+          // the array here, mark it implicit when info.list is on, then
+          // promote the already-parsed first value into it.
           if (r.prev.u.implist) {
+            r.node = []
+            if (ctx.cfg.info.list) {
+              mark(r.node, ctx.cfg.info.marker, { implicit: true, meta: {} })
+            }
             r.node.push(r.prev.node)
             r.prev.node = r.node
           }
@@ -523,7 +597,6 @@ function grammar(jsonic: Jsonic) {
               pairObj[key] = val
               r.node.push(pairObj)
             } else {
-              r.u.prev = r.node[r.u.key]
               pairval(r, ctx)
             }
           }
