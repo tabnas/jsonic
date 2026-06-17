@@ -163,6 +163,14 @@ var (
 	// TinSetVAL / TinSetKEY are the default value and key token sets.
 	TinSetVAL = tabnas.TinSetVAL
 	TinSetKEY = tabnas.TinSetKEY
+
+	// BuiltinRefs is the engine's standard `$`-builtin library
+	// (@object$/@array$/@reset$/@key$/@setval$/@push$/@value$, plus the
+	// tree/probe builtins). jsonic merges these into its local funcref map
+	// so its code-built alts can reference them by name (the engine merges
+	// them automatically only for a declarative GrammarSpec, not for alts
+	// resolved directly via ResolveGrammarAltStatic).
+	BuiltinRefs = tabnas.BUILTIN_REFS
 )
 
 // --- Function re-exports ----------------------------------------------

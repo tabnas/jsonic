@@ -90,17 +90,41 @@ first.
 
 jsonic installs the standard-JSON core via `@tabnas/json`'s
 `registerJsonGrammar` (TS) / `RegisterJSONGrammar` (Go), then weaves its
-relaxed extensions around json's alternates. `@tabnas/json`'s rule
-actions are **strict-only and get simplified over time** (dead-branch
-removal), so jsonic must *own* the close actions whose behavior the
-relaxed grammar depends on rather than layer over them — in TS via the
-engine's plugin-override API (`@val-bc/replace`, `@elem-bc/replace`, the
-`pair` key alt's `clear` alt-mod), in Go via `buildGrammar` overriding
-`BO`/`BC` (the `val` close action, the `pair` key alt's `@pairkey`).
-`/replace` takes ownership of a phase so the strict action is not
-re-installed on later derive. Plugins that layer further on jsonic prune
-rules they don't want via `tn.rule(name, null)` (TS) / `j.Rule(name,
-nil)` (Go).
+relaxed extensions around json's alternates. `@tabnas/json` builds its
+value tree on the **engine's native-value `$`-builtins** (`@reset$`,
+`@object$`, `@array$`, `@key$`, `@setval$`, `@push$`, `@value$`); jsonic
+reuses those builtins on its own alts and owns only the *relaxed*
+behaviour:
+
+- **Implicit (brace/bracket-less) containers** allocate the container
+  themselves — json's `@object$`/`@array$` only match `#OB`/`#OS`. TS adds
+  `a:'@object$'` with `k.object$={implicit:true}` (the static implicit
+  flag the engine builtins provide) on the implicit map/list open alts; Go
+  allocates the `MapRef`/`ListRef` in the **BO** phase (so a `Meta` bag is
+  available — a Go-only contract) and sets the implicit flag in BC.
+- **`@reset$` on every value-producing relaxed val open alt** (dive,
+  top-implicit-map, implicit-null, leading-comma) — mirroring json's
+  `#OB`/`#OS`/`#VAL` alts. Omitting it makes a value keep the inherited
+  parent container (`{a:b:1}` / `[a:]` become circular self-references).
+- **val close coalescing** is jsonic's own before-close hook, ordered
+  *child container > deliberate primitive plugin value > matched scalar
+  token (beats a stale parent-seeded container) > deliberate container >
+  implicit null*, plus a val **after-close** hook that restores a
+  primitive value a plugin set in `val` open over json's `@value$` close
+  action (which re-resolves the token). This is what keeps plugin value
+  overrides working (`match-custom`, `fixed-tokens`, `parser-mixed-token`).
+- `pairval` reads the previous value from the node (`r.node[key]`), not a
+  threaded `r.u.prev`, so map merge/extend works.
+
+In TS jsonic owns a phase via the engine plugin-override API
+(`@val-bc/replace`, `@elem-bc/replace`, the `pair`/`val` key alt's `clear`
+alt-mod); `/replace` takes ownership so the builtin is not re-installed on
+later derive. In Go `buildGrammar` mutates the installed rules
+(`ClearActions`/`AddBO`/`AddBC`/`AddAC`) and merges `BuiltinRefs` into its
+local funcref map so code-built alts can resolve `@object$` &c by name
+(the engine auto-merges builtins only for a declarative `GrammarSpec`).
+Plugins that layer further on jsonic prune rules they don't want via
+`tn.rule(name, null)` (TS) / `j.Rule(name, nil)` (Go).
 
 ## Build & test
 

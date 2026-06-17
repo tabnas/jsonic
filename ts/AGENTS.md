@@ -24,19 +24,23 @@ parse function with the management methods attached as properties.
   (`registerJsonicGrammar`).
 - `src/grammar.ts` — installs the standard-JSON core via
   `registerJsonGrammar` from `@tabnas/json`, then layers jsonic's relaxed
-  extensions on the `val`/`map`/`list`/`pair`/`elem` rules. **Maintenance
-  hazard:** `@tabnas/json`'s rule actions are strict-only and get
-  simplified over time (dead-branch removal), so jsonic must *own* the
-  close actions whose behavior the relaxed grammar depends on rather than
-  layer over them. It overrides, via the engine's plugin-override API:
-  the `val` close action (`@val-bc/replace` — preserve plugin-set value
-  nodes / implicit-null empty values), the `elem` close action
-  (`@elem-bc/replace` — the strict one pushes every child, double-adding
-  jsonic's `done`-flagged elements; jsonic owns the guarded normal push
-  plus pair/child handling), and the `pair` key alt (`clear` alt-mod on
-  the open list — decode number/keyword keys from the token source).
-  `/replace` takes ownership of a phase so the strict action is not
-  re-installed on later `fnref()`/`make()`/derive. Also provides the
+  extensions on the `val`/`map`/`list`/`pair`/`elem` rules. `@tabnas/json`
+  builds its values on the engine's native-value `$`-builtins
+  (`@reset$`/`@object$`/`@array$`/`@key$`/`@setval$`/`@push$`/`@value$`);
+  jsonic reuses them and owns only the *relaxed* behaviour. **Maintenance
+  hazards** (see the root `AGENTS.md` for the full list): implicit
+  (brace-less) containers must allocate via `@object$`/`@array$` with
+  `k.object$={implicit:true}`; every value-producing relaxed `val` open
+  alt needs `a:'@reset$'` (else `{a:b:1}`/`[a:]` go circular); the `val`
+  close coalescing is jsonic's own `@val-bc/replace` before-close hook
+  (child > primitive plugin value > token > container > implicit null)
+  plus a `val` **after-close** hook that restores a primitive plugin value
+  over json's `@value$` close action; the `elem` close action
+  (`@elem-bc/replace`) owns the guarded push + pair/child handling; the
+  `pair`/`val` key alts use a `clear` alt-mod to bind jsonic's `@pairkey`
+  (number/keyword keys from the token source). `/replace` takes ownership
+  of a phase so the builtin is not re-installed on later
+  `fnref()`/`make()`/derive. Also provides the
   strict-JSON variant selected by `Jsonic.make('json')` and exports the
   idiomatic `tabnas` plugin
   `jsonic` (apply jsonic option defaults + register grammar) and the
