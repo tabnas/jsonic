@@ -66,11 +66,19 @@ three files plus tests:
   error/identity branding), and `Version`.
 - `grammar.go` — the relaxed-JSON grammar. `grammarPlugin` (in
   `jsonic.go`) first calls `tjson.RegisterJSONGrammar` to install the
-  standard-JSON core, then `buildGrammar` weaves jsonic's relaxed
-  extensions around json's core alternates (reusing them by reference) and
-  overrides `BO`/`BC` where jsonic needs fuller behavior (the `val` close
-  action, the `pair` key alt's `@pairkey`). The `node*` helpers operate on
-  plain/`MapRef`/`ListRef` nodes.
+  standard-JSON core (now built on the engine's native-value `$`-builtins),
+  then `buildGrammar` weaves jsonic's relaxed extensions around json's
+  alternates (reusing them by reference). It merges `BuiltinRefs` into its
+  local funcref map so code-built alts can resolve `@object$` &c by name,
+  adds `A:"@reset$"` to the relaxed value-open alts, allocates implicit
+  `MapRef`/`ListRef` containers in the **BO** phase (so a `Meta` bag is
+  available — a Go-only contract; the implicit flag is set in BC), and owns
+  the `val` close coalescing via a before-close hook (child > primitive
+  plugin value > token > container > implicit null) + an after-close
+  (`AddAC`) hook that restores a primitive plugin value over json's
+  `@value$` close action. See the root `AGENTS.md` "Layering" section for
+  the rationale (omitting `@reset$` makes `{a:b:1}`/`[a:]` circular). The
+  `node*` helpers operate on plain/`MapRef`/`ListRef` nodes.
 - `engine.go` — re-exports the engine's public surface (types, funcs,
   consts, vars) under the historic jsonic names; `Jsonic = tabnas.Tabnas`,
   `JsonicError = tabnas.TabnasError`.
