@@ -8,6 +8,39 @@ import "fmt"
 // @tabnas/json version mismatch), so grammar installation never crashes the
 // caller.
 func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) error {
+	// pairval sets key:val on the node (the Go port of the TS `pairval`).
+	// The previous value at the key is read straight off the node — the
+	// engine's @setval$ builtin no longer threads it through r.U["prev"] —
+	// so a repeated key (`a:1,a:2`) or a deep object can merge/extend.
+	pairval := func(r *Rule, ctx *Context) {
+		key, _ := r.U["key"].(string)
+		val := r.Child.Node
+		if IsUndefined(val) {
+			val = nil
+		}
+		// Do not set unsafe keys on Arrays (Objects are created without a
+		// prototype).
+		if cfg.SafeKey && r.U["list"] == true {
+			if key == "__proto__" || key == "constructor" {
+				return
+			}
+		}
+		// Drop keys that match the info marker to preserve metadata.
+		if cfg.InfoMarker != "" && key == cfg.InfoMarker {
+			return
+		}
+		prev := nodeMapGetVal(r.Node, key)
+		if prev == nil {
+			nodeMapSet(r.Node, key, val)
+		} else if cfg.MapMerge != nil {
+			nodeMapSet(r.Node, key, cfg.MapMerge(prev, val, r, ctx))
+		} else if cfg.MapExtend {
+			nodeMapSet(r.Node, key, Deep(prev, val))
+		} else {
+			nodeMapSet(r.Node, key, val)
+		}
+	}
+
 	// Named function references for the grammar.
 	// These closures capture cfg for runtime configuration access.
 	ref := map[FuncRef]any{
@@ -30,72 +63,86 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) error {
 			r.U["key"] = key
 		}),
 
-		"@pairval": AltAction(func(r *Rule, ctx *Context) {
-			key, _ := r.U["key"].(string)
-			val := r.Child.Node
-			if IsUndefined(val) {
-				val = nil
-			}
-			if cfg.SafeKey && r.U["list"] == true {
-				if key == "__proto__" || key == "constructor" {
-					return
-				}
-			}
-			// Drop keys that match the info marker to preserve metadata.
-			if cfg.InfoMarker != "" && key == cfg.InfoMarker {
-				return
-			}
-			prev := r.U["prev"]
-			if prev == nil {
-				nodeMapSet(r.Node, key, val)
-			} else if cfg.MapMerge != nil {
-				nodeMapSet(r.Node, key, cfg.MapMerge(prev, val, r, ctx))
-			} else if cfg.MapExtend {
-				nodeMapSet(r.Node, key, Deep(prev, val))
-			} else {
-				nodeMapSet(r.Node, key, val)
-			}
-		}),
-
 		// val rule state actions
-		"@val-bo": StateAction(func(r *Rule, ctx *Context) {
-			_ = ctx
-			r.Node = Undefined
+		//
+		// @val-bc takes ownership of the val close phase (mirrors the TS
+		// `@val-bc/replace`): @tabnas/json's strict @val-bc is cleared and
+		// this runs as the before-close state action. The matched val close
+		// alt's @value$ action (which re-resolves the token) still runs after
+		// it, and @val-ac restores a primitive plugin value over that.
+		"@val-bc": StateAction(func(r *Rule, ctx *Context) {
+			// Stash the value a plugin set in a val OPEN action (before any
+			// coalescing). json's @value$ close ALT action still runs after
+			// this and re-resolves the matched token, which would overwrite a
+			// plugin value; @val-ac below restores it. A normal value rule
+			// @reset$s its node in open, so this is Undefined except when a
+			// plugin deliberately set it.
+			r.U["openval"] = r.Node
+
+			resolveToken := func() any {
+				val := r.O0.ResolveVal(r, ctx)
+				// A nil value from a non-value token (e.g. #CS, #CB) means
+				// "no value", not "null". Keep Undefined to match TS where
+				// resolveVal returns undefined for such tokens.
+				if val == nil && r.O0.Tin != TinVL {
+					return Undefined
+				}
+				if cfg.TextInfo && (r.O0.Tin == TinST || r.O0.Tin == TinTX) {
+					quote := ""
+					if r.O0.Tin == TinST && len(r.O0.Src) > 0 {
+						quote = string(r.O0.Src[0])
+					}
+					str, _ := val.(string)
+					val = Text{Quote: quote, Str: str}
+				}
+				return val
+			}
+
+			switch {
+			// A child map/list node wins (the value was a container).
+			case r.Child != NoRule && r.Child != nil && !IsUndefined(r.Child.Node):
+				r.Node = r.Child.Node
+			// else a deliberate PRIMITIVE value a plugin set in a val open
+			// action (a stale parent-seeded node is always a container, so a
+			// non-container node here is an intentional scalar value).
+			case isPrimitiveNode(r.Node):
+				// keep r.Node as-is
+			// else the matched scalar token — this beats a stale parent-seeded
+			// container node.
+			case r.OS != 0:
+				r.Node = resolveToken()
+			// else a deliberate container a plugin set (no token).
+			case !IsUndefined(r.Node):
+				// keep r.Node as-is
+			// else no value -> undefined (implicit null).
+			default:
+				r.Node = Undefined
+			}
 		}),
 
-		"@val-bc": StateAction(func(r *Rule, ctx *Context) {
+		// After-close: json's @value$ close alt re-resolves the matched token
+		// and so overwrites a value a plugin set in a val open action (e.g.
+		// fixed-token / match-custom plugins). Restore the plugin's value, but
+		// only a PRIMITIVE one set with no child: a parent-seeded stale node is
+		// always a container, so restricting to non-containers restores
+		// deliberate scalar plugin values without disturbing normal coalescing.
+		"@val-ac": StateAction(func(r *Rule, ctx *Context) {
 			_ = ctx
-			if IsUndefined(r.Node) {
-				if IsUndefined(r.Child.Node) {
-					if r.OS == 0 {
-						r.Node = Undefined
-					} else {
-						val := r.O0.ResolveVal(r, ctx)
-						// A nil value from a non-value token (e.g. #CS, #CB)
-						// means "no value", not "null". Keep Undefined to match
-						// TS where resolveVal returns undefined for such tokens.
-						if val == nil && r.O0.Tin != TinVL {
-							r.Node = Undefined
-						} else {
-							if cfg.TextInfo && (r.O0.Tin == TinST || r.O0.Tin == TinTX) {
-								quote := ""
-								if r.O0.Tin == TinST && len(r.O0.Src) > 0 {
-									quote = string(r.O0.Src[0])
-								}
-								str, _ := val.(string)
-								val = Text{Quote: quote, Str: str}
-							}
-							r.Node = val
-						}
-					}
-				} else {
-					r.Node = r.Child.Node
-				}
+			ov := r.U["openval"]
+			if isPrimitiveNode(ov) &&
+				(r.Child == NoRule || r.Child == nil || IsUndefined(r.Child.Node)) {
+				r.Node = ov
 			}
 		}),
 
 		// map rule state actions
-		"@map-bo": StateAction(func(r *Rule, ctx *Context) {
+		//
+		// @map-bo-jsonic allocates the map node in the BO (before-open) phase
+		// — earlier than @tabnas/json's @object$ alt action — so a custom BO
+		// action can reach the MapRef and write to its Meta bag (the jsonic Go
+		// contract; see both_ref_test.go). It also bumps the dmap depth. The
+		// implicit flag is set later by @map-bc from the open token.
+		"@map-bo-jsonic": StateAction(func(r *Rule, ctx *Context) {
 			_ = ctx
 			if cfg.MapRef {
 				r.Node = MapRef{
@@ -105,10 +152,6 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) error {
 			} else {
 				r.Node = make(map[string]any)
 			}
-		}),
-
-		"@map-bo-jsonic": StateAction(func(r *Rule, ctx *Context) {
-			_ = ctx
 			if v, ok := r.N["dmap"]; ok {
 				r.N["dmap"] = v + 1
 			} else {
@@ -116,6 +159,9 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) error {
 			}
 		}),
 
+		// @map-bc sets the MapRef implicit flag from the open token: an
+		// explicit map opened on `{` (r.O0 == #OB) is implicit:false, a
+		// brace-less jsonic map (r.O0 == #KEY) is implicit:true.
 		"@map-bc": StateAction(func(r *Rule, ctx *Context) {
 			_ = ctx
 			if cfg.MapRef {
@@ -128,7 +174,15 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) error {
 		}),
 
 		// list rule state actions
-		"@list-bo": StateAction(func(r *Rule, ctx *Context) {
+		//
+		// @list-bo-jsonic allocates the list node in the BO (before-open)
+		// phase — earlier than @tabnas/json's @array$ alt action — so a custom
+		// BO action can reach the ListRef and write to its Meta bag (the jsonic
+		// Go contract; see both_ref_test.go). It also bumps the dlist depth and
+		// promotes an implicit (bracket-less) list's already-parsed first value
+		// into the freshly allocated array. The implicit flag is set later by
+		// @list-bc from the open token.
+		"@list-bo-jsonic": StateAction(func(r *Rule, ctx *Context) {
 			_ = ctx
 			if cfg.ListRef {
 				r.Node = ListRef{
@@ -138,15 +192,13 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) error {
 			} else {
 				r.Node = make([]any, 0)
 			}
-		}),
-
-		"@list-bo-jsonic": StateAction(func(r *Rule, ctx *Context) {
-			_ = ctx
 			if v, ok := r.N["dlist"]; ok {
 				r.N["dlist"] = v + 1
 			} else {
 				r.N["dlist"] = 1
 			}
+			// Implicit (bracket-less) list: promote the already-parsed first
+			// value (held on the prev val rule) into the new array.
 			if r.Prev != NoRule && r.Prev != nil {
 				if implist, ok := r.Prev.U["implist"]; ok && implist == true {
 					prevNode := r.Prev.Node
@@ -174,47 +226,13 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) error {
 		}),
 
 		// pair rule state actions
-		"@pair-bc-json": StateAction(func(r *Rule, ctx *Context) {
-			if _, ok := r.U["pair"]; ok {
-				key, _ := r.U["key"].(string)
-				if cfg.SafeKey && r.U["list"] == true && (key == "__proto__" || key == "constructor") {
-					return
-				}
-				// Drop keys that match the info marker to preserve metadata.
-				if cfg.InfoMarker != "" && key == cfg.InfoMarker {
-					return
-				}
-				r.U["prev"] = nodeMapGetVal(r.Node, r.U["key"])
-				nodeMapSet(r.Node, key, r.Child.Node)
-			}
-		}),
-
+		//
+		// jsonic's pair.close alts (which replace json's) carry no @setval$,
+		// so the value is assigned here via pairval (merge/extend-aware,
+		// reading the previous value straight off the node).
 		"@pair-bc-jsonic": StateAction(func(r *Rule, ctx *Context) {
 			if _, ok := r.U["pair"]; ok {
-				key, _ := r.U["key"].(string)
-				val := r.Child.Node
-				if IsUndefined(val) {
-					val = nil
-				}
-				if cfg.SafeKey && r.U["list"] == true {
-					if key == "__proto__" || key == "constructor" {
-						return
-					}
-				}
-				// Drop keys that match the info marker to preserve metadata.
-				if cfg.InfoMarker != "" && key == cfg.InfoMarker {
-					return
-				}
-				prev := r.U["prev"]
-				if prev == nil {
-					nodeMapSet(r.Node, key, val)
-				} else if cfg.MapMerge != nil {
-					nodeMapSet(r.Node, key, cfg.MapMerge(prev, val, r, ctx))
-				} else if cfg.MapExtend {
-					nodeMapSet(r.Node, key, Deep(prev, val))
-				} else {
-					nodeMapSet(r.Node, key, val)
-				}
+				pairval(r, ctx)
 			}
 		}),
 
@@ -270,31 +288,7 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) error {
 					}
 				}
 			} else {
-				r.U["prev"] = nodeMapGetVal(r.Node, r.U["key"])
-				key, _ := r.U["key"].(string)
-				val := r.Child.Node
-				if IsUndefined(val) {
-					val = nil
-				}
-				if cfg.SafeKey && r.U["list"] == true {
-					if key == "__proto__" || key == "constructor" {
-						return
-					}
-				}
-				// Drop keys that match the info marker to preserve metadata.
-				if cfg.InfoMarker != "" && key == cfg.InfoMarker {
-					return
-				}
-				prev := r.U["prev"]
-				if prev == nil {
-					nodeMapSet(r.Node, key, val)
-				} else if cfg.MapMerge != nil {
-					nodeMapSet(r.Node, key, cfg.MapMerge(prev, val, r, ctx))
-				} else if cfg.MapExtend {
-					nodeMapSet(r.Node, key, Deep(prev, val))
-				} else {
-					nodeMapSet(r.Node, key, val)
-				}
+				pairval(r, ctx)
 			}
 		}),
 
@@ -363,6 +357,18 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) error {
 		}),
 	}
 
+	// Merge the engine's `$`-builtins (@reset$/@object$/@array$/...) into the
+	// local funcref map so jsonic's code-built alts can reference them by
+	// name. ResolveGrammarAltStatic only consults the map it is given — the
+	// automatic builtin merge happens for a declarative GrammarSpec, not for
+	// alts resolved here — so without this, A:"@object$"/"@array$"/"@reset$"
+	// would resolve to nil and implicit containers would never be allocated.
+	for name, fn := range BuiltinRefs {
+		if _, exists := ref[name]; !exists {
+			ref[name] = fn
+		}
+	}
+
 	// Helper to resolve a GrammarAltSpec slice to []*AltSpec.
 	resolve := func(gas []*GrammarAltSpec) []*AltSpec {
 		alts := make([]*AltSpec, len(gas))
@@ -406,24 +412,39 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) error {
 	// jsonic's relaxed extensions around them.
 
 	// ====== VAL rule ======
-	// Keep @tabnas/json's @val-bo (node = Undefined); replace its strict
-	// @val-bc with jsonic's fuller one (preserves plugin-set nodes and
-	// implicit-null empty values).
+	// @tabnas/json has no @val-bo closure any more — its open alts @reset$ the
+	// node and its close alts coalesce via the @value$ builtin. jsonic keeps
+	// those, but takes ownership of the val close phase: it clears json's
+	// strict @val-bc and installs jsonic's fuller before-close coalescer plus
+	// the @val-ac after-close hook that restores a primitive plugin value over
+	// json's @value$ close alt-action (which re-resolves the token).
 	jvo := jsonVal.OpenAlts()
 	jvc := jsonVal.CloseAlts()
 	jsonVal.ClearActions("bc").AddBC(ref["@val-bc"].(StateAction))
+	jsonVal.ClearActions("ac").AddAC(ref["@val-ac"].(StateAction))
 
 	valOpen := []*AltSpec{jvo[0], jvo[1]}
 	valOpen = append(valOpen, resolve([]*GrammarAltSpec{
-		{S: "#KEY #CL", C: map[string]any{"d": 0}, P: "map", B: 2, G: "pair,jsonic,top"},
-		{S: "#KEY #CL", P: "map", B: 2, N: map[string]int{"pk": 1}, G: "pair,jsonic"},
+		// Implicit map at top level / pair dive. @reset$ clears the
+		// parent-seeded node (mirrors json's #OB/#OS open alts) so val-close
+		// coalesces to the pushed map, not the inherited parent container —
+		// fixes `{a:b:1}` and dives that would otherwise self-reference.
+		{S: "#KEY #CL", C: map[string]any{"d": 0}, P: "map", B: 2, A: "@reset$", G: "pair,jsonic,top"},
+		{S: "#KEY #CL", P: "map", B: 2, N: map[string]int{"pk": 1}, A: "@reset$", G: "pair,jsonic"},
 	})...)
+	// json's #VAL open alt (already carries @reset$).
 	valOpen = append(valOpen, jvo[2])
+	// Implicit ends `{a:}` / `[a:]`. @reset$ so the empty value resolves to
+	// null (via @val-bc) rather than keeping the inherited parent container.
 	valOpen = append(valOpen, ResolveGrammarAltStatic(
-		&GrammarAltSpec{S: []string{"#CB #CS"}, C: map[string]any{"d": CGt(0)}, B: 1, G: "val,imp,null,jsonic"}, ref))
+		&GrammarAltSpec{S: []string{"#CB #CS"}, C: map[string]any{"d": CGt(0)}, B: 1, A: "@reset$", G: "val,imp,null,jsonic"}, ref))
 	valOpen = append(valOpen, resolve([]*GrammarAltSpec{
+		// Implicit list at top level starting with a comma: `,` -> [null].
+		// Pushing the list rule allocates the array in its BO (@list-bo-jsonic)
+		// and @list-bc marks it implicit (the open token is #CA, not #OS).
 		{S: "#CA", C: map[string]any{"d": 0}, P: "list", B: 1, G: "list,imp,jsonic"},
-		{S: "#CA", B: 1, G: "list,val,imp,null,jsonic"},
+		// Value is implicitly null when empty before commas.
+		{S: "#CA", B: 1, A: "@reset$", G: "list,val,imp,null,jsonic"},
 		{S: "#ZZ", G: "jsonic"},
 	})...)
 	jsonVal.ClearOpen().AddOpen(valOpen...)
@@ -442,17 +463,25 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) error {
 	jsonVal.ClearClose().AddClose(valClose...)
 
 	// ====== MAP rule ======
-	// Keep json's @map-bo (create node) and @map-bc (MapRef implicit); append
-	// jsonic's depth counter to bo.
-	jmo := jsonMap.OpenAlts()
+	// jsonic allocates the map node in BO (@map-bo-jsonic), so it re-declares
+	// json's #OB open alts WITHOUT json's @object$ alt action (which would
+	// re-allocate and discard the BO node and its Meta bag). @map-bc then sets
+	// the implicit flag from the open token. @map-bo-jsonic also bumps dmap.
 	jsonMap.AddBO(ref["@map-bo-jsonic"].(StateAction))
+	jsonMap.AddBC(ref["@map-bc"].(StateAction))
 
-	mapOpen := []*AltSpec{
-		ResolveGrammarAltStatic(&GrammarAltSpec{S: "#OB #ZZ", B: 1, E: "@finish", G: "end,jsonic"}, ref),
-	}
-	mapOpen = append(mapOpen, jmo[0], jmo[1])
-	mapOpen = append(mapOpen, ResolveGrammarAltStatic(
-		&GrammarAltSpec{S: "#KEY #CL", P: "pair", B: 2, G: "pair,list,val,imp,jsonic"}, ref))
+	mapOpen := resolve([]*GrammarAltSpec{
+		// Auto-close; fail if rule.finish is false (the BO already allocated
+		// the empty object so `{` -> `{}` when finish is allowed).
+		{S: "#OB #ZZ", B: 1, E: "@finish", G: "end,jsonic"},
+		// json's explicit-brace open alts, re-declared without @object$.
+		{S: "#OB #CB", B: 1, N: map[string]int{"pk": 0}, G: "map,json"},
+		{S: "#OB", P: "pair", N: map[string]int{"pk": 0}, G: "map,json,pair"},
+		// Pair from implicit map (no braces) — the brace-less counterpart of
+		// json's #OB entry; the node is allocated in BO and marked implicit by
+		// @map-bc (its open token is #KEY, not #OB).
+		{S: "#KEY #CL", P: "pair", B: 2, G: "pair,list,val,imp,jsonic"},
+	})
 	jsonMap.ClearOpen().AddOpen(mapOpen...)
 
 	mapClose := resolve([]*GrammarAltSpec{
@@ -466,34 +495,37 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) error {
 	jsonMap.ClearClose().AddClose(mapClose...)
 
 	// ====== LIST rule ======
-	// Keep json's @list-bo (create node); append jsonic's depth/implist
-	// handling. Replace @list-bc with jsonic's (adds child$ handling).
-	jlo := jsonList.OpenAlts()
-	jlc := jsonList.CloseAlts()
+	// jsonic allocates the list node in BO (@list-bo-jsonic), so it
+	// re-declares json's #OS open alts WITHOUT json's @array$ alt action
+	// (which would re-allocate and discard the BO node and its Meta bag).
+	// @list-bc sets the implicit flag from the open token and carries the
+	// child$ value. @list-bo-jsonic also bumps dlist and promotes an implicit
+	// list's first value.
 	jsonList.AddBO(ref["@list-bo-jsonic"].(StateAction))
 	jsonList.ClearActions("bc").AddBC(ref["@list-bc"].(StateAction))
 
-	listOpen := []*AltSpec{
-		ResolveGrammarAltStatic(&GrammarAltSpec{C: "@implist-cond", P: "elem"}, ref),
-	}
-	listOpen = append(listOpen, jlo[0], jlo[1])
-	listOpen = append(listOpen, resolve([]*GrammarAltSpec{
+	listOpen := resolve([]*GrammarAltSpec{
+		{C: "@implist-cond", P: "elem"},
+		// json's explicit-bracket open alts, re-declared without @array$.
+		{S: "#OS #CS", B: 1, G: "list,json"},
+		{S: "#OS", P: "elem", G: "list,elem,json"},
+		// Initial comma [, will insert null as [null,
 		{S: "#CA", P: "elem", B: 1, G: "list,elem,val,imp,jsonic"},
+		// Another element.
 		{P: "elem", G: "list,elem,jsonic"},
-	})...)
+	})
 	jsonList.ClearOpen().AddOpen(listOpen...)
 
-	jsonList.ClearClose().AddClose(
-		jlc[0],
-		ResolveGrammarAltStatic(&GrammarAltSpec{S: "#ZZ", E: "@finish", G: "end,jsonic"}, ref),
-	)
+	jsonList.ClearClose().AddClose(resolve([]*GrammarAltSpec{
+		{S: "#CS", G: "end,json"},
+		{S: "#ZZ", E: "@finish", G: "end,jsonic"},
+	})...)
 
 	// ====== PAIR rule ======
 	// jsonic supplies its own pair rule: the key alt binds jsonic's @pairkey
 	// (number/keyword keys use the token source) over the KEY token set, and
 	// the close action is safe-key/merge-aware — replacing json's strict pair.
 	jsonPair.ClearActions("bc").
-		AddBC(ref["@pair-bc-json"].(StateAction)).
 		AddBC(ref["@pair-bc-jsonic"].(StateAction)).
 		AddBC(ref["@pair-bc-child"].(StateAction))
 
@@ -592,13 +624,19 @@ func nodeListVal(node any) ([]any, bool) {
 	return nil, false
 }
 
-// nodeListSetVal updates the []any inside a list node.
-func nodeListSetVal(node any, arr []any) any {
-	if lr, ok := node.(ListRef); ok {
-		lr.Val = arr
-		return lr
+// isPrimitiveNode reports whether node is a concrete scalar value — not the
+// no-value sentinel, not nil, and not a container (map/MapRef/[]any/ListRef).
+// A parent-seeded stale node is always a container, so a primitive node in a
+// val rule is one a plugin deliberately set (an intentional scalar value).
+func isPrimitiveNode(node any) bool {
+	if node == nil || IsUndefined(node) {
+		return false
 	}
-	return arr
+	switch node.(type) {
+	case map[string]any, MapRef, []any, ListRef:
+		return false
+	}
+	return true
 }
 
 // nodeMapSet sets a key on a map node.
