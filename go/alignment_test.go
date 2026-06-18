@@ -1,4 +1,4 @@
-package jsonic
+package tabnasjsonic
 
 // Alignment tests validate that Go behavior matches the authoritative TypeScript
 // implementation. Tests are split into two categories:

@@ -1,6 +1,6 @@
 // Copyright (c) 2013-2026 Richard Rodger, MIT License
 
-// Package jsonic is the relaxed-JSON grammar plugin for the tabnas
+// Package tabnasjsonic is the relaxed-JSON grammar plugin for the tabnas
 // parsing engine (github.com/tabnas/parser/go). The engine ships no
 // grammar; this package supplies the lenient-JSON one and a legacy
 // Jsonic-style API on top of it.
@@ -10,7 +10,7 @@
 // tests) keep compiling unchanged. The single source of truth for the
 // parser, lexer, rule machinery, options and utilities is the tabnas
 // engine — nothing here re-implements it.
-package jsonic
+package tabnasjsonic
 
 import (
 	tabnas "github.com/tabnas/parser/go"

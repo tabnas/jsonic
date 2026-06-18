@@ -1,4 +1,4 @@
-package jsonic
+package tabnasjsonic
 
 // Non-TSV tests ported from the TypeScript test suite.
 // Tests that rely on TS-specific features (plugins, regex-based custom values,

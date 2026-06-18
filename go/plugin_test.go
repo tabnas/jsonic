@@ -1,4 +1,4 @@
-package jsonic
+package tabnasjsonic
 
 import (
 	"strings"

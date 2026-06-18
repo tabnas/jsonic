@@ -26,8 +26,8 @@ ships the idiomatic `tabnas` grammar plugin (`jsonic`, for
 The `jsonic` and `jsonic-bnf` command-line tools, and the BNF→grammar
 converter, are **not** in this library. They were split out: the `jsonic`
 command lives in [`@tabnas/jsonic-cli`](https://github.com/tabnas/jsonic-cli),
-and BNF/ABNF grammar conversion (with its `tabnas-bnf` CLI) lives in
-[`@tabnas/bnf`](https://github.com/tabnas/abnf). This package has no `bin`,
+and ABNF grammar conversion (with its `tabnas-abnf` CLI) lives in
+[`@tabnas/abnf`](https://github.com/tabnas/abnf). This package has no `bin`,
 no CLI source, and no grammar-conversion code — just the library.
 
 ## Repository map

@@ -63,9 +63,9 @@ Wraps string and text values in a `Text` struct that preserves the quote
 character used (`""` for unquoted text):
 
 ```go
-j := jsonic.Make(jsonic.Options{Info: &jsonic.InfoOptions{Text: boolp(true)}})
+j := tabnasjsonic.Make(tabnasjsonic.Options{Info: &tabnasjsonic.InfoOptions{Text: boolp(true)}})
 result, _ := j.Parse(`'hello'`)
-// result: jsonic.Text{Quote: "'", Str: "hello"}
+// result: tabnasjsonic.Text{Quote: "'", Str: "hello"}
 ```
 
 ### `Info.List`
@@ -73,9 +73,9 @@ result, _ := j.Parse(`'hello'`)
 Wraps arrays in a `ListRef` struct with metadata:
 
 ```go
-j := jsonic.Make(jsonic.Options{Info: &jsonic.InfoOptions{List: boolp(true)}})
+j := tabnasjsonic.Make(tabnasjsonic.Options{Info: &tabnasjsonic.InfoOptions{List: boolp(true)}})
 result, _ := j.Parse("a, b, c")
-// result: jsonic.ListRef{Val: []any{"a", "b", "c"}, Implicit: true, Meta: map[string]any{}}
+// result: tabnasjsonic.ListRef{Val: []any{"a", "b", "c"}, Implicit: true, Meta: map[string]any{}}
 ```
 
 ### `Info.Map`
@@ -83,9 +83,9 @@ result, _ := j.Parse("a, b, c")
 Wraps objects in a `MapRef` struct with metadata:
 
 ```go
-j := jsonic.Make(jsonic.Options{Info: &jsonic.InfoOptions{Map: boolp(true)}})
+j := tabnasjsonic.Make(tabnasjsonic.Options{Info: &tabnasjsonic.InfoOptions{Map: boolp(true)}})
 result, _ := j.Parse("a:1")
-// result: jsonic.MapRef{Val: map[string]any{"a": 1.0}, Implicit: true, Meta: map[string]any{}}
+// result: tabnasjsonic.MapRef{Val: map[string]any{"a": 1.0}, Implicit: true, Meta: map[string]any{}}
 ```
 
 ## Plugin Differences
@@ -104,7 +104,7 @@ result, _ := j.Parse("a:1")
 |---|---|---|
 | Parse errors | Thrown as exceptions | Returned as `error` (never panics) |
 | Error messages | `{key}` template injection | Template prefix + appended source fragment |
-| ANSI colors | On by default | On by default for `Make` instances; the `jsonic.Parse` convenience is plain. Toggle via the `Color` option |
+| ANSI colors | On by default | On by default for `Make` instances; the `tabnasjsonic.Parse` convenience is plain. Toggle via the `Color` option |
 | Error hints | Rich suffix with source context | `Hint` string field |
 
 ## Type System

@@ -13,15 +13,15 @@ plugins that build on it, is at the engine level:
 ```go
 import (
     tabnas "github.com/tabnas/parser/go"
-    jsonic "github.com/tabnas/jsonic/go"
+    tabnasjsonic "github.com/tabnas/jsonic/go"
 )
 
 j := tabnas.Make()
-j.Use(jsonic.Grammar)   // dependency first
+j.Use(tabnasjsonic.Grammar)   // dependency first
 j.Use(myPlugin)         // builds on jsonic's value/map/list rules
 ```
 
-`jsonic.Make()` is a legacy convenience that installs `jsonic.Grammar`
+`tabnasjsonic.Make()` is a legacy convenience that installs `tabnasjsonic.Grammar`
 for you; the `Jsonic` type is the engine type (`tabnas.Tabnas`) and the
 `Plugin` type is the engine's, so a plugin written against either works
 unchanged. Register a grammar's dependencies before the grammar itself.
@@ -38,12 +38,12 @@ type Plugin func(j *Jsonic, opts map[string]any) error
 Register a plugin with `Use`, which propagates that error:
 
 ```go
-func myPlugin(j *jsonic.Jsonic, opts map[string]any) error {
+func myPlugin(j *tabnasjsonic.Jsonic, opts map[string]any) error {
     // modify the parser
     return nil
 }
 
-j := jsonic.Make()
+j := tabnasjsonic.Make()
 if err := j.Use(myPlugin, map[string]any{"key": "value"}); err != nil {
     // plugin failed
 }
@@ -56,7 +56,7 @@ Plugins are re-applied when `Derive()` creates a child instance.
 Register a new fixed token:
 
 ```go
-func tildePlugin(j *jsonic.Jsonic, opts map[string]any) error {
+func tildePlugin(j *tabnasjsonic.Jsonic, opts map[string]any) error {
     TL := j.Token("#TL", "~")
     _ = TL
     return nil
@@ -88,14 +88,14 @@ Token names use `#XX` format by convention. Built-in tokens:
 The parser has named rules, each with `Open` and `Close` alternate lists.
 
 ```go
-func myPlugin(j *jsonic.Jsonic, opts map[string]any) error {
+func myPlugin(j *tabnasjsonic.Jsonic, opts map[string]any) error {
     TL := j.Token("#TL", "~")
 
-    j.Rule("val", func(rs *jsonic.RuleSpec, p *jsonic.Parser) {
+    j.Rule("val", func(rs *tabnasjsonic.RuleSpec, p *tabnasjsonic.Parser) {
         // Prepend a new alternate to the open phase
-        rs.Open = append([]*jsonic.AltSpec{{
-            S: [][]jsonic.Tin{{TL}},
-            A: func(r *jsonic.Rule, ctx *jsonic.Context) {
+        rs.Open = append([]*tabnasjsonic.AltSpec{{
+            S: [][]tabnasjsonic.Tin{{TL}},
+            A: func(r *tabnasjsonic.Rule, ctx *tabnasjsonic.Context) {
                 r.Node = 42
             },
         }}, rs.Open...)
@@ -132,9 +132,9 @@ Each `RuleSpec` has four hook points:
 | `AC` | After a close alternate matches |
 
 ```go
-j.Rule("map", func(rs *jsonic.RuleSpec, p *jsonic.Parser) {
+j.Rule("map", func(rs *tabnasjsonic.RuleSpec, p *tabnasjsonic.Parser) {
     originalAO := rs.AO
-    rs.AO = func(r *jsonic.Rule, ctx *jsonic.Context) {
+    rs.AO = func(r *tabnasjsonic.Rule, ctx *tabnasjsonic.Context) {
         if originalAO != nil {
             originalAO(r, ctx)
         }
@@ -146,13 +146,13 @@ j.Rule("map", func(rs *jsonic.RuleSpec, p *jsonic.Parser) {
 ## Custom Matchers
 
 For syntax beyond the built-in matchers, register a matcher via
-`options.lex.match` (mirrors TS `jsonic.options({ lex: { match: ... } })`):
+`options.lex.match` (mirrors TS `tabnasjsonic.options({ lex: { match: ... } })`):
 
 ```go
-j.SetOptions(jsonic.Options{Lex: &jsonic.LexOptions{
-    Match: map[string]*jsonic.MatchSpec{
-        "date": {Order: 1_000_000, Make: func(_ *jsonic.LexConfig, _ *jsonic.Options) jsonic.LexMatcher {
-            return func(lex *jsonic.Lex, rule *jsonic.Rule) *jsonic.Token {
+j.SetOptions(tabnasjsonic.Options{Lex: &tabnasjsonic.LexOptions{
+    Match: map[string]*tabnasjsonic.MatchSpec{
+        "date": {Order: 1_000_000, Make: func(_ *tabnasjsonic.LexConfig, _ *tabnasjsonic.Options) tabnasjsonic.LexMatcher {
+            return func(lex *tabnasjsonic.Lex, rule *tabnasjsonic.Rule) *tabnasjsonic.Token {
                 // Read from lex.Cursor(), advance if matched, return *Token or nil
                 return nil
             }
@@ -169,10 +169,10 @@ Setting a spec under an existing name replaces it.
 
 ```go
 j.Sub(
-    func(tkn *jsonic.Token, rule *jsonic.Rule, ctx *jsonic.Context) {
+    func(tkn *tabnasjsonic.Token, rule *tabnasjsonic.Rule, ctx *tabnasjsonic.Context) {
         fmt.Println("lexed:", tkn)
     },
-    func(rule *jsonic.Rule, ctx *jsonic.Context) {
+    func(rule *tabnasjsonic.Rule, ctx *tabnasjsonic.Context) {
         fmt.Println("rule:", rule.Name)
     },
 )
