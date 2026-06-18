@@ -1,6 +1,6 @@
 {
   "name": "@tabnas/jsonic",
-  "version": "2.28.0",
+  "version": "0.2.0",
   "main": "dist/jsonic.js",
   "type": "commonjs",
   "types": "dist/jsonic.d.ts",
@@ -51,7 +51,7 @@
     "typescript": "6.0.3"
   },
   "peerDependencies": {
-    "@tabnas/json": ">=2",
-    "@tabnas/parser": ">=2"
+    "@tabnas/json": "^0.2.0",
+    "@tabnas/parser": "^0.2.0"
   }
 }
