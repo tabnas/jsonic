@@ -269,7 +269,7 @@ const defaults: Options = {
   errmsg: {
     name: 'jsonic',
     suffix: true,
-    link: 'https://jsonic.senecajs.org',
+    link: 'https://github.com/tabnas/jsonic',
   },
 
   // Error hints: {error-code: hint-text}.

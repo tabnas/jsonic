@@ -36,7 +36,7 @@ describe('tabnas-plugin', function () {
     // jsonic's own error identity and hints.
     const p = new Tabnas().use(jsonic)
     assert.equal(p.options.errmsg.name, 'jsonic')
-    assert.equal(p.options.errmsg.link, 'https://jsonic.senecajs.org')
+    assert.equal(p.options.errmsg.link, 'https://github.com/tabnas/jsonic')
   })
 
   it('plugins-at-construction', () => {
