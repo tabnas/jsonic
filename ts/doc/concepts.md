@@ -24,8 +24,7 @@ function with the management methods (`make`, `use`, `rule`, `token`,
 
 The payoff of this split is that the grammar is just data and rules
 fed to a general engine. The same engine drives the strict-JSON variant
-(`Jsonic.make('json')`), the BNF converter (`src/bnf.ts`), and any
-plugin you write.
+(`Jsonic.make('json')`) and any plugin you write.
 
 ## Two stages: lexer, then parser
 
@@ -79,8 +78,6 @@ localised through the `error` and `hint` options.
 
 Longer-form explorations live alongside this document:
 
-- [BNF feasibility](bnf-to-jsonic-feasibility.md) — mapping BNF / ABNF
-  onto the engine's rule model (the basis of `src/bnf.ts`).
 - [LSP feasibility](lsp-feasibility.md) — language-server angles on the
   parser.
 

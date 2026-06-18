@@ -6,8 +6,8 @@ const assert = require('node:assert')
 
 const Util = require('util')
 
-const { filterRules, modlist } = require('../dist/utility')
-const { strinject } = require('../dist/error')
+const { filterRules, modlist } = require('@tabnas/parser/utility')
+const { strinject } = require('@tabnas/parser/error')
 
 const { util, Jsonic, makeToken, makePoint } = require('..')
 const { loadTSV } = require('./utility')
