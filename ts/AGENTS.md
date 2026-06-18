@@ -50,9 +50,6 @@ parse function with the management methods attached as properties.
   for backward compatibility.
 - `src/defaults.ts` — jsonic-specific option/error/hint defaults layered
   on the engine defaults.
-- `src/error.ts`, `src/utility.ts` — thin re-exports of the engine's
-  error and utility modules (back-compat names: `JsonicError` aliases
-  `TabnasError`).
 
 ## Commands
 
