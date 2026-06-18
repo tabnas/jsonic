@@ -32,7 +32,7 @@ describe('error', function () {
   data may have become corrupted, or the escape sequence has not been
   generated correctly.
 
-  \u001b[2mhttps://jsonic.senecajs.org\u001b[0m
+  \u001b[2mhttps://github.com/tabnas/jsonic\u001b[0m
   \u001b[2m--internal: rule=val~open; token=#BD~foo; plugins=--\u001b[0m'
 `,
       )
@@ -94,7 +94,7 @@ describe('error', function () {
           '\n' +
           '  Foo hint.\n' +
           '\n' +
-          '  \u001b[2mhttps://jsonic.senecajs.org\u001b[0m\n' +
+          '  \u001b[2mhttps://github.com/tabnas/jsonic\u001b[0m\n' +
           '  \u001b[2m--internal: tag=zed; rule=val~o; token=#BD~foo;' +
           ' plugins=foo--\u001b[0m',
       )

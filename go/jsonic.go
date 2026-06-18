@@ -29,7 +29,7 @@ func jsonicOptions() Options {
 	return Options{
 		ErrMsg: &ErrMsgOptions{
 			Name: "jsonic",
-			Link: "https://jsonic.senecajs.org",
+			Link: "https://github.com/tabnas/jsonic",
 		},
 	}
 }
