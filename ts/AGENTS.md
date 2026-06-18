@@ -48,13 +48,6 @@ parse function with the management methods attached as properties.
   same grammar. The package is **a normal `tabnas` grammar plugin**
   (`new Tabnas().use(jsonic)`); the callable `Jsonic` API is kept only
   for backward compatibility.
-- `src/bnf.ts` + `src/jsonic-bnf-cli.ts` — the BNF→jsonic grammar
-  converter and its CLI (`bin/jsonic-bnf`).
-- `src/jsonic-cli.ts` — the `jsonic` CLI (`bin/jsonic`).
-- `src/debug.ts` — re-exports the `Debug` plugin from the standalone
-  `@tabnas/debug` package (the extracted debug plugin: trace lexing/parsing
-  and a `describe()` method). Kept as the subpath export `jsonic/debug` for
-  back-compat.
 - `src/defaults.ts` — jsonic-specific option/error/hint defaults layered
   on the engine defaults.
 - `src/error.ts`, `src/utility.ts` — thin re-exports of the engine's
@@ -91,8 +84,7 @@ purpose, never mix them:
   complete, no teaching. `syntax.md` is the canonical syntax spec the
   Go port links to.
 - `doc/concepts.md` — explanation: the model and rationale.
-- `doc/bnf-to-jsonic-feasibility.md`, `doc/lsp-feasibility.md` —
-  design-note explanations.
+- `doc/lsp-feasibility.md` — design-note explanation.
 
 `README.md` is an **orientation hub**: what the package is, install, one
 tiny example, links out. New detail belongs in the relevant doc above.

@@ -90,12 +90,6 @@ export type Options = TabnasOptions
 // The main top-level parse function.
 export type JsonicParse = (src: any, meta?: any, parent_ctx?: any) => any
 
-// BNF -> grammar converter options. See src/bnf.ts.
-export type BnfConvertOptions = {
-  start?: string
-  tag?: string
-}
-
 // Define a plugin to extend the provided Jsonic instance. Unlike the
 // engine's own plugin type, the first argument is the callable `Jsonic`
 // instance (so plugins can both parse with it and decorate it).
@@ -110,7 +104,7 @@ export type Plugin = ((
 
 // The Jsonic API: management methods attached to the main parse
 // function. Most of these forward to the underlying `tabnas` engine
-// instance; `bnf` is jsonic's own addition.
+// instance.
 export interface JsonicAPI {
   // Explicit parse method.
   parse: JsonicParse
@@ -163,13 +157,6 @@ export interface JsonicAPI {
 
   // Apply a declarative GrammarSpec (or a jsonic-format string).
   grammar: (gs: GrammarSpec | string, setting?: GrammarSetting) => Jsonic
-
-  // Convert a BNF grammar string into a jsonic GrammarSpec and install
-  // it on this instance. Returns the generated spec. See src/bnf.ts.
-  // `bnf.toSpec(src, opts)` returns the spec without installing.
-  bnf: ((src: string, opts?: BnfConvertOptions) => GrammarSpec) & {
-    toSpec: (src: string, opts?: BnfConvertOptions) => GrammarSpec
-  }
 }
 
 

@@ -3,9 +3,9 @@
 /*  jsonic.ts
  *  Entry point and API.
  *
- *  jsonic = the `tabnas` parsing engine + the relaxed-JSON grammar +
- *  the BNF converter, wrapped in the historic `Jsonic` API: a parse
- *  function with the management methods attached as properties.
+ *  jsonic = the `tabnas` parsing engine + the relaxed-JSON grammar,
+ *  wrapped in the historic `Jsonic` API: a parse function with the
+ *  management methods attached as properties.
  *
  *  The lexer, parser, rule machinery, errors and utilities all live in
  *  the `tabnas` package now. This module no longer re-implements any of
@@ -49,7 +49,6 @@ import type {
   AltModifier,
   AltSpec,
   Bag,
-  BnfConvertOptions,
   Config,
   Context,
   Counters,
@@ -80,8 +79,6 @@ import type {
 import { defaults } from './defaults'
 
 import { grammar, makeJSON, jsonicPlugin, registerJsonicGrammar } from './grammar'
-
-import { bnf as bnfConvert } from './bnf'
 
 
 // The full library type.
@@ -172,8 +169,7 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
 
   // The API surface. Most members forward to the engine instance; for
   // methods that conventionally return "this", we return the wrapper so
-  // chaining and `jsonic.use(p)('src')` keep working. `bnf` is jsonic's
-  // own addition.
+  // chaining and `jsonic.use(p)('src')` keep working.
   const api: JsonicAPI = {
     parse: jsonic,
 
@@ -262,21 +258,6 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
       tabnas.grammar(gs as GrammarSpec, setting)
       return jsonic
     },
-
-    // Convert a BNF grammar string into a jsonic GrammarSpec and install
-    // it on this instance. Returns the generated spec so callers can
-    // inspect, serialise or diff it. Use `bnf.toSpec(src, opts)` to
-    // build the spec without installing it.
-    bnf: (() => {
-      const impl = (src: string, opts?: BnfConvertOptions) => {
-        const spec = bnfConvert(src, opts)
-        ;(ji as any).grammar(spec)
-        return spec
-      }
-      impl.toSpec = (src: string, opts?: BnfConvertOptions) =>
-        bnfConvert(src, opts)
-      return impl
-    })(),
   } as JsonicAPI
 
   // `api.make` reports its name as 'make' even though the enclosing
@@ -407,7 +388,6 @@ export type {
   AltModifier,
   AltSpec,
   Bag,
-  BnfConvertOptions,
   Config,
   Context,
   Counters,
