@@ -4,6 +4,7 @@ package jsonic
 
 import (
 	"fmt"
+	"sync"
 
 	tjson "github.com/tabnas/json/go"
 	tabnas "github.com/tabnas/parser/go"
@@ -181,8 +182,20 @@ func MakeJSON() *Jsonic {
 	})
 }
 
+// defaultParser is a lazily-created instance reused by Parse, so repeated
+// calls don't rebuild the engine and grammar each time. Building the jsonic
+// grammar dominates a parse (see perf_test.go), so a rebuild-per-call Parse
+// is many times slower than necessary. Parsing builds a fresh context per
+// call and only reads instance state, so the shared instance is safe for
+// concurrent use. Mirrors @tabnas/json's Parse.
+var (
+	defaultOnce   sync.Once
+	defaultParser *Jsonic
+)
+
 // Parse parses a jsonic source string with default settings and returns
 // the resulting value, or a *JsonicError on failure.
 func Parse(src string) (any, error) {
-	return Make().Parse(src)
+	defaultOnce.Do(func() { defaultParser = Make() })
+	return defaultParser.Parse(src)
 }
