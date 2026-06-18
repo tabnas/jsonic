@@ -29,7 +29,7 @@ import (
 )
 
 func main() {
-    result, err := jsonic.Parse("a:1, b:2")
+    result, err := tabnasjsonic.Parse("a:1, b:2")
     if err != nil {
         panic(err)
     }
@@ -52,11 +52,11 @@ top of that core. Install it on an engine instance the idiomatic way:
 ```go
 import (
     tabnas "github.com/tabnas/parser/go"
-    jsonic "github.com/tabnas/jsonic/go"
+    tabnasjsonic "github.com/tabnas/jsonic/go"
 )
 
 j := tabnas.Make()
-j.Use(jsonic.Grammar)
+j.Use(tabnasjsonic.Grammar)
 out, _ := j.Parse("a:1, b:[x,y,z]")   // map[a:1 b:[x y z]]
 ```
 
@@ -65,13 +65,13 @@ layer their own syntax on top of jsonic's value/map/list rules — register
 jsonic first:
 
 ```go
-j.Use(jsonic.Grammar)   // dependency: provides the cell-value grammar
+j.Use(tabnasjsonic.Grammar)   // dependency: provides the cell-value grammar
 j.Use(csv)              // builds on what jsonic registered
 ```
 
-The `jsonic.Make` / `jsonic.Parse` helpers shown above are a **legacy
+The `tabnasjsonic.Make` / `tabnasjsonic.Parse` helpers shown above are a **legacy
 compatibility layer** that installs this same plugin. Reach for them when
-porting existing code; reach for `Use(jsonic.Grammar)` when composing
+porting existing code; reach for `Use(tabnasjsonic.Grammar)` when composing
 grammars.
 
 > **Building from source.** Until `tabnas/parser` and `tabnas/json`
@@ -89,8 +89,8 @@ parser instance with whatever behavior you need:
 ```go
 func boolp(b bool) *bool { return &b }
 
-j := jsonic.Make(jsonic.Options{
-    Number: &jsonic.NumberOptions{Lex: boolp(false)},
+j := tabnasjsonic.Make(tabnasjsonic.Options{
+    Number: &tabnasjsonic.NumberOptions{Lex: boolp(false)},
 })
 
 result, err := j.Parse("a:1, b:2")

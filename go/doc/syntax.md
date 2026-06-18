@@ -26,11 +26,11 @@ jsonic maps parsed values to Go types:
 
 With the `Info` options enabled, richer types are returned:
 
-- **`Info.Text`** -- string values become `jsonic.Text{Quote, Str string}`,
+- **`Info.Text`** -- string values become `tabnasjsonic.Text{Quote, Str string}`,
   preserving which quote character was used (`""` for unquoted text).
-- **`Info.List`** -- arrays become `jsonic.ListRef{Val []any, Implicit bool, Child any, Meta map[string]any}`,
+- **`Info.List`** -- arrays become `tabnasjsonic.ListRef{Val []any, Implicit bool, Child any, Meta map[string]any}`,
   where `Implicit` reports whether the array had brackets.
-- **`Info.Map`** -- objects become `jsonic.MapRef{Val map[string]any, Implicit bool, Meta map[string]any}`,
+- **`Info.Map`** -- objects become `tabnasjsonic.MapRef{Val map[string]any, Implicit bool, Meta map[string]any}`,
   where `Implicit` reports whether the object had braces.
 
 See the [options reference](options.md#info) for how to enable them.

@@ -4,9 +4,9 @@ Options are passed to `Make()` to configure a parser instance. All fields use
 pointer types -- `nil` means "use default".
 
 ```go
-j := jsonic.Make(jsonic.Options{
-    Comment: &jsonic.CommentOptions{Lex: boolp(false)},
-    Number:  &jsonic.NumberOptions{Hex: boolp(false)},
+j := tabnasjsonic.Make(tabnasjsonic.Options{
+    Comment: &tabnasjsonic.CommentOptions{Lex: boolp(false)},
+    Number:  &tabnasjsonic.NumberOptions{Hex: boolp(false)},
 })
 ```
 
@@ -196,7 +196,7 @@ Go-only. Wraps output values in typed structs that carry extra metadata,
 instead of plain Go values. Set the fields on an `*InfoOptions`.
 
 ```go
-j := jsonic.Make(jsonic.Options{Info: &jsonic.InfoOptions{
+j := tabnasjsonic.Make(tabnasjsonic.Options{Info: &tabnasjsonic.InfoOptions{
     Text: boolp(true),
     List: boolp(true),
     Map:  boolp(true),

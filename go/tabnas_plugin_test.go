@@ -1,6 +1,6 @@
 // Copyright (c) 2024-2026 Richard Rodger, MIT License
 
-package jsonic_test
+package tabnasjsonic_test
 
 // The relaxed-JSON grammar is shipped as an idiomatic tabnas plugin:
 // tabnas.Make().Use(jsonic.Grammar). These external tests pin that

@@ -33,7 +33,7 @@ import (
 )
 
 func main() {
-	result, err := jsonic.Parse("a:1, b:2")
+	result, err := tabnasjsonic.Parse("a:1, b:2")
 	if err != nil {
 		panic(err)
 	}
@@ -42,13 +42,13 @@ func main() {
 ```
 
 Run it with `go run .`. You wrote `a:1, b:2` — no braces, no quotes
-around the keys — and got back an object. `jsonic.Parse` is the
+around the keys — and got back an object. `tabnasjsonic.Parse` is the
 zero-config convenience function; it builds a fresh parser each call.
-It still accepts ordinary JSON, so `jsonic.Parse(`{"a":1}`)` works too.
+It still accepts ordinary JSON, so `tabnasjsonic.Parse(`{"a":1}`)` works too.
 
 ## 3. Inspect the result
 
-`jsonic.Parse` returns `any`. For relaxed-JSON input the concrete types
+`tabnasjsonic.Parse` returns `any`. For relaxed-JSON input the concrete types
 are predictable:
 
 - objects → `map[string]any`
@@ -61,7 +61,7 @@ are predictable:
 So type-assert and read fields directly:
 
 ```go
-result, _ := jsonic.Parse("a:1, b:2")
+result, _ := tabnasjsonic.Parse("a:1, b:2")
 m := result.(map[string]any)
 fmt.Println(m["a"]) // 1   (a float64)
 ```
@@ -71,7 +71,7 @@ is in the [syntax reference](syntax.md#return-types).
 
 ## 4. Make a configured instance
 
-The defaults are not the only option. `jsonic.Make` returns a
+The defaults are not the only option. `tabnasjsonic.Make` returns a
 configured parser instance you can reuse across many parses. It takes an
 `Options` value whose fields are pointers, so `nil` means "use the
 default". Define a tiny helper to take the address of a literal:
@@ -83,8 +83,8 @@ func boolp(b bool) *bool { return &b }
 Now turn number lexing off so numeric-looking values stay strings:
 
 ```go
-j := jsonic.Make(jsonic.Options{
-	Number: &jsonic.NumberOptions{Lex: boolp(false)},
+j := tabnasjsonic.Make(tabnasjsonic.Options{
+	Number: &tabnasjsonic.NumberOptions{Lex: boolp(false)},
 })
 
 result, _ := j.Parse("a:1, b:2")
@@ -108,8 +108,8 @@ import (
 	"github.com/tabnas/jsonic/go"
 )
 
-_, err := jsonic.Parse(`"abc`)
-var je *jsonic.JsonicError
+_, err := tabnasjsonic.Parse(`"abc`)
+var je *tabnasjsonic.JsonicError
 if errors.As(err, &je) {
 	fmt.Println(je.Code)        // unterminated_string
 	fmt.Println(je.Row, je.Col) // 1 1
@@ -117,7 +117,7 @@ if errors.As(err, &je) {
 ```
 
 `err.Error()` renders a formatted message with a caret pointing at the
-source location — useful to show a user. The `*jsonic.JsonicError`
+source location — useful to show a user. The `*tabnasjsonic.JsonicError`
 fields (`Code`, `Row`, `Col`, `Hint`, …) are for your code to branch on.
 
 ## Where to go next

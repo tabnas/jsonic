@@ -1,6 +1,6 @@
 // Copyright (c) 2024-2026 Richard Rodger, MIT License
 
-package jsonic
+package tabnasjsonic
 
 import (
 	"strings"

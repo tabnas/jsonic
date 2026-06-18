@@ -12,13 +12,13 @@ Like the TypeScript version, the Go port is a relaxed-JSON **grammar
 plugin** layered on the separate `tabnas` parsing engine — here the Go
 engine module `github.com/tabnas/parser/go`. The engine supplies the
 lexer, parser, rule machinery, options, and error formatting; this module
-supplies the grammar (`jsonic.Grammar`, a `tabnas.Plugin`) and a legacy
-`jsonic.Make`/`jsonic.Parse` API that installs it.
+supplies the grammar (`tabnasjsonic.Grammar`, a `tabnas.Plugin`) and a legacy
+`tabnasjsonic.Make`/`tabnasjsonic.Parse` API that installs it.
 
-The standalone, idiomatic form is `tabnas.Make().Use(jsonic.Grammar)`;
-the `jsonic.*` helpers are a thin compatibility layer over it. Splitting
+The standalone, idiomatic form is `tabnas.Make().Use(tabnasjsonic.Grammar)`;
+the `tabnasjsonic.*` helpers are a thin compatibility layer over it. Splitting
 grammar from engine is what lets other grammar plugins build on jsonic
-(register `jsonic.Grammar` first, then your plugin). The packaging is an
+(register `tabnasjsonic.Grammar` first, then your plugin). The packaging is an
 implementation detail, not a behavior difference — parse results match
 the canonical TypeScript ones, verified by the shared
 `../ts/test/spec/*.tsv` fixtures both test suites run.

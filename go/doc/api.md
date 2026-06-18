@@ -12,7 +12,7 @@ Parse a string using default settings. Convenience function that creates a
 fresh parser for each call.
 
 ```go
-result, err := jsonic.Parse("a:1, b:2")
+result, err := tabnasjsonic.Parse("a:1, b:2")
 // result: map[string]any{"a": float64(1), "b": float64(2)}
 ```
 
@@ -21,7 +21,7 @@ result, err := jsonic.Parse("a:1, b:2")
 Parse using an instance's configuration.
 
 ```go
-j := jsonic.Make()
+j := tabnasjsonic.Make()
 result, err := j.Parse("a:1")
 ```
 
@@ -40,9 +40,9 @@ result, err := j.ParseMeta("a:1", map[string]any{"filename": "config.jsonic"})
 Create a new parser instance. Unset option fields use defaults.
 
 ```go
-j := jsonic.Make(jsonic.Options{
-    Comment: &jsonic.CommentOptions{Lex: boolp(false)},
-    Number:  &jsonic.NumberOptions{Hex: boolp(false)},
+j := tabnasjsonic.Make(tabnasjsonic.Options{
+    Comment: &tabnasjsonic.CommentOptions{Lex: boolp(false)},
+    Number:  &tabnasjsonic.NumberOptions{Hex: boolp(false)},
 })
 ```
 
@@ -52,8 +52,8 @@ Create a child instance inheriting the parent's configuration, plugins, custom
 tokens, and subscriptions. Changes to the child do not affect the parent.
 
 ```go
-child := j.Derive(jsonic.Options{
-    Comment: &jsonic.CommentOptions{Lex: boolp(false)},
+child := j.Derive(tabnasjsonic.Options{
+    Comment: &tabnasjsonic.CommentOptions{Lex: boolp(false)},
 })
 ```
 
@@ -72,10 +72,10 @@ Returns a copy of the instance's current options.
 
 Set a named value on the instance. This is the Go equivalent of the
 TypeScript pattern where plugins add properties dynamically
-(`jsonic.foo = () => 'FOO'`). Decorations are inherited by `Derive`.
+(`tabnasjsonic.foo = () => 'FOO'`). Decorations are inherited by `Derive`.
 
 ```go
-j.Use(func(j *jsonic.Jsonic, opts map[string]any) {
+j.Use(func(j *tabnasjsonic.Jsonic, opts map[string]any) {
     j.Decorate("greet", func(name string) string {
         return "hello " + name
     })
@@ -101,10 +101,10 @@ Modify or create a grammar rule. The definer callback receives the
 The parser is available for inspecting or referencing other rules.
 
 ```go
-j.Rule("val", func(rs *jsonic.RuleSpec, p *jsonic.Parser) {
-    rs.Open = append([]*jsonic.AltSpec{{
-        S: [][]jsonic.Tin{{myToken}},
-        A: func(r *jsonic.Rule, ctx *jsonic.Context) {
+j.Rule("val", func(rs *tabnasjsonic.RuleSpec, p *tabnasjsonic.Parser) {
+    rs.Open = append([]*tabnasjsonic.AltSpec{{
+        S: [][]tabnasjsonic.Tin{{myToken}},
+        A: func(r *tabnasjsonic.Rule, ctx *tabnasjsonic.Context) {
             r.Node = "custom"
         },
     }}, rs.Open...)
@@ -165,7 +165,7 @@ Returns the list of installed plugins.
 ## Custom Matchers
 
 Register custom lexer matchers via `options.lex.match`, keyed by name.
-This mirrors the TypeScript `jsonic.options({ lex: { match: ... } })` API.
+This mirrors the TypeScript `tabnasjsonic.options({ lex: { match: ... } })` API.
 Matchers are tried in priority order (lower first). Built-in priorities:
 
 | Matcher | Priority |
@@ -181,11 +181,11 @@ Matchers are tried in priority order (lower first). Built-in priorities:
 Use an `Order` below 2,000,000 to run before all built-ins.
 
 ```go
-j := jsonic.Make()
-j.SetOptions(jsonic.Options{Lex: &jsonic.LexOptions{
-    Match: map[string]*jsonic.MatchSpec{
-        "date": {Order: 1_000_000, Make: func(_ *jsonic.LexConfig, _ *jsonic.Options) jsonic.LexMatcher {
-            return func(lex *jsonic.Lex, rule *jsonic.Rule) *jsonic.Token {
+j := tabnasjsonic.Make()
+j.SetOptions(tabnasjsonic.Options{Lex: &tabnasjsonic.LexOptions{
+    Match: map[string]*tabnasjsonic.MatchSpec{
+        "date": {Order: 1_000_000, Make: func(_ *tabnasjsonic.LexConfig, _ *tabnasjsonic.Options) tabnasjsonic.LexMatcher {
+            return func(lex *tabnasjsonic.Lex, rule *tabnasjsonic.Rule) *tabnasjsonic.Token {
                 // ... read from lex.Cursor(), advance on match, return a Token
                 return nil
             }
@@ -218,7 +218,7 @@ the cursor if it produces a token.
 Subscribe to lex and/or rule events. Pass `nil` for either to skip.
 
 ```go
-j.Sub(func(tkn *jsonic.Token, rule *jsonic.Rule, ctx *jsonic.Context) {
+j.Sub(func(tkn *tabnasjsonic.Token, rule *tabnasjsonic.Rule, ctx *tabnasjsonic.Context) {
     fmt.Println("token:", tkn)
 }, nil)
 ```
@@ -249,7 +249,7 @@ Filter them through the `Rule` options rather than a method:
 
 ```go
 // Keep only JSON-tagged rules (one piece of strict-JSON configuration).
-j := jsonic.Make(jsonic.Options{Rule: &jsonic.RuleOptions{Include: "json"}})
+j := tabnasjsonic.Make(tabnasjsonic.Options{Rule: &tabnasjsonic.RuleOptions{Include: "json"}})
 ```
 
 ### `MakeJSON() *Jsonic`
@@ -261,7 +261,7 @@ trailing commas, leading-zero numbers, single-quoted or backtick strings,
 and empty input). Mirrors TypeScript `Jsonic.make('json')`.
 
 ```go
-j := jsonic.MakeJSON()
+j := tabnasjsonic.MakeJSON()
 j.Parse(`{"a":1}`) // ok
 j.Parse("a:1")      // *JsonicError — unquoted key rejected
 ```
@@ -283,9 +283,9 @@ type JsonicError struct {
 ```
 
 ```go
-result, err := jsonic.Parse("{a:")
+result, err := tabnasjsonic.Parse("{a:")
 if err != nil {
-    if je, ok := err.(*jsonic.JsonicError); ok {
+    if je, ok := err.(*tabnasjsonic.JsonicError); ok {
         fmt.Println(je.Code, "at line", je.Row)
     }
 }
@@ -298,8 +298,8 @@ Go requires a pointer to pass `*bool` option fields. A common pattern:
 ```go
 func boolp(b bool) *bool { return &b }
 
-jsonic.Options{
-    Comment: &jsonic.CommentOptions{Lex: boolp(false)},
+tabnasjsonic.Options{
+    Comment: &tabnasjsonic.CommentOptions{Lex: boolp(false)},
 }
 ```
 
