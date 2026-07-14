@@ -78,7 +78,7 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) error {
 			} else {
 				key = keyToken.Src
 			}
-			r.U["key"] = key
+			ensureU(r)["key"] = key
 		}),
 
 		// val rule state actions
@@ -95,7 +95,7 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) error {
 			// plugin value; @val-ac below restores it. A normal value rule
 			// @reset$s its node in open, so this is Undefined except when a
 			// plugin deliberately set it.
-			r.U["openval"] = r.Node
+			ensureU(r)["openval"] = r.Node
 
 			resolveToken := func() any {
 				val := r.O0.ResolveVal(r, ctx)
@@ -171,9 +171,9 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) error {
 				r.Node = make(map[string]any)
 			}
 			if v, ok := r.N["dmap"]; ok {
-				r.N["dmap"] = v + 1
+				ensureN(r)["dmap"] = v + 1
 			} else {
-				r.N["dmap"] = 1
+				ensureN(r)["dmap"] = 1
 			}
 		}),
 
@@ -211,9 +211,9 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) error {
 				r.Node = make([]any, 0)
 			}
 			if v, ok := r.N["dlist"]; ok {
-				r.N["dlist"] = v + 1
+				ensureN(r)["dlist"] = v + 1
 			} else {
-				r.N["dlist"] = 1
+				ensureN(r)["dlist"] = 1
 			}
 			// Implicit (bracket-less) list: promote the already-parsed first
 			// value (held on the prev val rule) into the new array.
@@ -322,11 +322,11 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) error {
 			if r.Parent != NoRule && r.Parent != nil {
 				prev, hasPrev := r.Parent.U["child$"]
 				if !hasPrev {
-					r.Parent.U["child$"] = val
+					ensureU(r.Parent)["child$"] = val
 				} else if cfg.MapExtend {
-					r.Parent.U["child$"] = Deep(prev, val)
+					ensureU(r.Parent)["child$"] = Deep(prev, val)
 				} else {
-					r.Parent.U["child$"] = val
+					ensureU(r.Parent)["child$"] = val
 				}
 			}
 		}),
@@ -685,4 +685,25 @@ func nodeMapGet(node any, key any) (any, bool) {
 func nodeMapGetVal(node any, key any) any {
 	v, _ := nodeMapGet(node, key)
 	return v
+}
+
+// ensureN returns the rule's named-counter map, allocating it when the
+// engine left it nil. Engines at or after the lazy-rule-maps change
+// create Rule.N/U/K on first write; older engines pre-allocate them, in
+// which case these helpers are no-op passthroughs — so this grammar
+// compiles and runs against both.
+func ensureN(r *Rule) map[string]int {
+	if r.N == nil {
+		r.N = make(map[string]int, 4)
+	}
+	return r.N
+}
+
+// ensureU returns the rule's user-prop map, allocating it when the
+// engine left it nil (see ensureN).
+func ensureU(r *Rule) map[string]any {
+	if r.U == nil {
+		r.U = make(map[string]any, 4)
+	}
+	return r.U
 }
