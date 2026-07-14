@@ -2,6 +2,24 @@ package tabnasjsonic
 
 import "fmt"
 
+// RegisterJsonicGrammar registers the relaxed-JSON grammar rules (val / map /
+// list / pair / elem) on a tabnas engine instance WITHOUT applying jsonic's
+// option/error branding (the jsonic errmsg identity), so other grammar
+// plugins can layer their own syntax on top of the jsonic core — e.g. a CSV
+// grammar that parses each cell as a jsonic value — while managing their own
+// option set. It is the Go counterpart of the TS `registerJsonicGrammar`
+// export (ts/src/grammar.ts), and plays the same role that
+// tjson.RegisterJSONGrammar plays for the strict-JSON core.
+//
+// The Grammar plugin is this plus the jsonic option/error branding; use
+// Grammar for the standard plugin experience. Registration is idempotent
+// under the engine's SetOptions plugin re-run (guarded by a decoration mark),
+// and returns an error rather than panicking if the @tabnas/json core is
+// missing or has an unexpected shape.
+func RegisterJsonicGrammar(j *Jsonic) error {
+	return grammarPlugin(j, nil)
+}
+
 // buildGrammar layers jsonic's relaxed extensions on the standard-JSON core
 // that @tabnas/json installed (read from rsm). It returns an error rather
 // than panicking if that core is missing or has an unexpected shape (e.g. a

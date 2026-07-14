@@ -272,7 +272,7 @@ Parse errors are returned as `*JsonicError`:
 
 ```go
 type JsonicError struct {
-    Code   string // "unexpected", "unterminated_string", "unterminated_comment"
+    Code   string // "unexpected", "unterminated_string", "unterminated_comment", "unprintable", ...
     Detail string // Human-readable message
     Pos    int    // 0-based character position
     Row    int    // 1-based line number
