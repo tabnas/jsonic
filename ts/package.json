@@ -1,6 +1,6 @@
 {
   "name": "@tabnas/jsonic",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "main": "dist/jsonic.js",
   "type": "commonjs",
   "types": "dist/jsonic.d.ts",
