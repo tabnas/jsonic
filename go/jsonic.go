@@ -23,13 +23,17 @@ const grammarMark = "jsonic$grammar"
 
 // jsonicOptions are the option overrides the grammar plugin layers on top
 // of the engine's already-relaxed lexer defaults: the jsonic error
-// identity. Error message templates and the relaxed lexer config are
-// shared with the engine defaults, so only the branding differs.
+// identity, plus the `unprintable` string-error alignment matcher (see
+// unprintable.go). Error message templates and the relaxed lexer config
+// are shared with the engine defaults, so only the branding differs.
 func jsonicOptions() Options {
 	return Options{
 		ErrMsg: &ErrMsgOptions{
 			Name: "jsonic",
 			Link: "https://github.com/tabnas/jsonic",
+		},
+		Lex: &LexOptions{
+			Match: unprintableMatchSpecs(),
 		},
 	}
 }
@@ -45,8 +49,10 @@ func jsonicOptions() Options {
 //	out, _ := j.Parse("a:1,b:[x,y,z]")
 //
 // The Jsonic-style helpers (Make, Parse, MakeJSON) are a legacy
-// compatibility layer that installs this same plugin.
-func Grammar(j *Jsonic, opts map[string]any) (err error) {
+// compatibility layer that installs this same plugin. To register the
+// grammar rules without the jsonic branding (mirroring the TS
+// `registerJsonicGrammar` export), use RegisterJsonicGrammar in grammar.go.
+func Grammar(j *Jsonic, _ map[string]any) (err error) {
 	// Never let grammar installation panic out of the plugin; report it.
 	defer func() {
 		if r := recover(); r != nil {
@@ -54,15 +60,16 @@ func Grammar(j *Jsonic, opts map[string]any) (err error) {
 		}
 	}()
 	j.SetOptions(jsonicOptions())
-	return grammarPlugin(j, opts)
+	return RegisterJsonicGrammar(j)
 }
 
 // grammarPlugin installs the relaxed-JSON rules without applying jsonic's
 // option branding. It is what the legacy Make registers (Make applies the
 // branding as a base option, before caller options, so a caller-supplied
-// errmsg.name wins). The decoration guard makes it idempotent under the
-// engine's SetOptions plugin re-run while still letting Derive build the
-// grammar fresh on a child.
+// errmsg.name wins), and the body of the exported RegisterJsonicGrammar
+// (grammar.go), the Go counterpart of TS `registerJsonicGrammar`. The
+// decoration guard makes it idempotent under the engine's SetOptions plugin
+// re-run while still letting Derive build the grammar fresh on a child.
 func grammarPlugin(j *Jsonic, _ map[string]any) (err error) {
 	// Convert any unexpected panic (e.g. from the @tabnas/json dependency)
 	// into an error so plugin application never crashes the caller.

@@ -21,16 +21,23 @@ grammar behavior.
 
 ### Error Codes
 
-A successful parse is identical across runtimes, but a few failing inputs map
-to different error *codes*:
+Error codes are aligned with TypeScript. In particular, a raw control
+character (code point below 32) inside a quoted string reports
+`unprintable`, positioned at the offending character — including a raw
+newline in a non-multiline string — while a string that simply hits end of
+source reports `unterminated_string`, exactly as in TS. (Earlier Go
+versions reported `unterminated_string` for both; the alignment is
+implemented as a jsonic-installed lex matcher, `jsonic$unprintable` in
+`options.lex.match`, that pre-scans quoted strings just before the
+engine's string matcher.)
 
-| Input | TypeScript code | Go code |
-|---|---|---|
-| Control char in a double-quoted string (e.g. a raw newline) | `unprintable` | `unterminated_string` |
-| Unterminated triple-quote start (`'''...`) | `unprintable` | `unterminated_string` |
-
-The `Code` field is the only thing that differs; both report the failure at the
-same row/column. If you branch on `Code`, account for these.
+One related edge is **not** aligned: TS `string.replace` can map a control
+character to a replacement (e.g. `{'\n': 'X'}`), making it *legal* string
+body — `j1('"aAc\n"') === 'aBcX'` in TS. The Go engine's string matcher
+still rejects the raw control character (`unterminated_string`) even when
+it has a replacement mapping. Replacement of printable characters is fully
+supported, and the `unprintable` error scan honours replace mappings (a
+replaced control char is skipped when locating the first offending one).
 
 ### Number + Text
 
@@ -45,11 +52,29 @@ parse error. Token consumption behavior is aligned.
 
 ## Missing Features
 
+Custom match matchers (`match.token`, `match.value`) are now fully ported:
+
+- `Options.Match.Token` (`map[string]*regexp.Regexp`) and
+  `Options.Match.TokenFn` (`map[string]LexMatcher`) are the two halves of
+  the TS `match.token` union (RegExp | LexMatcher).
+- `Options.Match.Value` (`map[string]*MatchValueSpec`) covers TS
+  `match.value`: `Match` is the regexp, `Val` the submatch → value
+  handler, and `Fn` the function-form alternative.
+- Go regexps are used as-is (no dialect translation is applied to
+  programmatically supplied `*regexp.Regexp` values); anchor them with
+  `^` explicitly, as the lexer matches against the forward source.
+  (Text-form grammars using `@/.../` regex literals are translated by the
+  engine as usual.)
+
+See `custom_test.go` for ported examples.
+
 The following TypeScript features are not yet available in Go:
 
 | Feature | TS Option | Notes |
 |---|---|---|
-| Custom match matchers | `match.token`, `match.value` | Use `options.lex.match` instead |
+| Token-set overrides reaching the built grammar | `tokenSet` | The Go jsonic grammar resolves `#KEY`/`#VAL` statically when its rules are built, so a custom `tokenSet` (e.g. adding an identifier token to `KEY`) does not change the existing alternates. Workaround: modify the rules directly via `j.Rule(...)`. |
+| Alt `h` modifier action suppression | (Rule flags) | The TS `h` modifier can set `rule.ao/bc/ac = false` to suppress state actions; the Go `Rule` has no such flags. |
+| Deep-copied option values | (all options) | TS copies options deeply, so mutating an option value (e.g. a `value.def` map) after `make()` has no effect; Go keeps the caller's reference. |
 
 ## Go-Specific Features
 
@@ -96,7 +121,7 @@ result, _ := j.Parse("a:1")
 | Rule definer | Receives `RuleSpec` (+ `Parser`) | Receives `*RuleSpec` + `*Parser` |
 | State actions | Can return error tokens | No return value |
 | Option namespacing | Plugin options merged by name | No namespacing |
-| Custom matchers | Via `match` option | Via `options.lex.match` (keyed by name, same shape) |
+| Custom matchers | Via `match` option or `lex.match` | Same: `Options.Match` (token/value matchers) or `Options.Lex.Match` (ordered raw matchers, keyed by name) |
 
 ## Error Handling Differences
 
