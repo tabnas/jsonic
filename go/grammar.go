@@ -60,7 +60,7 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) error {
 			} else {
 				key = keyToken.Src
 			}
-			r.U["key"] = key
+			r.EnsureU()["key"] = key
 		}),
 
 		// val rule state actions
@@ -77,7 +77,7 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) error {
 			// plugin value; @val-ac below restores it. A normal value rule
 			// @reset$s its node in open, so this is Undefined except when a
 			// plugin deliberately set it.
-			r.U["openval"] = r.Node
+			r.EnsureU()["openval"] = r.Node
 
 			resolveToken := func() any {
 				val := r.O0.ResolveVal(r, ctx)
@@ -153,9 +153,9 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) error {
 				r.Node = make(map[string]any)
 			}
 			if v, ok := r.N["dmap"]; ok {
-				r.N["dmap"] = v + 1
+				r.EnsureN()["dmap"] = v + 1
 			} else {
-				r.N["dmap"] = 1
+				r.EnsureN()["dmap"] = 1
 			}
 		}),
 
@@ -193,9 +193,9 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) error {
 				r.Node = make([]any, 0)
 			}
 			if v, ok := r.N["dlist"]; ok {
-				r.N["dlist"] = v + 1
+				r.EnsureN()["dlist"] = v + 1
 			} else {
-				r.N["dlist"] = 1
+				r.EnsureN()["dlist"] = 1
 			}
 			// Implicit (bracket-less) list: promote the already-parsed first
 			// value (held on the prev val rule) into the new array.
@@ -304,11 +304,11 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) error {
 			if r.Parent != NoRule && r.Parent != nil {
 				prev, hasPrev := r.Parent.U["child$"]
 				if !hasPrev {
-					r.Parent.U["child$"] = val
+					r.Parent.EnsureU()["child$"] = val
 				} else if cfg.MapExtend {
-					r.Parent.U["child$"] = Deep(prev, val)
+					r.Parent.EnsureU()["child$"] = Deep(prev, val)
 				} else {
-					r.Parent.U["child$"] = val
+					r.Parent.EnsureU()["child$"] = val
 				}
 			}
 		}),
