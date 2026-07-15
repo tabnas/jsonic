@@ -1,5 +1,12 @@
 # jsonic
 
+<!-- tabnas-badges -->
+[![npm](https://tabnas.github.io/status/badges/jsonic-npm.svg)](https://www.npmjs.com/package/@tabnas/jsonic)
+[![CI](https://github.com/tabnas/jsonic/actions/workflows/ci.yml/badge.svg)](https://github.com/tabnas/jsonic/actions/workflows/ci.yml)
+[![go](https://tabnas.github.io/status/badges/jsonic-go.svg)](https://pkg.go.dev/github.com/tabnas/jsonic/go)
+[![tabnas standard](https://tabnas.github.io/status/badges/jsonic-standard.svg)](https://tabnas.github.io/status/)
+<!-- /tabnas-badges -->
+
 A dynamic JSON parser that isn't strict and can be customized.
 
 ```
