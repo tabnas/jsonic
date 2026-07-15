@@ -1,6 +1,6 @@
 {
   "name": "@tabnas/jsonic",
-  "version": "0.2.1",
+  "version": "0.3.1",
   "main": "dist/jsonic.js",
   "type": "commonjs",
   "types": "dist/jsonic.d.ts",
@@ -19,7 +19,8 @@
   "author": "Richard Rodger (http://richardrodger.com)",
   "repository": {
     "type": "git",
-    "url": "git://github.com/tabnas/jsonic.git"
+    "url": "git://github.com/tabnas/jsonic.git",
+    "directory": "ts"
   },
   "scripts": {
     "test": "node --enable-source-maps --test test/**/*.test.js",
