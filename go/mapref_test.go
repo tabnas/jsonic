@@ -113,7 +113,7 @@ func TestMapRefOff(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if _, ok := got.(map[string]any); !ok {
+	if _, ok := asMapOK(got); !ok {
 		t.Errorf("expected map[string]any, got %T: %#v", got, got)
 	}
 }
@@ -125,7 +125,7 @@ func TestMapRefExplicitOff(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if _, ok := got.(map[string]any); !ok {
+	if _, ok := asMapOK(got); !ok {
 		t.Errorf("expected map[string]any, got %T: %#v", got, got)
 	}
 }

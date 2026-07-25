@@ -10,7 +10,6 @@ package tabnasjsonic_test
 // tests mirror ts/test/tabnas-plugin.test.js ("register-grammar-only").
 
 import (
-	"reflect"
 	"strings"
 	"testing"
 
@@ -35,7 +34,7 @@ func TestRegisterJsonicGrammarOnBareEngine(t *testing.T) {
 		"b": []any{"x", "y", "z"},
 		"c": map[string]any{"d": "e"},
 	}
-	if !reflect.DeepEqual(out, want) {
+	if !deepEqualPlain(out, want) {
 		t.Errorf("relaxed parse: got %#v, want %#v", out, want)
 	}
 
@@ -44,7 +43,7 @@ func TestRegisterJsonicGrammarOnBareEngine(t *testing.T) {
 	if err := jsonic.RegisterJsonicGrammar(j); err != nil {
 		t.Fatal(err)
 	}
-	if out, _ := j.Parse("a:1,b:2"); !reflect.DeepEqual(out,
+	if out, _ := j.Parse("a:1,b:2"); !deepEqualPlain(out,
 		map[string]any{"a": float64(1), "b": float64(2)}) {
 		t.Errorf("parse after re-register: got %#v", out)
 	}

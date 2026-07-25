@@ -295,7 +295,7 @@ func TestPluginCustomMatcherInObject(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	m, ok := result.(map[string]any)
+	m, ok := asMapOK(result)
 	if !ok {
 		t.Fatalf("expected map, got %T: %v", result, result)
 	}
@@ -469,7 +469,7 @@ func TestPluginDisableComments(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	m, ok := result.(map[string]any)
+	m, ok := asMapOK(result)
 	if !ok {
 		t.Fatalf("expected map, got %T: %v", result, result)
 	}
@@ -571,7 +571,7 @@ func TestMultiCharFixedTokenBreaksText(t *testing.T) {
 		// The important thing is that "=>" breaks text.
 		return
 	}
-	m, ok := result.(map[string]any)
+	m, ok := asMapOK(result)
 	if !ok {
 		return
 	}
@@ -1395,7 +1395,7 @@ func TestLexCheckFixed(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	m, ok := result.(map[string]any)
+	m, ok := asMapOK(result)
 	if !ok {
 		t.Fatalf("expected map, got %T", result)
 	}
@@ -1711,7 +1711,7 @@ func TestDeriveMultiLevelPluginInheritance(t *testing.T) {
 // expectMap asserts that result is a map[string]any matching expected.
 func expectMap(t *testing.T, label string, result any, expected map[string]any) {
 	t.Helper()
-	m, ok := result.(map[string]any)
+	m, ok := asMapOK(result)
 	if !ok {
 		t.Fatalf("%s: expected map[string]any, got %T: %v", label, result, result)
 	}

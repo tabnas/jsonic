@@ -311,7 +311,7 @@ func TestSetOptionsTextBasic(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if m := result.(map[string]any); m["a"] != float64(1000) {
+	if m := asMap(result); m["a"] != float64(1000) {
 		t.Errorf("expected a:1000, got %v", m["a"])
 	}
 }
@@ -325,7 +325,7 @@ func TestSetOptionsTextEmptyIsNoop(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if m := result.(map[string]any); m["a"] != float64(1) {
+	if m := asMap(result); m["a"] != float64(1) {
 		t.Errorf("expected a:1, got %v", m["a"])
 	}
 }
@@ -343,7 +343,7 @@ func TestSetOptionsTextMergesWithSetOptions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if m := result.(map[string]any); m["a"] != float64(1000) {
+	if m := asMap(result); m["a"] != float64(1000) {
 		t.Errorf("expected a:1000 after merge, got %v", m["a"])
 	}
 
@@ -352,7 +352,7 @@ func TestSetOptionsTextMergesWithSetOptions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if m := result2.(map[string]any); m["b"] != float64(255) {
+	if m := asMap(result2); m["b"] != float64(255) {
 		t.Errorf("expected b:255, got %v", m["b"])
 	}
 }
@@ -376,4 +376,3 @@ func TestSetOptionsTextReturnsInstance(t *testing.T) {
 		t.Error("SetOptionsText should return the receiver")
 	}
 }
-

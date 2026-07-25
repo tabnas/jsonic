@@ -318,7 +318,7 @@ func TestListChildDisabledDefault(t *testing.T) {
 func TestListChildWithMapRef(t *testing.T) {
 	// list.child + MapRef: child map should be MapRef
 	j := Make(Options{
-		List:     &ListOptions{Child: boolPtr(true)},
+		List: &ListOptions{Child: boolPtr(true)},
 		Info: &InfoOptions{Map: boolPtr(true)},
 	})
 	got, err := j.Parse("[:{a:1}]")
@@ -343,7 +343,7 @@ func TestListChildWithMapRef(t *testing.T) {
 func TestListChildWithTextInfo(t *testing.T) {
 	// list.child + TextInfo: child text should be Text struct
 	j := Make(Options{
-		List:     &ListOptions{Child: boolPtr(true)},
+		List: &ListOptions{Child: boolPtr(true)},
 		Info: &InfoOptions{Text: boolPtr(true)},
 	})
 	got, err := j.Parse(`[:"hello"]`)
@@ -394,7 +394,7 @@ func TestListChildNoExtend(t *testing.T) {
 		t.Fatalf("expected ListRef, got %T", got)
 	}
 	// Without extend, last child value wins entirely
-	child, ok := lr.Child.(map[string]any)
+	child, ok := asMapOK(lr.Child)
 	if !ok {
 		t.Fatalf("expected child to be map, got %T: %#v", lr.Child, lr.Child)
 	}

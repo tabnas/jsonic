@@ -263,7 +263,7 @@ func TestRuleIncludePreservesParsingForTaggedAlts(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m, ok := out.(map[string]any)
+	m, ok := asMapOK(out)
 	if !ok {
 		t.Fatalf("expected map, got %T", out)
 	}

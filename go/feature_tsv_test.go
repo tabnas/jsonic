@@ -15,6 +15,12 @@ func stripRefs(v any) any {
 		return nil
 	}
 	switch val := v.(type) {
+	case *OrderedMap:
+		result := make(map[string]any)
+		for k, elem := range val.Vals {
+			result[k] = stripRefs(elem)
+		}
+		return result
 	case ListRef:
 		result := make([]any, len(val.Val))
 		for i, elem := range val.Val {
