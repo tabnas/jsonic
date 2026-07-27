@@ -50,6 +50,31 @@ parses to the string `"123abc"` on both sides.
 When no grammar alternate matches, both implementations raise an immediate
 parse error. Token consumption behavior is aligned.
 
+### Comment Definitions (`comment.def`)
+
+`Make`-time comment defs follow the TS option merge (the defaults live in
+option space, `jsonicOptions`, exactly as in TS `defaults.ts`):
+
+- adding a def **extends** the default markers (`#`, `//`, `/* */`)
+  instead of replacing them;
+- a partial def for a default name (`hash` / `slash` / `multi`) inherits
+  the fields it leaves unset (start, end, line, lex, eatline) — e.g.
+  `{"hash": {EatLine: &t}}` keeps the `#` start;
+- a `nil` def removes just that marker (TS `hash: null`);
+- a def for a **new** name is inactive unless it sets `Lex` — mirroring TS
+  `makeCommentMatcher`'s `lex: !!om.lex`. (The raw Go engine defaults an
+  unset `Lex` to true; `jsonic.Make` normalizes to the TS behavior.)
+
+Two engine-level edges are **not** aligned:
+
+- After construction, `SetOptions` merges the def *map* per key but
+  replaces each def value wholesale (the engine's `Deep` does not recurse
+  into map values), so a post-construction partial def loses the fields it
+  leaves unset. Adding or removing whole defs via `SetOptions` is aligned.
+- Since Go bool fields cannot distinguish unset from `false`, a partial
+  def cannot flip `Line` to `false` for a default name; respecify the full
+  def instead. (TS `line: false` is an explicit override.)
+
 ## Missing Features
 
 Custom match matchers (`match.token`, `match.value`) are now fully ported:

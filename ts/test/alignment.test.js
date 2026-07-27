@@ -135,9 +135,10 @@ describe('alignment', function () {
 
   it('feature-comment-suffix-line', () => {
     // Line comment with a custom suffix terminator — suffix is consumed.
-    // NOTE: TS's makeCommentMatcher requires lex:true explicitly on every
-    // def (Go defaults it to true); setting it here keeps both runners
-    // configured identically.
+    // NOTE: makeCommentMatcher requires lex:true explicitly on every new
+    // def (jsonic.Make in Go matches this; only the raw Go engine defaults
+    // it to true); setting it here keeps both runners configured
+    // identically.
     const jj = Jsonic.make({
       comment: {
         def: {
@@ -163,6 +164,47 @@ describe('alignment', function () {
       },
     })
     tsvTest('feature-comment-suffix-block', jj)
+  })
+
+  // --- Comment def option-merge TSV tests (parity for comment.def) ---
+  // The def entries are part of the option merge: adding one extends the
+  // default markers, a partial entry inherits the fields it leaves unset,
+  // and a null entry removes just that marker.
+
+  it('feature-comment-def-add', () => {
+    // Adding a def keeps the default markers (#, //, /* */) active.
+    const jj = Jsonic.make({
+      comment: { def: { semi: { line: true, start: ';', lex: true } } },
+    })
+    tsvTest('feature-comment-def-add', jj)
+  })
+
+  it('feature-comment-def-tweak', () => {
+    // A partial def for a default name merges with it: hash keeps its
+    // '#' start while switching eatline on.
+    const jj = Jsonic.make({
+      comment: { def: { hash: { eatline: true } } },
+    })
+    tsvTest('feature-comment-def-tweak', jj)
+  })
+
+  it('feature-comment-def-remove', () => {
+    const jj = Jsonic.make({ comment: { def: { hash: null } } })
+    tsvTest('feature-comment-def-remove', jj)
+  })
+
+  it('feature-comment-def-remove-errors', () => {
+    const jj = Jsonic.make({ comment: { def: { hash: null } } })
+    tsvErrorTest('feature-comment-def-remove-errors', jj)
+  })
+
+  it('feature-comment-def-nolex-errors', () => {
+    // A def for a new name without lex:true is inactive
+    // (makeCommentMatcher reads `lex: !!om.lex`).
+    const jj = Jsonic.make({
+      comment: { def: { semi: { line: true, start: ';' } } },
+    })
+    tsvErrorTest('feature-comment-def-nolex-errors', jj)
   })
 
   // --- Lex error propagation tests ---

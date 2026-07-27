@@ -23,9 +23,15 @@ const grammarMark = "jsonic$grammar"
 
 // jsonicOptions are the option overrides the grammar plugin layers on top
 // of the engine's already-relaxed lexer defaults: the jsonic error
-// identity, plus the `unprintable` string-error alignment matcher (see
-// unprintable.go). Error message templates and the relaxed lexer config
-// are shared with the engine defaults, so only the branding differs.
+// identity, the `unprintable` string-error alignment matcher (see
+// unprintable.go), and the comment markers held in *option* space.
+// Error message templates and the rest of the relaxed lexer config are
+// shared with the engine defaults.
+//
+// The comment defs mirror TS defaults.ts. The engine also lexes these
+// markers by default, but only from config-space; declaring them as
+// options (as TS does) makes them part of the option merge, so a caller
+// adding a comment def extends this set instead of replacing it.
 func jsonicOptions() Options {
 	return Options{
 		ErrMsg: &ErrMsgOptions{
@@ -35,7 +41,58 @@ func jsonicOptions() Options {
 		Lex: &LexOptions{
 			Match: unprintableMatchSpecs(),
 		},
+		Comment: &CommentOptions{
+			Def: commentDefDefaults(),
+		},
 	}
+}
+
+// commentDefDefaults are jsonic's default comment markers, mirroring the
+// TS defaults.ts comment.def entries (hash / slash / multi).
+func commentDefDefaults() map[string]*CommentDef {
+	t, f := true, false
+	return map[string]*CommentDef{
+		"hash":  {Line: true, Start: "#", Lex: &t, EatLine: &f},
+		"slash": {Line: true, Start: "//", Lex: &t, EatLine: &f},
+		"multi": {Line: false, Start: "/*", End: "*/", Lex: &t, EatLine: &f},
+	}
+}
+
+// normalizeCommentDefs aligns caller comment defs with the TS option
+// merge: a partial def for a default name (hash / slash / multi)
+// inherits the fields it leaves unset (start, end, line, lex, eatline)
+// instead of replacing the whole definition, a nil def stays nil (the
+// removal marker), and a def for a new name is inactive unless it sets
+// Lex — TS makeCommentMatcher reads `lex: !!om.lex`, while the Go
+// engine would default an unset Lex to true. Needed because the engine's
+// option Deep merge replaces map values wholesale per key.
+func normalizeCommentDefs(o *Options) {
+	if o == nil || o.Comment == nil || o.Comment.Def == nil {
+		return
+	}
+	defs := commentDefDefaults()
+	norm := make(map[string]*CommentDef, len(o.Comment.Def))
+	for name, def := range o.Comment.Def {
+		if def == nil {
+			norm[name] = nil
+			continue
+		}
+		if base, ok := defs[name]; ok {
+			if merged, ok := Deep(base, def).(*CommentDef); ok {
+				norm[name] = merged
+				continue
+			}
+		}
+		cp := *def
+		if cp.Lex == nil {
+			f := false
+			cp.Lex = &f
+		}
+		norm[name] = &cp
+	}
+	cc := *o.Comment
+	cc.Def = norm
+	o.Comment = &cc
 }
 
 // Grammar is the idiomatic tabnas grammar plugin: it applies jsonic's
@@ -118,6 +175,10 @@ func Make(opts ...Options) *Jsonic {
 		ruleCopy.Exclude = ""
 		base.Rule = &ruleCopy
 	}
+
+	// Merge partial comment defs with jsonic's defaults per name (the
+	// whole-Options Deep below replaces map values wholesale per key).
+	normalizeCommentDefs(&base)
 
 	// Construct the engine with jsonic's branding as a base and caller
 	// options merged on top (so a caller errmsg.name / tag / lexer setting
