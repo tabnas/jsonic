@@ -74,11 +74,16 @@ Default comment definitions:
 
 ```js
 {
-  hash:  { line: true, start: '#' },
-  slash: { line: true, start: '//' },
-  block: { line: false, start: '/*', end: '*/' }
+  hash:  { line: true, start: '#', lex: true },
+  slash: { line: true, start: '//', lex: true },
+  multi: { line: false, start: '/*', end: '*/', lex: true }
 }
 ```
+
+`def` entries merge with the defaults: a new name adds a marker alongside
+them, a partial entry for a default name inherits the fields it leaves
+unset (e.g. `{ hash: { eatline: true } }` keeps the `#` start), and a
+`null` (or `false`) entry removes just that marker.
 
 Each definition has:
 
@@ -87,7 +92,9 @@ Each definition has:
 | `line` | boolean | `true` for line comments, `false` for block |
 | `start` | string | Start marker |
 | `end` | string | End marker (block comments only) |
+| `lex` | boolean | Enable this definition (a new def is inactive without `lex: true`) |
 | `eatline` | boolean | Consume trailing newline after comment |
+| `suffix` | string \| string[] \| LexMatcher | Extra terminator(s), consumed as the comment tail |
 
 ## `string`
 

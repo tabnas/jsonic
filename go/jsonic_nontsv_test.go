@@ -974,11 +974,13 @@ func TestLexFlagLineOff(t *testing.T) {
 func TestLexFlagCommentDefOff(t *testing.T) {
 	// Disable comments via def (setting each type to null/disabled).
 	// Matches TS: { comment: { def: { hash: null, slash: false, multi: { lex: false } } } }
+	// The partial slash/multi defs inherit their start/end markers from
+	// jsonic's defaults; only the Lex flag is overridden.
 	j := Make(Options{Comment: &CommentOptions{
 		Def: map[string]*CommentDef{
 			"hash":  nil,
-			"slash": {Line: true, Start: "//", Lex: boolPtr(false)},
-			"multi": {Line: false, Start: "/*", End: "*/", Lex: boolPtr(false)},
+			"slash": {Lex: boolPtr(false)},
+			"multi": {Lex: boolPtr(false)},
 		},
 	}})
 
@@ -1007,6 +1009,29 @@ func TestLexFlagCommentDefOff(t *testing.T) {
 	expected = m("a", "/*b*/")
 	if !valuesEqual(stripRefs(got), expected) {
 		t.Errorf("comment def off: got %s, want %s", formatValue(stripRefs(got)), formatValue(expected))
+	}
+}
+
+func TestCommentDefSetOptionsAdd(t *testing.T) {
+	// A comment def added after construction extends the default markers:
+	// they live in option space (jsonicOptions), so the engine's option
+	// merge keeps them. Matches TS: jj.options({comment: {def: {semi: ...}}}).
+	j := Make()
+	j.SetOptions(Options{Comment: &CommentOptions{
+		Def: map[string]*CommentDef{
+			"semi": {Line: true, Start: ";", Lex: boolPtr(true)},
+		},
+	}})
+
+	for _, src := range []string{"a:1 ;c\nb:2", "a:1 #c\nb:2", "a:1 //c\nb:2", "a:1 /*c*/ b:2"} {
+		got, err := j.Parse(src)
+		if err != nil {
+			t.Fatalf("Parse(%q) unexpected error: %v", src, err)
+		}
+		expected := m("a", 1.0, "b", 2.0)
+		if !valuesEqual(stripRefs(got), expected) {
+			t.Errorf("Parse(%q): got %s, want %s", src, formatValue(stripRefs(got)), formatValue(expected))
+		}
 	}
 }
 

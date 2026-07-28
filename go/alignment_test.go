@@ -250,6 +250,79 @@ func TestFeatureCommentSuffixBlock(t *testing.T) {
 	runParserTSV(t, "feature-comment-suffix-block.tsv", j)
 }
 
+// --- Comment def option-merge TSV tests (parity for comment.def) ---
+// The def entries are part of the option merge: adding one extends the
+// default markers, a partial entry inherits the fields it leaves unset,
+// and a nil entry removes just that marker.
+
+// TestFeatureCommentDefAdd mirrors TS feature-comment-def-add: adding a
+// def keeps the default markers (#, //, /* */) active.
+func TestFeatureCommentDefAdd(t *testing.T) {
+	yes := true
+	j := Make(Options{Comment: &CommentOptions{
+		Def: map[string]*CommentDef{
+			"semi": {Line: true, Start: ";", Lex: &yes},
+		},
+	}})
+	runParserTSV(t, "feature-comment-def-add.tsv", j)
+}
+
+// TestFeatureCommentDefTweak mirrors TS feature-comment-def-tweak: a
+// partial def for a default name merges with it — hash keeps its '#'
+// start while switching eatline on.
+func TestFeatureCommentDefTweak(t *testing.T) {
+	yes := true
+	j := Make(Options{Comment: &CommentOptions{
+		Def: map[string]*CommentDef{
+			"hash": {EatLine: &yes},
+		},
+	}})
+	runParserTSV(t, "feature-comment-def-tweak.tsv", j)
+}
+
+// TestFeatureCommentDefRemove mirrors TS feature-comment-def-remove.
+func TestFeatureCommentDefRemove(t *testing.T) {
+	j := Make(Options{Comment: &CommentOptions{
+		Def: map[string]*CommentDef{"hash": nil},
+	}})
+	runParserTSV(t, "feature-comment-def-remove.tsv", j)
+}
+
+// TestFeatureCommentDefRemoveErrors mirrors TS
+// feature-comment-def-remove-errors.
+func TestFeatureCommentDefRemoveErrors(t *testing.T) {
+	j := Make(Options{Comment: &CommentOptions{
+		Def: map[string]*CommentDef{"hash": nil},
+	}})
+	runErrorTSV(t, "feature-comment-def-remove-errors.tsv", j)
+}
+
+// TestFeatureCommentDefBlockConv mirrors TS
+// feature-comment-def-block-conv: an explicit Line:false with an End
+// marker converts a default line def into a block comment; the other
+// defaults stay intact.
+func TestFeatureCommentDefBlockConv(t *testing.T) {
+	yes := true
+	j := Make(Options{Comment: &CommentOptions{
+		Def: map[string]*CommentDef{
+			"hash": {Line: false, Start: "#", End: "@@", Lex: &yes},
+		},
+	}})
+	runParserTSV(t, "feature-comment-def-block-conv.tsv", j)
+}
+
+// TestFeatureCommentDefNoLexErrors mirrors TS
+// feature-comment-def-nolex-errors: a def for a new name without Lex is
+// inactive, matching TS makeCommentMatcher's `lex: !!om.lex`.
+func TestFeatureCommentDefNoLexErrors(t *testing.T) {
+	j := Make(Options{Comment: &CommentOptions{
+		Def: map[string]*CommentDef{
+			"semi": {Line: true, Start: ";"},
+		},
+	}})
+	runErrorTSV(t, "feature-comment-def-nolex-errors.tsv", j)
+}
+
 // =====================================================================
 // Direct Go tests for option-dependent alignment features
 // =====================================================================

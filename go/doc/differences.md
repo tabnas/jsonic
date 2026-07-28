@@ -50,6 +50,36 @@ parses to the string `"123abc"` on both sides.
 When no grammar alternate matches, both implementations raise an immediate
 parse error. Token consumption behavior is aligned.
 
+### Comment Definitions (`comment.def`)
+
+`Make`-time comment defs follow the TS option merge (the defaults live in
+option space, `jsonicOptions`, exactly as in TS `defaults.ts`):
+
+- adding a def **extends** the default markers (`#`, `//`, `/* */`)
+  instead of replacing them;
+- a partial def for a default name (`hash` / `slash` / `multi`) inherits
+  the fields it leaves unset (start, end, line, lex, eatline) — e.g.
+  `{"hash": {EatLine: &t}}` keeps the `#` start;
+- a `nil` def removes just that marker (TS `hash: null`);
+- a def for a **new** name is inactive unless it sets `Lex` — mirroring TS
+  `makeCommentMatcher`'s `lex: !!om.lex`. (The raw Go engine defaults an
+  unset `Lex` to true; `jsonic.Make` normalizes to the TS behavior.)
+
+Two engine-level edges are **not** aligned:
+
+- After construction, `SetOptions` merges the def *map* per key but
+  replaces each def value wholesale (the engine's `Deep` does not recurse
+  into map values), so a post-construction partial def loses the fields it
+  leaves unset. Adding or removing whole defs via `SetOptions` is aligned.
+- Go bool fields cannot distinguish unset from `false`, so for a default
+  name an explicit `Line: false` (TS `line: false`) is honored only when
+  the def also sets `End` — the unambiguous block-conversion shape, since
+  line comments never use `End`. A bare `{Line: false}` without `End`
+  (degenerate in TS too: a block comment with no end marker) reads as
+  unset and keeps the default `Line: true`. To express anything else,
+  use a def under a new name (with `Lex`) and set the default name to
+  `nil`.
+
 ## Missing Features
 
 Custom match matchers (`match.token`, `match.value`) are now fully ported:

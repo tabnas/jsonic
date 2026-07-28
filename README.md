@@ -115,6 +115,8 @@ falls back to being a plain string rather than an error.
 unchanged (so you can feed it values that might already be parsed):
 
 ```js
+const { Jsonic } = require('@tabnas/jsonic')
+
 Jsonic('a:1')                  // => { a: 1 }
 Jsonic({ already: 'parsed' })  // => { already: 'parsed' }
 ```
@@ -126,6 +128,8 @@ instance; `instance.make(options)` forks a child that inherits config
 and plugins. The original is never mutated:
 
 ```js
+const { Jsonic } = require('@tabnas/jsonic')
+
 const relaxed = Jsonic.make({ number: { sep: ' ' } })
 relaxed('a: 1 000 000')     // => { a: 1000000 }
 
@@ -140,6 +144,8 @@ Custom keywords and custom value matchers turn domain notation into
 real values at parse time:
 
 ```js
+const { Jsonic } = require('@tabnas/jsonic')
+
 const j = Jsonic.make({
   value: { def: { yes: { val: true }, no: { val: false } } },
   match: {
@@ -148,7 +154,7 @@ const j = Jsonic.make({
 })
 
 j('active: yes, backup: no')   // => { active: true, backup: false }
-j('start: 2026-07-17')         // => { start: 2026-07-17T00:00:00.000Z (a Date) }
+j('start: 2026-07-17')         // => { start: new Date('2026-07-17') }
 ```
 
 ### Extend it with plugins

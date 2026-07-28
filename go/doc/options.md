@@ -79,15 +79,23 @@ Controls comment handling.
 | `Lex` | `*bool` | `true` | Enable all comment lexing |
 | `Def` | `map[string]*CommentDef` | (see below) | Comment type definitions |
 
-Default definitions:
+Default definitions (mirroring TS `defaults.ts`):
 
 ```go
 map[string]*CommentDef{
     "hash":  {Line: true, Start: "#"},
     "slash": {Line: true, Start: "//"},
-    "block": {Line: false, Start: "/*", End: "*/"},
+    "multi": {Line: false, Start: "/*", End: "*/"},
 }
 ```
+
+`Def` entries given to `Make` merge with the defaults, as in TS: a new
+name adds a marker alongside the defaults, a partial def for a default
+name inherits the fields it leaves unset (e.g. `{"hash": {EatLine: &t}}`
+keeps the `#` start), and a `nil` def removes just that marker. For a
+default name, `Line: false` is honored when the def also sets `End`
+(block conversion); without `End` it reads as unset (see
+[differences](differences.md#comment-definitions-commentdef)).
 
 ### `CommentDef`
 
@@ -96,8 +104,9 @@ map[string]*CommentDef{
 | `Line` | `bool` | `true` for line comments, `false` for block |
 | `Start` | `string` | Start marker |
 | `End` | `string` | End marker (block only) |
-| `Lex` | `*bool` | Enable this definition (default: true) |
+| `Lex` | `*bool` | Enable this definition (default: true for the default names; a def for a new name must set it to be active) |
 | `EatLine` | `*bool` | Consume trailing newline (default: false) |
+| `Suffix` | `any` | Extra terminator(s): `string`, `[]string`, or `LexMatcher` (consumed as the comment tail) |
 
 ## `String`
 
