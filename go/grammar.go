@@ -167,6 +167,8 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) error {
 					Val:  make(map[string]any),
 					Meta: make(map[string]any),
 				}
+			} else if cfg.PlainMap {
+				r.Node = make(map[string]any)
 			} else {
 				r.Node = NewOrderedMap()
 			}
