@@ -35,8 +35,22 @@ func textInfoEqual(a, b any) bool {
 			return false
 		}
 		return av.Quote == bv.Quote && av.Str == bv.Str
+	case *OrderedMap:
+		// A parsed object node is now an ordered map; compare value-wise
+		// against either another ordered map or a plain map (order-agnostic).
+		bv, ok := asMapOK(b)
+		if !ok || len(av.Vals) != len(bv) {
+			return false
+		}
+		for k, v := range av.Vals {
+			bval, exists := bv[k]
+			if !exists || !textInfoEqual(v, bval) {
+				return false
+			}
+		}
+		return true
 	case map[string]any:
-		bv, ok := b.(map[string]any)
+		bv, ok := asMapOK(b)
 		if !ok || len(av) != len(bv) {
 			return false
 		}
@@ -179,7 +193,7 @@ func TestTextInfoKeysRemainStrings(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	m, ok := got.(map[string]any)
+	m, ok := asMapOK(got)
 	if !ok {
 		t.Fatalf("expected map, got %#v", got)
 	}

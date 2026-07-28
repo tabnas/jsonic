@@ -522,8 +522,8 @@ func TestAlignmentLineSingle(t *testing.T) {
 func TestAlignmentCommentEatLine(t *testing.T) {
 	j := Make(Options{Comment: &CommentOptions{
 		Def: map[string]*CommentDef{
-			"hash": {Line: true, Start: "#", EatLine: boolPtr(true)},
-			"line": {Line: true, Start: "//"},
+			"hash":  {Line: true, Start: "#", EatLine: boolPtr(true)},
+			"line":  {Line: true, Start: "//"},
 			"block": {Line: false, Start: "/*", End: "*/"},
 		},
 	}})
@@ -609,15 +609,15 @@ func TestAlignmentGrammarGTags(t *testing.T) {
 		{
 			name: "val",
 			open: []string{
-				"map,json",                  // #OB -> map
-				"list,json",                 // #OS -> list
-				"pair,jsonic,top",           // #KEY #CL d=0 -> map
-				"pair,jsonic",               // #KEY #CL -> map (dive)
-				"val,json",                  // #VAL
-				"val,imp,null,jsonic",       // #CB|#CS impl null
-				"list,imp,jsonic",           // #CA d=0 -> list
-				"list,val,imp,null,jsonic",  // #CA impl null
-				"jsonic",                    // #ZZ
+				"map,json",                 // #OB -> map
+				"list,json",                // #OS -> list
+				"pair,jsonic,top",          // #KEY #CL d=0 -> map
+				"pair,jsonic",              // #KEY #CL -> map (dive)
+				"val,json",                 // #VAL
+				"val,imp,null,jsonic",      // #CB|#CS impl null
+				"list,imp,jsonic",          // #CA d=0 -> list
+				"list,val,imp,null,jsonic", // #CA impl null
+				"jsonic",                   // #ZZ
 			},
 			close: []string{
 				"end,json",                  // #ZZ end
@@ -631,9 +631,9 @@ func TestAlignmentGrammarGTags(t *testing.T) {
 		{
 			name: "map",
 			open: []string{
-				"end,jsonic",              // #OB #ZZ autoclose
-				"map,json",                // #OB #CB empty
-				"map,json,pair",           // #OB -> pair
+				"end,jsonic",               // #OB #ZZ autoclose
+				"map,json",                 // #OB #CB empty
+				"map,json,pair",            // #OB -> pair
 				"pair,list,val,imp,jsonic", // #KEY #CL -> pair (imp)
 			},
 			close: []string{
@@ -646,11 +646,11 @@ func TestAlignmentGrammarGTags(t *testing.T) {
 		{
 			name: "list",
 			open: []string{
-				"",                          // implist cond (no tag)
-				"list,json",                 // #OS #CS empty
-				"list,elem,json",            // #OS -> elem
-				"list,elem,val,imp,jsonic",  // #CA -> elem (imp)
-				"list,elem,jsonic",          // -> elem default
+				"",                         // implist cond (no tag)
+				"list,json",                // #OS #CS empty
+				"list,elem,json",           // #OS -> elem
+				"list,elem,val,imp,jsonic", // #CA -> elem (imp)
+				"list,elem,jsonic",         // -> elem default
 			},
 			close: []string{
 				"end,json",   // #CS end
@@ -660,20 +660,20 @@ func TestAlignmentGrammarGTags(t *testing.T) {
 		{
 			name: "pair",
 			open: []string{
-				"map,pair,key,json",    // #KEY #CL -> val
+				"map,pair,key,json",     // #KEY #CL -> val
 				"map,pair,comma,jsonic", // #CA comma
 			},
 			close: []string{
-				"map,pair,json",             // #CB n.pk<=0
-				"map,pair,comma,jsonic",     // #CA #CB trailing comma
-				"end,jsonic",                // #CA #ZZ end
-				"map,pair,json",             // #CA n.pk<=0 -> pair
-				"map,pair,jsonic",           // #CA n.dmap<=1 -> pair
-				"map,pair,imp,jsonic",       // #KEY n.dmap<=1 -> pair
-				"map,pair,imp,path,jsonic",  // #CB|#CA|#CS|#KEY n.pk>0 path
-				"end,jsonic",                // #CS error
-				"map,pair,json",             // #ZZ @finish
-				"map,pair,imp,jsonic",       // -> pair (catchall)
+				"map,pair,json",            // #CB n.pk<=0
+				"map,pair,comma,jsonic",    // #CA #CB trailing comma
+				"end,jsonic",               // #CA #ZZ end
+				"map,pair,json",            // #CA n.pk<=0 -> pair
+				"map,pair,jsonic",          // #CA n.dmap<=1 -> pair
+				"map,pair,imp,jsonic",      // #KEY n.dmap<=1 -> pair
+				"map,pair,imp,path,jsonic", // #CB|#CA|#CS|#KEY n.pk>0 path
+				"end,jsonic",               // #CS error
+				"map,pair,json",            // #ZZ @finish
+				"map,pair,imp,jsonic",      // -> pair (catchall)
 			},
 		},
 		{
@@ -683,7 +683,7 @@ func TestAlignmentGrammarGTags(t *testing.T) {
 				"list,elem,imp,null,jsonic", // #CA single comma
 				"elem,pair,jsonic",          // #KEY #CL -> val (pair)
 				// Note: ListChild alt ("elem,child,jsonic") only present when cfg.ListChild is true.
-				"list,elem,val,json",        // -> val default
+				"list,elem,val,json", // -> val default
 			},
 			close: []string{
 				"list,elem,comma,jsonic", // #CA, #CS|#ZZ trailing comma
@@ -907,10 +907,10 @@ func TestAlignmentDeepOptionsPointer(t *testing.T) {
 	// Deep should also handle pointer-to-struct fields correctly.
 	base := Options{
 		String: &StringOptions{
-			Lex:      boolPtr(true),
-			Chars:    "'\"",
-			Escape:   map[string]string{"n": "\n"},
-			Abandon:  boolPtr(false),
+			Lex:     boolPtr(true),
+			Chars:   "'\"",
+			Escape:  map[string]string{"n": "\n"},
+			Abandon: boolPtr(false),
 		},
 	}
 	over := Options{

@@ -167,8 +167,10 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) error {
 					Val:  make(map[string]any),
 					Meta: make(map[string]any),
 				}
-			} else {
+			} else if cfg.PlainMap {
 				r.Node = make(map[string]any)
+			} else {
+				r.Node = NewOrderedMap()
 			}
 			if v, ok := r.N["dmap"]; ok {
 				ensureN(r)["dmap"] = v + 1
@@ -651,7 +653,7 @@ func isPrimitiveNode(node any) bool {
 		return false
 	}
 	switch node.(type) {
-	case map[string]any, MapRef, []any, ListRef:
+	case *OrderedMap, map[string]any, MapRef, []any, ListRef:
 		return false
 	}
 	return true
@@ -660,7 +662,9 @@ func isPrimitiveNode(node any) bool {
 // nodeMapSet sets a key on a map node.
 func nodeMapSet(node any, key any, val any) {
 	k, _ := key.(string)
-	if m, ok := node.(map[string]any); ok {
+	if om, ok := node.(*OrderedMap); ok {
+		om.Set(k, val)
+	} else if m, ok := node.(map[string]any); ok {
 		m[k] = val
 	} else if mr, ok := node.(MapRef); ok {
 		mr.Val[k] = val
@@ -670,6 +674,9 @@ func nodeMapSet(node any, key any, val any) {
 // nodeMapGet gets a value from a map node.
 func nodeMapGet(node any, key any) (any, bool) {
 	k, _ := key.(string)
+	if om, ok := node.(*OrderedMap); ok {
+		return om.Get(k)
+	}
 	if m, ok := node.(map[string]any); ok {
 		v, exists := m[k]
 		return v, exists

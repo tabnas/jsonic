@@ -21,7 +21,7 @@ func TestCommentLineSuffixSingleString(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := out.(map[string]any)
+	m := asMap(out)
 	if m["a"] != float64(1) {
 		t.Errorf("a: got %v", m["a"])
 	}
@@ -44,7 +44,7 @@ func TestCommentLineSuffixMultiple(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := out.(map[string]any)
+	m := asMap(out)
 	if m["b"] != float64(2) {
 		t.Errorf("expected STOP to terminate and be consumed, got %v", m)
 	}
@@ -64,7 +64,7 @@ func TestCommentLineSuffixPreferredLongestFirst(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := out.(map[string]any)
+	m := asMap(out)
 	if m["b"] != float64(2) {
 		t.Errorf("expected '@@' to terminate and consume, got %v", m)
 	}
@@ -89,7 +89,7 @@ func TestCommentLineSuffixIsConsumed(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := out.(map[string]any)
+	m := asMap(out)
 	if _, has := m["a"]; !has {
 		t.Errorf("expected 'a' key to exist with implicit value, got %v", m)
 	}
@@ -108,7 +108,7 @@ func TestCommentLineSuffixFallsBackToNewline(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := out.(map[string]any)
+	m := asMap(out)
 	if m["a"] != float64(1) || m["b"] != float64(2) {
 		t.Errorf("line fallback broken: %v", m)
 	}
@@ -138,7 +138,7 @@ func TestCommentLineSuffixBeatsEatLine(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := out.(map[string]any)
+	m := asMap(out)
 	if m["a"] != float64(1) || m["b"] != float64(2) {
 		t.Errorf("eatline-with-suffix misbehaved: %v", m)
 	}
@@ -167,7 +167,7 @@ func TestCommentBlockSuffixEarlyTermination(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := out.(map[string]any)
+	m := asMap(out)
 	if m["a"] != float64(1) || m["b"] != float64(2) {
 		t.Errorf("block suffix early-termination failed: %v", m)
 	}
@@ -215,7 +215,7 @@ func TestCommentBlockSuffixLosesToEndWhenCloser(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := out.(map[string]any)
+	m := asMap(out)
 	if m["a"] != float64(1) || m["b"] != float64(2) {
 		t.Errorf("end-first path broke: %v", m)
 	}
@@ -244,7 +244,7 @@ func TestCommentSuffixLexMatcherTerminates(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if m := out.(map[string]any); m["a"] != "b" {
+	if m := asMap(out); m["a"] != "b" {
 		t.Errorf("expected suffix matcher to consume !!, got %v", m["a"])
 	}
 }
@@ -256,7 +256,7 @@ func TestCommentSuffixLexMatcherCannotAdvance(t *testing.T) {
 	// probe does not terminate, and parsing simply proceeds to EOL.
 	yes := true
 	matcher := LexMatcher(func(lex *Lex, _ *Rule) *Token {
-		lex.Cursor().SI += 100  // malicious advance
+		lex.Cursor().SI += 100 // malicious advance
 		return &Token{Src: ""}
 	})
 	j := Make(Options{Comment: &CommentOptions{
@@ -271,7 +271,7 @@ func TestCommentSuffixLexMatcherCannotAdvance(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := out.(map[string]any)
+	m := asMap(out)
 	if _, has := m["a"]; !has {
 		t.Errorf("expected 'a' key to survive, got %v", m)
 	}
@@ -295,7 +295,7 @@ func TestCommentSuffixFromTextString(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := out.(map[string]any)
+	m := asMap(out)
 	if m["b"] != float64(2) {
 		t.Errorf("text-form suffix ignored: %v", m)
 	}
@@ -316,7 +316,7 @@ func TestCommentSuffixFromTextArray(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := out.(map[string]any)
+	m := asMap(out)
 	if m["c"] != float64(3) {
 		t.Errorf("array-form suffix ignored: %v", m)
 	}

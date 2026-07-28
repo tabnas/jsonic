@@ -88,8 +88,22 @@ func bothRefEqual(a, b any) bool {
 			}
 		}
 		return true
+	case *OrderedMap:
+		// A parsed object node is now an ordered map; compare value-wise
+		// against either another ordered map or a plain map (order-agnostic).
+		bv, ok := asMapOK(b)
+		if !ok || len(av.Vals) != len(bv) {
+			return false
+		}
+		for k, v := range av.Vals {
+			bval, exists := bv[k]
+			if !exists || !bothRefEqual(v, bval) {
+				return false
+			}
+		}
+		return true
 	case map[string]any:
-		bv, ok := b.(map[string]any)
+		bv, ok := asMapOK(b)
 		if !ok || len(av) != len(bv) {
 			return false
 		}

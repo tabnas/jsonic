@@ -31,12 +31,12 @@ func TestGrammarPluginOnBareEngine(t *testing.T) {
 		"b": []any{"x", "y", "z"},
 		"c": map[string]any{"d": "e"},
 	}
-	if !reflect.DeepEqual(out, want) {
+	if !deepEqualPlain(out, want) {
 		t.Errorf("relaxed parse: got %#v, want %#v", out, want)
 	}
 
 	// Path diving and plain JSON also work.
-	if out, _ := j.Parse("a:b:c:1"); !reflect.DeepEqual(out,
+	if out, _ := j.Parse("a:b:c:1"); !deepEqualPlain(out,
 		map[string]any{"a": map[string]any{"b": map[string]any{"c": float64(1)}}}) {
 		t.Errorf("path dive: got %#v", out)
 	}
@@ -85,7 +85,53 @@ func TestGrammarPluginLayeredDependency(t *testing.T) {
 		"b": false,
 		"c": []any{true, false},
 	}
-	if !reflect.DeepEqual(out, want) {
+	if !deepEqualPlain(out, want) {
 		t.Errorf("layered parse: got %#v, want %#v", out, want)
 	}
+}
+
+// plainDeep recursively flattens the parser's insertion-ordered object nodes
+// (tabnas.OrderedMap, exported as jsonic.OrderedMap) into plain map[string]any
+// so a reflect.DeepEqual value comparison against a plain-map expected value
+// is order-agnostic. It recurses through slices and through ListRef/MapRef
+// wrappers; non-object values pass through unchanged. Used by the external
+// (tabnasjsonic_test) grammar-plugin tests.
+func plainDeep(v any) any {
+	if m, ok := tabnas.AsStringMap(v); ok {
+		out := make(map[string]any, len(m))
+		for k, elem := range m {
+			out[k] = plainDeep(elem)
+		}
+		return out
+	}
+	switch node := v.(type) {
+	case []any:
+		out := make([]any, len(node))
+		for i, elem := range node {
+			out[i] = plainDeep(elem)
+		}
+		return out
+	case tabnas.ListRef:
+		out := make([]any, len(node.Val))
+		for i, elem := range node.Val {
+			out[i] = plainDeep(elem)
+		}
+		node.Val = out
+		return node
+	case tabnas.MapRef:
+		m := make(map[string]any, len(node.Val))
+		for k, elem := range node.Val {
+			m[k] = plainDeep(elem)
+		}
+		node.Val = m
+		return node
+	default:
+		return v
+	}
+}
+
+// deepEqualPlain reports whether got and want are equal once any ordered
+// object nodes on either side are flattened to plain maps (order-agnostic).
+func deepEqualPlain(got, want any) bool {
+	return reflect.DeepEqual(plainDeep(got), plainDeep(want))
 }

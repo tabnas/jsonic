@@ -62,6 +62,14 @@ func parseExpected(s string) (any, error) {
 // float64 whole numbers should compare correctly with JSON unmarshaled values.
 func normalizeValue(v any) any {
 	switch val := v.(type) {
+	case *OrderedMap:
+		// Flatten an ordered object node to a plain map so comparisons are
+		// value-based (order-agnostic); source order is verified separately.
+		result := make(map[string]any)
+		for k, elem := range val.Vals {
+			result[k] = normalizeValue(elem)
+		}
+		return result
 	case map[string]any:
 		result := make(map[string]any)
 		for k, v := range val {

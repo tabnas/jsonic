@@ -1,7 +1,6 @@
 package tabnasjsonic
 
 import (
-	"reflect"
 	"testing"
 )
 
@@ -39,7 +38,7 @@ func TestVariant_StrictJSON_Happy(t *testing.T) {
 			t.Errorf("parse(%q) error: %v", c.src, err)
 			continue
 		}
-		if !reflect.DeepEqual(got, c.want) {
+		if !deepEqualPlain(got, c.want) {
 			t.Errorf("parse(%q)\n  got:  %#v\n  want: %#v", c.src, got, c.want)
 		}
 	}
@@ -51,17 +50,17 @@ func TestVariant_StrictJSON_Rejects(t *testing.T) {
 	// Inputs that are valid jsonic but not strict JSON — must fail under
 	// the approximation. Matches the `assert.throws` cases in TS.
 	bad := []string{
-		`{a:1}`,          // unquoted key
-		`{"a":1,}`,       // trailing comma
-		`[a]`,            // unquoted value
-		`["a",]`,         // trailing comma in array
-		"\"a\" # foo",    // comment
-		`0xA`,            // hex literal
-		"`a`",            // backtick string
-		`'a'`,            // single-quoted string
-		`{"a":1`,         // unterminated object
-		`[,a]`,           // leading comma
-		`00`,             // non-standard numeric prefix
+		`{a:1}`,       // unquoted key
+		`{"a":1,}`,    // trailing comma
+		`[a]`,         // unquoted value
+		`["a",]`,      // trailing comma in array
+		"\"a\" # foo", // comment
+		`0xA`,         // hex literal
+		"`a`",         // backtick string
+		`'a'`,         // single-quoted string
+		`{"a":1`,      // unterminated object
+		`[,a]`,        // leading comma
+		`00`,          // non-standard numeric prefix
 	}
 
 	for _, src := range bad {

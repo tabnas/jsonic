@@ -57,7 +57,7 @@ func parseWant(t *testing.T, j *Jsonic, src string, want any) {
 	if err != nil {
 		t.Fatalf("Parse(%q) unexpected error: %v", src, err)
 	}
-	if !reflect.DeepEqual(got, want) {
+	if !deepEqualPlain(got, want) {
 		t.Errorf("Parse(%q): got %#v, want %#v", src, got, want)
 	}
 }

@@ -72,6 +72,7 @@ type (
 	MapMergeFunc    = tabnas.MapMergeFunc
 	MapOptions      = tabnas.MapOptions
 	MapRef          = tabnas.MapRef
+	OrderedMap      = tabnas.OrderedMap
 	MatchOptions    = tabnas.MatchOptions
 	MatchSpec       = tabnas.MatchSpec
 	MatchTokenEntry = tabnas.MatchTokenEntry
@@ -177,6 +178,9 @@ var (
 
 var (
 	Deep                    = tabnas.Deep
+	NewOrderedMap           = tabnas.NewOrderedMap
+	NewSortedMap            = tabnas.NewSortedMap
+	Plainify                = tabnas.Plainify
 	IsUndefined             = tabnas.IsUndefined
 	UnwrapUndefined         = tabnas.UnwrapUndefined
 	MakeRule                = tabnas.MakeRule

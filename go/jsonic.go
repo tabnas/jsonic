@@ -159,10 +159,52 @@ func grammarPlugin(j *Jsonic, _ map[string]any) (err error) {
 // init registers jsonic as the engine's text parser so SetOptionsText and
 // GrammarText (which parse a jsonic-format options/grammar string) work —
 // the grammar-free engine has no parser of its own.
+//
+// The engine's text-options consumers (SetOptionsText, GrammarText,
+// MapToOptions) expect a plain map[string]any tree and assert on it deeply.
+// Since a jsonic parse now yields an insertion-ordered *OrderedMap object
+// node, the registered parser flattens that node (recursively) back to a
+// plain map before returning: an options/grammar spec is configuration, so
+// its key order carries no meaning and dropping it keeps those consumers
+// working unchanged.
 func init() {
 	tabnas.RegisterTextParser(func(src string) (any, error) {
-		return Make().Parse(src)
+		v, err := Make().Parse(src)
+		if err != nil {
+			return v, err
+		}
+		return plainNode(v), nil
 	})
+}
+
+// plainNode recursively rewrites any *OrderedMap object node into a plain
+// map[string]any (dropping insertion order) and copies []any elements,
+// leaving all other values untouched. It is used only to feed the engine's
+// map-shaped text-options consumers; jsonic's own Parse result keeps its
+// *OrderedMap so callers still see source order.
+func plainNode(v any) any {
+	switch node := v.(type) {
+	case *OrderedMap:
+		m := make(map[string]any, len(node.Keys))
+		for _, k := range node.Keys {
+			m[k] = plainNode(node.Vals[k])
+		}
+		return m
+	case map[string]any:
+		m := make(map[string]any, len(node))
+		for k, elem := range node {
+			m[k] = plainNode(elem)
+		}
+		return m
+	case []any:
+		out := make([]any, len(node))
+		for i, elem := range node {
+			out[i] = plainNode(elem)
+		}
+		return out
+	default:
+		return v
+	}
 }
 
 // Make creates a relaxed-JSON parser instance: a tabnas engine with the

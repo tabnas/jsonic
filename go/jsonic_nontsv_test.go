@@ -309,10 +309,10 @@ func TestValueText(t *testing.T) {
 	expectParse(t, "a/b", "a/b")
 	expectParse(t, "a#b", "a") // comment cuts text
 
-	expectParse(t, "a//b", "a")     // comment cuts text
-	expectParse(t, "a/*b*/", "a")   // comment cuts text
-	expectParse(t, `a\n`, `a\n`)    // literal backslash-n in text
-	expectParse(t, `\s+`, `\s+`)    // literal regex-like text
+	expectParse(t, "a//b", "a")   // comment cuts text
+	expectParse(t, "a/*b*/", "a") // comment cuts text
+	expectParse(t, `a\n`, `a\n`)  // literal backslash-n in text
+	expectParse(t, `\s+`, `\s+`)  // literal regex-like text
 
 	expectParse(t, "x:a", m("x", "a"))
 	expectParse(t, "x:a/b", m("x", "a/b"))
@@ -418,22 +418,22 @@ func TestMultilineString(t *testing.T) {
 func TestSingleChar(t *testing.T) {
 	expectParseNil(t, "")
 	expectParse(t, "a", "a")
-	expectParse(t, "{", m())        // auto-close empty map
-	expectParse(t, "[", a())        // auto-close empty list
-	expectParse(t, ",", a(nil))     // implicit list, null element
-	expectParseNil(t, "#")          // comment
-	expectParseNil(t, " ")          // space
-	expectParseNil(t, "\t")         // tab
-	expectParseNil(t, "\n")         // newline
-	expectParseNil(t, "\r")         // carriage return
+	expectParse(t, "{", m())    // auto-close empty map
+	expectParse(t, "[", a())    // auto-close empty list
+	expectParse(t, ",", a(nil)) // implicit list, null element
+	expectParseNil(t, "#")      // comment
+	expectParseNil(t, " ")      // space
+	expectParseNil(t, "\t")     // tab
+	expectParseNil(t, "\n")     // newline
+	expectParseNil(t, "\r")     // carriage return
 
 	// Error cases
-	expectParseError(t, `"`)       // unterminated string
-	expectParseError(t, "'")       // unterminated string
-	expectParseError(t, ":")       // unexpected
-	expectParseError(t, "]")       // unexpected
-	expectParseError(t, "`")       // unterminated string
-	expectParseError(t, "}")       // unexpected
+	expectParseError(t, `"`) // unterminated string
+	expectParseError(t, "'") // unterminated string
+	expectParseError(t, ":") // unexpected
+	expectParseError(t, "]") // unexpected
+	expectParseError(t, "`") // unterminated string
+	expectParseError(t, "}") // unexpected
 }
 
 // --- Implicit list tests (from feature.test.js) ---

@@ -31,7 +31,7 @@ func TestSkipSentinel(t *testing.T) {
 func TestSkipInDeepMerge(t *testing.T) {
 	base := map[string]any{"a": 1, "b": 2}
 	over := map[string]any{"a": Skip, "b": 3}
-	result := Deep(base, over).(map[string]any)
+	result := asMap(Deep(base, over))
 
 	if result["a"] != 1 {
 		t.Errorf("Skip should preserve base: got a=%v", result["a"])
@@ -115,7 +115,7 @@ func TestResolveFuncRefsNestedMap(t *testing.T) {
 		"c": "@SKIP",
 		"d": map[string]any{"nested": "@fn"},
 	}
-	result := ResolveFuncRefs(input, ref).(map[string]any)
+	result := asMap(ResolveFuncRefs(input, ref))
 
 	if result["a"] != "resolved" {
 		t.Errorf("a: expected resolved, got %v", result["a"])
@@ -126,7 +126,7 @@ func TestResolveFuncRefsNestedMap(t *testing.T) {
 	if !IsSkip(result["c"]) {
 		t.Errorf("c: expected Skip, got %v", result["c"])
 	}
-	nested := result["d"].(map[string]any)
+	nested := asMap(result["d"])
 	if nested["nested"] != "resolved" {
 		t.Errorf("d.nested: expected resolved, got %v", nested["nested"])
 	}
@@ -169,7 +169,7 @@ func TestGrammarOptionsValueDef(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := result.(map[string]any)
+	m := asMap(result)
 	if m["a"] != true || m["b"] != false {
 		t.Errorf("expected a:true, b:false, got %v", m)
 	}
@@ -188,7 +188,7 @@ func TestGrammarOptionsNumberHex(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := result.(map[string]any)
+	m := asMap(result)
 	if m["a"] != float64(255) {
 		t.Errorf("expected a:255, got %v", m["a"])
 	}
@@ -206,7 +206,7 @@ func TestGrammarOptionsNumberSep(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := result.(map[string]any)
+	m := asMap(result)
 	if m["a"] != float64(1000) {
 		t.Errorf("expected a:1000, got %v", m["a"])
 	}
@@ -245,7 +245,7 @@ func TestGrammarRuleConditionFuncRef(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected []any, got %T: %v", result, result)
 	}
-	inner, ok := arr[0].(map[string]any)
+	inner, ok := asMapOK(arr[0])
 	if !ok || inner["a"] != float64(1) {
 		t.Errorf("expected [{a:1}], got %v", result)
 	}
@@ -280,7 +280,7 @@ func TestGrammarRuleConditionFalseSkips(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := result.(map[string]any)
+	m := asMap(result)
 	if m["a"] != float64(1) {
 		t.Errorf("expected {a:1}, got %v", result)
 	}
@@ -320,7 +320,7 @@ func TestGrammarOptionsAndRulesCombined(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := result.(map[string]any)
+	m := asMap(result)
 	if m["a"] != true {
 		t.Errorf("expected a:true, got %v", m["a"])
 	}
@@ -356,7 +356,7 @@ func TestGrammarMultipleCalls(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := result.(map[string]any)
+	m := asMap(result)
 	if m["a"] != true || m["b"] != false {
 		t.Errorf("expected a:true, b:false, got %v", m)
 	}
@@ -374,7 +374,7 @@ func TestGrammarOptionsOnly(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := result.(map[string]any)
+	m := asMap(result)
 	if m["a"] != float64(1000) {
 		t.Errorf("expected 1000, got %v", m["a"])
 	}
@@ -404,12 +404,11 @@ func TestGrammarRulesOnly(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := result.(map[string]any)
+	m := asMap(result)
 	if m["a"] != "<hello>" {
 		t.Errorf("expected <hello>, got %v", m["a"])
 	}
 }
-
 
 func TestGrammarStateActionWiring(t *testing.T) {
 	j := Make()
@@ -494,7 +493,7 @@ func TestGrammarFixedToken(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := result.(map[string]any)
+	m := asMap(result)
 	if m["a"] != "<arrow>" {
 		t.Errorf("expected <arrow>, got %v", m["a"])
 	}
@@ -623,7 +622,7 @@ func TestGrammarOptionsMapMerge(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := result.(map[string]any)
+	m := asMap(result)
 	if m["a"] != float64(3) {
 		t.Errorf("expected a:3, got %v", m["a"])
 	}
@@ -648,7 +647,7 @@ func TestGrammarOptionsMapValueDef(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := result.(map[string]any)
+	m := asMap(result)
 	if m["a"] != true || m["b"] != false {
 		t.Errorf("expected a:true b:false, got %v", m)
 	}
@@ -802,7 +801,7 @@ func TestRuleThenOptionsThenParse(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := result.(map[string]any)
+	m := asMap(result)
 	if m["a"] != "hello" {
 		t.Errorf("expected a:hello, got %v", m)
 	}
@@ -830,7 +829,7 @@ func TestGrammarRegexNumberExclude(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := result.(map[string]any)
+	m := asMap(result)
 	if m["a"] != float64(0) {
 		t.Errorf("expected a:0, got %v", m["a"])
 	}
@@ -839,7 +838,7 @@ func TestGrammarRegexNumberExclude(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m = result.(map[string]any)
+	m = asMap(result)
 	if m["a"] != "01" {
 		t.Errorf("expected a:'01' (text), got %v (%T)", m["a"], m["a"])
 	}
@@ -848,7 +847,7 @@ func TestGrammarRegexNumberExclude(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m = result.(map[string]any)
+	m = asMap(result)
 	if m["a"] != float64(123) {
 		t.Errorf("expected a:123, got %v", m["a"])
 	}
@@ -873,7 +872,7 @@ func TestGrammarRegexNumberExcludeTyped(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := result.(map[string]any)
+	m := asMap(result)
 	if m["a"] != "01" {
 		t.Errorf("expected a:'01' (text), got %v (%T)", m["a"], m["a"])
 	}
@@ -902,7 +901,7 @@ func TestGrammarRegexValueMatch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := result.(map[string]any)
+	m := asMap(result)
 	if m["a"] != true {
 		t.Errorf("expected a:true, got %v", m["a"])
 	}
@@ -917,7 +916,7 @@ func TestGrammarRegexValueMatch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m = result.(map[string]any)
+	m = asMap(result)
 	if m["a"] != true {
 		t.Errorf("expected a:true, got %v", m["a"])
 	}
@@ -952,7 +951,7 @@ func TestGrammarRegexValueMatchTyped(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := result.(map[string]any)
+	m := asMap(result)
 	if m["a"] != true {
 		t.Errorf("expected a:true, got %v", m["a"])
 	}
@@ -982,7 +981,7 @@ func TestGrammarRegexWithFlags(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := result.(map[string]any)
+	m := asMap(result)
 	if m["a"] != "YES!" {
 		t.Errorf("expected a:YES!, got %v", m["a"])
 	}
@@ -991,7 +990,7 @@ func TestGrammarRegexWithFlags(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m = result.(map[string]any)
+	m = asMap(result)
 	if m["a"] != "YES!" {
 		t.Errorf("expected a:YES!, got %v", m["a"])
 	}
@@ -1000,7 +999,7 @@ func TestGrammarRegexWithFlags(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m = result.(map[string]any)
+	m = asMap(result)
 	if m["a"] != "YES!" {
 		t.Errorf("expected a:YES!, got %v", m["a"])
 	}
@@ -1021,7 +1020,7 @@ func TestGrammarRegexNoFlags(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := result.(map[string]any)
+	m := asMap(result)
 	if m["a"] != float64(0) {
 		t.Errorf("expected a:0, got %v", m["a"])
 	}
@@ -1030,7 +1029,7 @@ func TestGrammarRegexNoFlags(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m = result.(map[string]any)
+	m = asMap(result)
 	if m["a"] != float64(42) {
 		t.Errorf("expected a:42, got %v", m["a"])
 	}
@@ -1039,7 +1038,7 @@ func TestGrammarRegexNoFlags(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m = result.(map[string]any)
+	m = asMap(result)
 	if m["a"] != "01" {
 		t.Errorf("expected a:'01' (text), got %v (%T)", m["a"], m["a"])
 	}
@@ -1074,7 +1073,7 @@ func TestGrammarRegexMixedWithFuncref(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := result.(map[string]any)
+	m := asMap(result)
 	if m["a"] != "xy" {
 		t.Errorf("expected a:xy, got %v", m["a"])
 	}
@@ -1084,7 +1083,7 @@ func TestGrammarRegexMixedWithFuncref(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m = result.(map[string]any)
+	m = asMap(result)
 	if m["a"] != "007" {
 		t.Errorf("expected a:'007' (text), got %v (%T)", m["a"], m["a"])
 	}
@@ -1093,7 +1092,7 @@ func TestGrammarRegexMixedWithFuncref(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m = result.(map[string]any)
+	m = asMap(result)
 	if m["a"] != float64(42) {
 		t.Errorf("expected a:42, got %v", m["a"])
 	}
@@ -1175,7 +1174,7 @@ func TestGrammarRegexMatchToken(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := result.(map[string]any)
+	m := asMap(result)
 	if m["a"] != float64(1) {
 		t.Errorf("expected a:1, got %v", m["a"])
 	}
@@ -1184,7 +1183,7 @@ func TestGrammarRegexMatchToken(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m = result.(map[string]any)
+	m = asMap(result)
 	if m["foo"] != "bar" {
 		t.Errorf("expected foo:bar, got %v", m["foo"])
 	}
@@ -1211,7 +1210,7 @@ func TestGrammarRegexMatchTokenTyped(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := result.(map[string]any)
+	m := asMap(result)
 	if m["a"] != float64(1) {
 		t.Errorf("expected a:1, got %v", m["a"])
 	}
@@ -1242,7 +1241,7 @@ func TestGrammarRegexMatchValue(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := result.(map[string]any)
+	m := asMap(result)
 	if m["a"] != true {
 		t.Errorf("expected a:true, got %v", m["a"])
 	}
@@ -1275,7 +1274,7 @@ func TestGrammarRegexMatchValueTyped(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := result.(map[string]any)
+	m := asMap(result)
 	if m["a"] != true {
 		t.Errorf("expected a:true, got %v", m["a"])
 	}
@@ -1298,16 +1297,16 @@ func TestResolveFuncRefsRegexInNestedMap(t *testing.T) {
 			},
 		},
 	}
-	result := ResolveFuncRefs(input, nil).(map[string]any)
+	result := asMap(ResolveFuncRefs(input, nil))
 
-	num := result["number"].(map[string]any)
+	num := asMap(result["number"])
 	if _, ok := num["exclude"].(*regexp.Regexp); !ok {
 		t.Errorf("number.exclude should be *regexp.Regexp, got %T", num["exclude"])
 	}
 
-	val := result["value"].(map[string]any)
-	def := val["def"].(map[string]any)
-	on := def["on"].(map[string]any)
+	val := asMap(result["value"])
+	def := asMap(val["def"])
+	on := asMap(def["on"])
 	if _, ok := on["match"].(*regexp.Regexp); !ok {
 		t.Errorf("value.def.on.match should be *regexp.Regexp, got %T", on["match"])
 	}
@@ -1355,7 +1354,7 @@ func TestMatchTokenNilRegexpNoPanic(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := result.(map[string]any)
+	m := asMap(result)
 	if m["a"] != float64(1) {
 		t.Errorf("expected a:1, got %v", m["a"])
 	}
@@ -1373,7 +1372,7 @@ func TestGrammarTextNumberSep(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := result.(map[string]any)
+	m := asMap(result)
 	if m["a"] != float64(1000) {
 		t.Errorf("expected a:1000, got %v", m["a"])
 	}
@@ -1389,7 +1388,7 @@ func TestGrammarTextNumberExclude(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := result.(map[string]any)
+	m := asMap(result)
 	if m["a"] != "01" {
 		t.Errorf("expected a:'01' (text), got %v (%T)", m["a"], m["a"])
 	}
@@ -1406,7 +1405,7 @@ func TestGrammarTextFlatOptions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := result.(map[string]any)
+	m := asMap(result)
 	if m["a"] != float64(1000) {
 		t.Errorf("expected a:1000, got %v", m["a"])
 	}
@@ -1433,7 +1432,7 @@ func TestGrammarTextOptionsAndRules(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := result.(map[string]any)
+	m := asMap(result)
 	if m["a"] != float64(1000) {
 		t.Errorf("expected a:1000, got %v", m["a"])
 	}
@@ -1510,7 +1509,7 @@ func TestGrammarTextWithInjectAndExclude(t *testing.T) {
 	if err != nil {
 		t.Fatalf("JSON object failed: %v", err)
 	}
-	m := result.(map[string]any)
+	m := asMap(result)
 	if m["a"] != "b" || m["c"] != float64(1) {
 		t.Errorf("expected {a:b, c:1}, got %v", m)
 	}
@@ -1541,7 +1540,7 @@ func TestExcludeCommaTrailingComma(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := result.(map[string]any)
+	m := asMap(result)
 	if m["a"] != nil {
 		t.Errorf("expected a:nil, got %v", m["a"])
 	}
@@ -1576,7 +1575,7 @@ func TestGrammarTextThenSetOptionsPreserved(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := result.(map[string]any)
+	m := asMap(result)
 	if m["a"] != float64(1000) {
 		t.Errorf("expected a:1000 (number.sep preserved), got %v", m["a"])
 	}
@@ -1616,7 +1615,7 @@ func TestGrammarTextRuleExclude(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := result.(map[string]any)
+	m := asMap(result)
 	if m["a"] != float64(1) {
 		t.Errorf("expected a:1, got %v", m["a"])
 	}
@@ -1638,7 +1637,7 @@ func TestGrammarTextTextLex(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := result.(map[string]any)
+	m := asMap(result)
 	if m["a"] != true {
 		t.Errorf("expected a:true, got %v", m["a"])
 	}
@@ -1680,7 +1679,7 @@ func TestMapToOptionsMapChild(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := result.(map[string]any)
+	m := asMap(result)
 	if m["child$"] != float64(1) {
 		t.Errorf("expected child$=1, got %v", m["child$"])
 	}
@@ -1744,7 +1743,7 @@ func TestTextLexFalseValueKeywordsStillWork(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := result.(map[string]any)
+	m := asMap(result)
 	if m["a"] != true {
 		t.Errorf("expected a:true, got %v", m["a"])
 	}
@@ -1781,7 +1780,7 @@ func TestTextLexFalseCustomValueDef(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := result.(map[string]any)
+	m := asMap(result)
 	if m["a"] != true {
 		t.Errorf("expected a:true, got %v", m["a"])
 	}
@@ -1831,7 +1830,7 @@ func TestSetOptionsRuleExclude(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := result.(map[string]any)
+	m := asMap(result)
 	if m["a"] != float64(1) {
 		t.Errorf("expected a:1, got %v", m["a"])
 	}
@@ -1844,7 +1843,7 @@ func TestSetOptionsRuleExclude(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m = result.(map[string]any)
+	m = asMap(result)
 	if m["a"] != float64(1) {
 		t.Errorf("expected a:1, got %v", m["a"])
 	}
@@ -1911,7 +1910,7 @@ func TestInfoMarkerKeyNotDroppedWhenOff(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := result.(map[string]any)
+	m := asMap(result)
 	if m["__info__"] != float64(2) {
 		t.Errorf("expected __info__:2, got %v", m["__info__"])
 	}
@@ -1944,7 +1943,7 @@ func TestValueDefReUsesValWhenValFuncNil(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := result.(map[string]any)
+	m := asMap(result)
 	if m["a"] != true {
 		t.Errorf("expected a:true, got %v (%T)", m["a"], m["a"])
 	}
@@ -1971,7 +1970,7 @@ func TestMatchValueNilSpecNoPanic(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := result.(map[string]any)
+	m := asMap(result)
 	if m["a"] != float64(1) {
 		t.Errorf("expected a:1, got %v", m["a"])
 	}

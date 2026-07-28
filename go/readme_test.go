@@ -101,7 +101,7 @@ func TestGoReadmeQuickExample(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m, ok := result.(map[string]any)
+	m, ok := asMapOK(result)
 	if !ok {
 		t.Fatalf("expected map, got %T", result)
 	}
@@ -124,7 +124,7 @@ func TestGoReadmeConfiguredInstance(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	m, ok := result.(map[string]any)
+	m, ok := asMapOK(result)
 	if !ok {
 		t.Fatalf("expected map, got %T", result)
 	}

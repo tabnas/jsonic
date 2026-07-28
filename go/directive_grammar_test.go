@@ -2,7 +2,6 @@ package tabnasjsonic
 
 import (
 	"fmt"
-	"reflect"
 	"strings"
 	"testing"
 )
@@ -58,7 +57,7 @@ func runDirective(t *testing.T, name, src string, want any) {
 	if err != nil {
 		t.Fatalf("%s: Parse(%q) error: %v", name, src, err)
 	}
-	if !reflect.DeepEqual(got, want) {
+	if !deepEqualPlain(got, want) {
 		t.Errorf("%s: Parse(%q)\n  got:      %#v\n  expected: %#v",
 			name, src, got, want)
 	}
