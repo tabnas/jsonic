@@ -71,9 +71,14 @@ Two engine-level edges are **not** aligned:
   replaces each def value wholesale (the engine's `Deep` does not recurse
   into map values), so a post-construction partial def loses the fields it
   leaves unset. Adding or removing whole defs via `SetOptions` is aligned.
-- Since Go bool fields cannot distinguish unset from `false`, a partial
-  def cannot flip `Line` to `false` for a default name; respecify the full
-  def instead. (TS `line: false` is an explicit override.)
+- Go bool fields cannot distinguish unset from `false`, so for a default
+  name an explicit `Line: false` (TS `line: false`) is honored only when
+  the def also sets `End` — the unambiguous block-conversion shape, since
+  line comments never use `End`. A bare `{Line: false}` without `End`
+  (degenerate in TS too: a block comment with no end marker) reads as
+  unset and keeps the default `Line: true`. To express anything else,
+  use a def under a new name (with `Lex`) and set the default name to
+  `nil`.
 
 ## Missing Features
 

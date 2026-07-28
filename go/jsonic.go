@@ -61,11 +61,13 @@ func commentDefDefaults() map[string]*CommentDef {
 // normalizeCommentDefs aligns caller comment defs with the TS option
 // merge: a partial def for a default name (hash / slash / multi)
 // inherits the fields it leaves unset (start, end, line, lex, eatline)
-// instead of replacing the whole definition, a nil def stays nil (the
-// removal marker), and a def for a new name is inactive unless it sets
-// Lex — TS makeCommentMatcher reads `lex: !!om.lex`, while the Go
-// engine would default an unset Lex to true. Needed because the engine's
-// option Deep merge replaces map values wholesale per key.
+// instead of replacing the whole definition — with Line false honored
+// as an explicit block conversion when End is also set — a nil def
+// stays nil (the removal marker), and a def for a new name is inactive
+// unless it sets Lex — TS makeCommentMatcher reads `lex: !!om.lex`,
+// while the Go engine would default an unset Lex to true. Needed
+// because the engine's option Deep merge replaces map values wholesale
+// per key.
 func normalizeCommentDefs(o *Options) {
 	if o == nil || o.Comment == nil || o.Comment.Def == nil {
 		return
@@ -79,6 +81,14 @@ func normalizeCommentDefs(o *Options) {
 		}
 		if base, ok := defs[name]; ok {
 			if merged, ok := Deep(base, def).(*CommentDef); ok {
+				// Honor an explicit block conversion (TS `line: false`):
+				// the struct merge treats the zero bool as unset and
+				// would keep the default Line:true, but Line false with
+				// an End marker is unambiguous — line comments never
+				// use End.
+				if !def.Line && def.End != "" {
+					merged.Line = false
+				}
 				norm[name] = merged
 				continue
 			}

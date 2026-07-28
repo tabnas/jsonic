@@ -198,6 +198,17 @@ describe('alignment', function () {
     tsvErrorTest('feature-comment-def-remove-errors', jj)
   })
 
+  it('feature-comment-def-block-conv', () => {
+    // An explicit line:false with an end marker converts a default line
+    // def into a block comment; the other defaults stay intact.
+    const jj = Jsonic.make({
+      comment: {
+        def: { hash: { line: false, start: '#', end: '@@', lex: true } },
+      },
+    })
+    tsvTest('feature-comment-def-block-conv', jj)
+  })
+
   it('feature-comment-def-nolex-errors', () => {
     // A def for a new name without lex:true is inactive
     // (makeCommentMatcher reads `lex: !!om.lex`).

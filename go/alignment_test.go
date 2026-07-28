@@ -297,6 +297,20 @@ func TestFeatureCommentDefRemoveErrors(t *testing.T) {
 	runErrorTSV(t, "feature-comment-def-remove-errors.tsv", j)
 }
 
+// TestFeatureCommentDefBlockConv mirrors TS
+// feature-comment-def-block-conv: an explicit Line:false with an End
+// marker converts a default line def into a block comment; the other
+// defaults stay intact.
+func TestFeatureCommentDefBlockConv(t *testing.T) {
+	yes := true
+	j := Make(Options{Comment: &CommentOptions{
+		Def: map[string]*CommentDef{
+			"hash": {Line: false, Start: "#", End: "@@", Lex: &yes},
+		},
+	}})
+	runParserTSV(t, "feature-comment-def-block-conv.tsv", j)
+}
+
 // TestFeatureCommentDefNoLexErrors mirrors TS
 // feature-comment-def-nolex-errors: a def for a new name without Lex is
 // inactive, matching TS makeCommentMatcher's `lex: !!om.lex`.
