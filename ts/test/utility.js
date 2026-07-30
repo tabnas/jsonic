@@ -11,7 +11,9 @@ function unescape(str) {
 }
 
 function loadTSV(name) {
-  const specPath = join(__dirname, 'spec', name + '.tsv')
+  // The fixtures live at the repo root (test/spec), above both runtimes, so
+  // go/ runs the same files — the @tabnas/parser convention.
+  const specPath = join(__dirname, '..', '..', 'test', 'spec', name + '.tsv')
 
   if (!existsSync(specPath)) {
     throw new Error('spec file not found: ' + specPath)

@@ -37,7 +37,7 @@ file current with every behavior change.
 
 ## Parity contract
 
-Both runtimes run the shared fixtures in `../ts/test/spec/*.tsv`. The Go
+Both runtimes run the shared fixtures in `../test/spec/*.tsv`. The Go
 suite resolves them via `specDir()` in `jsonic_test.go` (`../ts/test/
 spec`) and must keep them all green. A successful parse must produce the
 same value as TypeScript; only the documented differences (host-language
@@ -95,14 +95,14 @@ Engine internals (the lexer cursor, `normalizeCommentSuffix`,
 
 ```bash
 go build ./... && go vet ./...
-go test ./...                  # includes the shared ../ts/test/spec fixtures
+go test ./...                  # includes the shared ../test/spec fixtures
 go test -coverpkg=./... -cover ./...
 go test -run TestName -v ./...
 ```
 
 ## Testing conventions
 
-- Shared behavior: add a fixture under `../ts/test/spec/` and run it via
+- Shared behavior: add a fixture under `../test/spec/` and run it via
   the TSV helpers (`alignment_test.go`, `feature_tsv_test.go`,
   `jsonic_test.go`). When you add one, the TS suite must also exercise it.
 - Go-specific API: plain `_test.go` files; mirror the TS test name in a
