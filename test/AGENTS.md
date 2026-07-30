@@ -10,10 +10,16 @@ rather than inside one of them, matching @tabnas/parser.
 ## Format
 
 Tab-separated, one case per line, with a header row naming the columns
-(`input` `expected`, and a third column for the list-child fixtures).
-The loaders unescape `\n`, `\r` and `\r\n` in every column. The `expected`
-column is either a JSON value (the parse result) or `ERROR:<code>` for input
-that must be rejected with that code.
+(`input` `expected`, and a third column for the list-child fixtures). The
+`expected` column is either a JSON value (the parse result) or `ERROR:<code>`
+for input that must be rejected with that code.
+
+**Escaping is not symmetric — mind it.** The TypeScript `loadTSV` unescapes
+`\n`, `\r` and `\r\n` in *every* column; the Go `loadTSV` returns columns
+verbatim and its callers apply `preprocessEscapes` to the parser-input column
+only. So an escape in `input` behaves the same in both, while an escape
+anywhere else is decoded by TypeScript and taken literally by Go. Keep
+escapes in the `input` column until the two loaders are aligned.
 
 ## Who runs what
 

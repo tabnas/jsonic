@@ -67,7 +67,7 @@ got, _ := j.Parse(`struct: minor: @"minor.aon"`)
    reaches. The colon-chain is *nested*, not flattened.
 
 3. **Pure-jsonic colon-chains already round-trip identically** in both
-   runtimes (shared `ts/test/spec/*.tsv` fixtures), so there is no jsonic-side
+   runtimes (shared `test/spec/*.tsv` fixtures), so there is no jsonic-side
    parity gap to close.
 
 In short: the design note's "Go flattens colon-chains, returning to depth 0

@@ -215,7 +215,7 @@ jsonic's relaxed syntax on the standard-JSON core supplied by the
 [`@tabnas/json`](https://github.com/tabnas/json) plugin (TypeScript uses
 the npm packages, Go uses `github.com/tabnas/parser/go` and
 `github.com/tabnas/json/go`). TypeScript is canonical — both runtimes
-share the conformance fixtures in [`ts/test/spec/`](ts/test/spec/) and
+share the conformance fixtures in [`test/spec/`](test/spec/) and
 produce the same parse results:
 
 ```go

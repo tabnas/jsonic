@@ -7,7 +7,7 @@ Go-specific additions.
 ## Behavioral Differences
 
 The two runtimes produce identical parse results for the shared conformance
-fixtures (`ts/test/spec/*.tsv`, run by both suites). The differences below do
+fixtures (`test/spec/*.tsv`, run by both suites). The differences below do
 **not** change a successful parse value; they concern empty input, error
 codes, and host-language type representation.
 

@@ -21,7 +21,7 @@ grammar from engine is what lets other grammar plugins build on jsonic
 (register `tabnasjsonic.Grammar` first, then your plugin). The packaging is an
 implementation detail, not a behavior difference — parse results match
 the canonical TypeScript ones, verified by the shared
-`../ts/test/spec/*.tsv` fixtures both test suites run.
+`../test/spec/*.tsv` fixtures both test suites run.
 
 ## Two stages: lexer, then parser
 
