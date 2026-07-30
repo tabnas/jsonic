@@ -11,7 +11,7 @@ import (
 )
 
 // Version is the current version of the jsonic Go module.
-const Version = "0.4.0"
+const Version = "0.4.1"
 
 // grammarMark is the decoration key that records whether the relaxed-JSON
 // grammar has already been installed on an instance. It guards the Grammar
