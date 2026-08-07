@@ -14,7 +14,7 @@ import type { Plugin } from '@tabnas/parser'
 // extensions on top of it instead of re-declaring the JSON grammar.
 import { registerJsonGrammar } from '@tabnas/json'
 
-import { Jsonic, Rule, RuleSpec, Context, Parser, FuncRef } from './jsonic'
+import { Jsonic, Rule, RuleSpec, Context, Parser, FuncRef, applyRuleFilter } from './jsonic'
 
 import { defaults } from './defaults'
 
@@ -745,6 +745,15 @@ const registerJsonicGrammar = grammar
 const jsonicPlugin: Plugin = function jsonic(tn: any, _options?: any) {
   tn.options(defaults)
   registerJsonicGrammar(tn as unknown as Jsonic)
+
+  // Honour a rule.include/exclude the caller set BEFORE `use(jsonic)`.
+  // The engine's RuleSpec adder no longer filters in place, so a selector
+  // that predates the grammar has nothing to act on until the alts exist.
+  // Without this the config reports the exclusion and every excluded alt
+  // stays live — the configuration lying about itself, which is worse than
+  // not honouring the request at all. The legacy make() wrapper has always
+  // done this; the direct plugin path did not.
+  applyRuleFilter(tn)
 }
 
 

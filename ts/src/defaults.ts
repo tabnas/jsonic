@@ -361,11 +361,26 @@ Unexpected end of source.`,
 
     // Include only those alts with matching group tags (comma sep).
     // NOTE: applies universally, thus also for subsequent rules.
-    include: '',
+    //
+    // `undefined`, not '', and deliberately so. The jsonic plugin applies
+    // this whole bag with `tn.options(defaults)`, which asserts every entry
+    // as though it were an explicit choice. An '' here therefore SILENTLY
+    // DISCARDED a caller's own subtraction:
+    //
+    //   new Tabnas().options({rule:{exclude:'jsonic'}}).use(jsonic)
+    //     -> cfg.rule.exclude === []      // the exclusion, gone
+    //
+    // Subtracting what a grammar does not want is the intended mechanism,
+    // so a base plugin must not be able to quietly undo it. `deep()` skips
+    // undefined, so this now leaves a caller-set value alone while still
+    // meaning "no tags" when nobody set one. Same shape as `number.exclude`
+    // above.
+    include: undefined,
 
     // Exclude alts with matching group tags (comma sep).
     // NOTE: applies universally, thus also for subsequent rules.
-    exclude: '',
+    // `undefined` for the same reason as `include` — see above.
+    exclude: undefined,
   },
 
   // Result value options.
