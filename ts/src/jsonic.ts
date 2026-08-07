@@ -315,24 +315,35 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
     }
   }
 
-  // Apply rule.include / rule.exclude once the grammar and all plugins
-  // have contributed their alts. The engine's RuleSpec adder no longer
-  // filters in place (it returns a fresh spec instead), so the strict
-  // 'json' variant — and any `make({ rule: { include/exclude } })` —
-  // needs this final pass. Mirrors Tabnas#make's own filtering step.
-  const cfg = tabnas.internal().config
-  if (0 < cfg.rule.include.length || 0 < cfg.rule.exclude.length) {
-    const tparser: any = tabnas.internal().parser
-    const rsm = tparser.rule()
-    const filtered: any = {}
-    for (const rn of Object.keys(rsm)) {
-      filtered[rn] = filterRules(rsm[rn], cfg)
-    }
-    tparser.rsm = filtered
-    tparser.norm()
-  }
+  applyRuleFilter(tabnas)
 
   return jsonic
+}
+
+
+// Apply rule.include / rule.exclude once the grammar and all plugins have
+// contributed their alts. The engine's RuleSpec adder no longer filters in
+// place (it returns a fresh spec instead), so the selectors have to be
+// applied in a final pass. Mirrors Tabnas#make's own filtering step.
+//
+// Every path that registers the jsonic grammar must call this, not just the
+// legacy make() wrapper. Without it a caller who sets the selector BEFORE
+// `use(jsonic)` gets a config that reports the exclusion while every excluded
+// alt stays live — the configuration lying about itself, which is worse than
+// not honouring the request at all.
+function applyRuleFilter(tabnas: any): void {
+  const cfg = tabnas.internal().config
+  if (0 === cfg.rule.include.length && 0 === cfg.rule.exclude.length) {
+    return
+  }
+  const tparser: any = tabnas.internal().parser
+  const rsm = tparser.rule()
+  const filtered: any = {}
+  for (const rn of Object.keys(rsm)) {
+    filtered[rn] = filterRules(rsm[rn], cfg)
+  }
+  tparser.rsm = filtered
+  tparser.norm()
 }
 
 
@@ -420,6 +431,7 @@ export { Tabnas } from '@tabnas/parser'
 export type { Plugin as TabnasPlugin } from '@tabnas/parser'
 
 export {
+  applyRuleFilter,
   // Jsonic is both a type and a value.
   Jsonic as Jsonic,
   JsonicError,
