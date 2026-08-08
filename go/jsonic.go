@@ -4,6 +4,7 @@ package tabnasjsonic
 
 import (
 	"fmt"
+	"regexp"
 	"sync"
 
 	tjson "github.com/tabnas/json/go"
@@ -278,28 +279,52 @@ func Empty(opts ...Options) *Jsonic {
 // single-quoted or backtick strings, and empty input.
 func MakeJSON() *Jsonic {
 	f := false
+	tr := true
 	return Make(Options{
 		Text: &TextOptions{Lex: &f},
 		Number: &NumberOptions{
 			Hex: &f, Oct: &f, Bin: &f,
-			Sep: "",
-			Exclude: func(s string) bool {
-				return len(s) >= 2 && s[0] == '0' && s[1] == '0'
-			},
+			Sep:     "",
+			Exclude: notStrictJSONNumber,
 		},
 		String: &StringOptions{
 			Chars:        `"`,
 			MultiChars:   "",
 			AllowUnknown: &f,
+			// No \xHH or \u{...}; strict JSON has only \uXXXX.
+			EscapeStrict: &tr,
 		},
 		Comment: &CommentOptions{Lex: &f},
 		Map:     &MapOptions{Extend: &f},
 		Lex:     &LexOptions{Empty: &f},
+		// Mirrors the TS `tokenSet: { KEY: ['#ST', null, null, null] }`:
+		// strict JSON keys are quoted strings only, never #TX/#NR/#VL.
+		// This is what makes `{1:1}` and `{null:null}` errors here, as
+		// they are in TS and in encoding/json.
+		TokenSet: map[string][]string{
+			"KEY": {"#ST"},
+		},
 		Rule: &RuleOptions{
 			Finish:  &f,
 			Include: "json",
 		},
 	})
+}
+
+// strictJSONNumber is the RFC 8259 / ECMA-404 number grammar:
+//
+//	-? (0 | [1-9][0-9]*) (. [0-9]+)? ([eE] [-+]? [0-9]+)?
+var strictJSONNumber = regexp.MustCompile(
+	`^-?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][-+]?[0-9]+)?$`)
+
+// notStrictJSONNumber is the strict-JSON `number.exclude` predicate. The
+// relaxed number matcher also accepts a leading `+`, leading zeros (`012`)
+// and a bare leading or trailing `.` (`.123`, `1.`), none of which are
+// valid JSON — exclude them so they fall through to the (disabled) text
+// matcher and raise an error instead of parsing silently. Mirrors the TS
+// `number.exclude` regexp in makeJSON (ts/src/grammar.ts).
+func notStrictJSONNumber(s string) bool {
+	return !strictJSONNumber.MatchString(s)
 }
 
 // defaultParser is a lazily-created instance reused by Parse, so repeated

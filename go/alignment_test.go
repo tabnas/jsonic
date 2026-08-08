@@ -219,6 +219,21 @@ func TestIncludeJSONErrors(t *testing.T) {
 	runErrorTSV(t, "include-json-errors.tsv", j)
 }
 
+// --- Strict-JSON mode TSV tests (MakeJSON / TS Jsonic.make('json')) ---
+//
+// Unlike Rule.Include: "json" above (which only filters grammar alts),
+// MakeJSON also tightens the lexer, so the number grammar is exactly
+// RFC 8259 and \xHH escapes are rejected. Shared with the TS runner
+// (ts/test/alignment.test.js) so the two strict modes stay aligned.
+
+func TestStrictJSONMode(t *testing.T) {
+	runParserTSV(t, "alignment-strict-json-mode.tsv", MakeJSON())
+}
+
+func TestStrictJSONModeErrors(t *testing.T) {
+	runErrorTSV(t, "alignment-strict-json-mode-errors.tsv", MakeJSON())
+}
+
 // --- Comment suffix TSV tests (parity for comment.def.suffix) ---
 
 // TestFeatureCommentSuffixLine exercises the shared comment-suffix-line

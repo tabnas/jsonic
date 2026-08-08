@@ -45,6 +45,54 @@ A leading-digit token that is not a valid number is treated as text in **both**
 runtimes (this was previously listed as a divergence and is not one): `123abc`
 parses to the string `"123abc"` on both sides.
 
+A trailing dot before an exponent — `2.e3`, `0.e1`, `2.e+3`, `2.e-3` — was
+previously text in Go and a number in TS. **This is now aligned**: the engine's
+`matchNumber` checked whether the character after the dot was trailing text
+before it checked for an exponent, so the `e` was misread as text and the whole
+token abandoned. Fixed in `github.com/tabnas/parser/go` (`isExponentStart` in
+`go/lexer.go`); both runtimes now yield `2000`, `0`, `2000`, `0.002`. Without
+exponent digits (`2.e`) the token stays text in both, matching TS's regexp,
+whose exponent group requires a digit.
+
+Out-of-range exponents are **also now aligned**. TS coerces with unary `+`,
+which saturates instead of failing, and Go's `parseNumericString` used to treat
+`strconv.ParseFloat`'s `ErrRange` as a hard failure and drop the token to the
+text matcher. It now keeps the saturated value ParseFloat already returns:
+
+| Source | Both runtimes |
+|---|---|
+| `1e999`, `1e+999`, `1e309`, `2.e999` | `+Inf` / `Infinity` |
+| `-1e999` | `-Inf` / `-Infinity` |
+| `1e-999` | `0` |
+| `-1e-999` | negative zero |
+| `1e` (no exponent digits) | text (`"1e"`) |
+
+Both fixes live in `github.com/tabnas/parser/go`, so they reach jsonic only once
+the engine is republished; a `GOWORK=off` build (what the Makefile and CI use)
+still resolves the last published `@tabnas/parser` until then. Non-range parse
+failures still yield NaN and fall through to the text matcher, so `123abc`
+behaviour above is unchanged.
+
+The same applies to the strict-JSON key fix below: it is an engine-side change,
+so `go test ./...` (workspace on, sibling `parser`) sees it, while
+`GOWORK=off go test ./...` still resolves published `parser/go v0.6.1` and
+fails the two non-string-key rows in
+`test/spec/alignment-strict-json-mode-errors.tsv`. That failure is expected and
+clears when `parser/go` publishes; the fixture pins the correct behaviour
+rather than the stale one.
+
+Strict-JSON keys are **aligned** and are no longer a difference.
+`Jsonic.make('json')` and Go's `MakeJSON` both restrict map keys to quoted
+strings via `tokenSet: { KEY: ['#ST', ...] }` / `TokenSet: {"KEY": {"#ST"}}`,
+so both runtimes now reject `{1:1}` and `{null:null}`, matching
+`encoding/json` and `JSON.parse`. Go previously accepted them (`{"1":1}`,
+`{"null":null}`) because the engine ignored `Options.TokenSet` and resolved
+`#KEY` in a declarative `GrammarSpec` against package-level builtin sets;
+`Options.TokenSet` is now applied by `Make` and `#KEY`/`#VAL` resolve against
+the per-instance sets. Pinned in
+`test/spec/alignment-strict-json-mode-errors.tsv`, which runs in both
+runtimes.
+
 ### Token Consumption
 
 When no grammar alternate matches, both implementations raise an immediate

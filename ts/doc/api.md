@@ -41,7 +41,10 @@ const strict = Jsonic.make({
 ```
 
 The `options` parameter can also be a string shortcut:
-- `'json'` -- strict JSON parser (only JSON-tagged grammar rules)
+- `'json'` -- strict JSON parser: keeps only the JSON-tagged grammar rules
+  *and* tightens the lexer to RFC 8259 (numbers are exactly
+  `-?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][-+]?[0-9]+)?`, only `"` quotes, only
+  `\uXXXX` escapes, no comments, no unquoted text, no trailing commas)
 - `'jsonic'` -- minimal jsonic parser
 
 ### `Jsonic.empty(options?)`

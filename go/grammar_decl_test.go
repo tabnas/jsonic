@@ -1343,8 +1343,17 @@ func TestMatchTokenNilRegexpNoPanic(t *testing.T) {
 					"#ID": nil,
 				},
 			},
+			// Engine-default sets PLUS #ID. KEY must keep #TX: the #ID
+			// matcher is nil (that is the point of this test), so the
+			// unquoted key in "a:1" below lexes as #TX, not #ID.
+			//
+			// This previously read {"#ST", "#ID"} — dropping #TX — and
+			// still parsed only because Options.TokenSet was silently
+			// ignored by the engine. Now that the engine applies it, the
+			// declared set has to actually admit the key the assertion
+			// expects.
 			TokenSet: map[string][]string{
-				"KEY": {"#ST", "#ID"},
+				"KEY": {"#TX", "#NR", "#ST", "#VL", "#ID"},
 				"VAL": {"#TX", "#NR", "#ST", "#VL", "#ID"},
 			},
 		},
