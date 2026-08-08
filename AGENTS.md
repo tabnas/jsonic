@@ -152,7 +152,7 @@ Tests run against compiled output — always `npm run build` after editing
 
 The root Makefile wraps both halves: `make build|test|clean` run the TS
 and Go sides; `make publish-ts` publishes the TS package at its
-`package.json` version (currently `2.28.0`); `make publish-go V=x.y.z`
+`package.json` version; `make publish-go V=x.y.z`
 injects `V` into the `const Version` in `go/jsonic.go`, commits, and tags
 `go/vX.Y.Z`.
 
