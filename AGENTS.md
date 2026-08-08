@@ -156,6 +156,42 @@ and Go sides; `make publish-ts` publishes the TS package at its
 injects `V` into the `const Version` in `go/jsonic.go`, commits, and tags
 `go/vX.Y.Z`.
 
+## JSON conformance (the claim, and how to re-check it)
+
+jsonic's language claim is a **superset** one: "jsonic accepts all standard
+JSON" (`README.md`), and `ts/doc/syntax.md` puts it as "valid JSON always
+parses correctly". jsonic is not a JSON *validator* by default — the whole
+point is that it also accepts a lot that JSON does not. The strict subset
+is `Jsonic.make('json')` (TS) / `MakeJSON()` (Go), which is a **strict
+RFC 8259 / ECMA-404 parser**.
+
+Both halves are checkable against [nst/JSONTestSuite](https://github.com/nst/JSONTestSuite)
+(318 cases: 95 `y_` must-accept, 188 `n_` must-reject, 35 `i_`
+implementation-defined). Measured state:
+
+| | `y_` accepted | `n_` rejected |
+|---|---|---|
+| default (relaxed) TS & Go | **95/95** (values equal `JSON.parse`) | 41/188 — *by design*, the relaxations |
+| `make('json')` TS | **95/95** | **188/188** |
+| `MakeJSON()` Go | **95/95** | **188/188** |
+
+The suite is not vendored (it is 318 files, and most of it exercises
+behaviour jsonic deliberately relaxes). To re-check:
+
+```bash
+git clone --depth 1 https://github.com/nst/JSONTestSuite /tmp/jts
+# for each /tmp/jts/test_parsing/*.json: y_ must parse and deepEqual
+# JSON.parse; n_ must throw under Jsonic.make('json') / MakeJSON().
+```
+
+The behaviours the suite pinned down are locked into the shared fixtures
+`test/spec/alignment-strict-json-mode.tsv` and
+`alignment-strict-json-mode-errors.tsv`, which run in **both** runtimes on
+every `make test` — so a regression fails the normal suite without needing
+the network. Note that `rule.include: 'json'` alone (the
+`include-json*.tsv` family) only filters grammar alternates; it does *not*
+tighten the lexer, so it is deliberately laxer than `make('json')`.
+
 ## The @tabnas/debug model test
 
 Both runtimes prove they compose with the standalone

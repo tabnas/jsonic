@@ -131,6 +131,20 @@ describe('alignment', function () {
     tsvErrorTest('include-json-errors', jj)
   })
 
+  // --- Strict-JSON mode TSV tests (Jsonic.make('json') / Go MakeJSON) ---
+  // Unlike `rule.include: 'json'` above (which only filters grammar alts),
+  // the 'json' shortcut also tightens the lexer, so the number grammar is
+  // exactly RFC 8259 and `\xHH` escapes are rejected. Pinned in a shared
+  // TSV so Go's MakeJSON stays aligned.
+
+  it('alignment-strict-json-mode', () => {
+    tsvTest('alignment-strict-json-mode', Jsonic.make('json'))
+  })
+
+  it('alignment-strict-json-mode-errors', () => {
+    tsvErrorTest('alignment-strict-json-mode-errors', Jsonic.make('json'))
+  })
+
   // --- Comment suffix TSV tests (parity for comment.def.suffix) ---
 
   it('feature-comment-suffix-line', () => {

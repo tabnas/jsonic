@@ -256,9 +256,12 @@ j := tabnasjsonic.Make(tabnasjsonic.Options{Rule: &tabnasjsonic.RuleOptions{Incl
 
 Returns an instance configured to accept strict JSON only. It applies
 `Rule.Include: "json"` along with the option set that rejects every jsonic
-relaxation (unquoted keys/values, comments, hex/octal/binary numbers,
-trailing commas, leading-zero numbers, single-quoted or backtick strings,
-and empty input). Mirrors TypeScript `Jsonic.make('json')`.
+relaxation (unquoted values, comments, hex/octal/binary numbers, trailing
+commas, single-quoted or backtick strings, `\xHH` escapes, and empty
+input). Numbers must be exactly the RFC 8259 form
+`-?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][-+]?[0-9]+)?`, so `012`, `+1`, `1.` and
+`.5` are all rejected. Map keys must be quoted strings, so `{1:1}` and
+`{null:null}` are rejected too. Mirrors TypeScript `Jsonic.make('json')`.
 
 ```go
 j := tabnasjsonic.MakeJSON()

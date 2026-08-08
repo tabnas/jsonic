@@ -696,13 +696,22 @@ function makeJSON(jsonic: any) {
       oct: false,
       bin: false,
       sep: null,
-      exclude: /^00+/,
+      // Strict JSON numbers are exactly RFC 8259 / ECMA-404:
+      //   -? (0 | [1-9][0-9]*) (. [0-9]+)? ([eE] [-+]? [0-9]+)?
+      // The relaxed number matcher is happy with a leading `+`, leading
+      // zeros (`012`), a bare leading or trailing `.` (`.123`, `1.`,
+      // `2.e3`) — all of which strict JSON rejects. Exclude anything that
+      // is not the RFC form so it falls through to the (disabled) text
+      // matcher and raises an error, rather than silently parsing.
+      exclude: /^(?!-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][-+]?[0-9]+)?$)/,
     },
     string: {
       chars: '"',
       multiChars: '',
       allowUnknown: false,
       escape: { v: null },
+      // No `\xHH` or `\u{...}`; strict JSON has only `\uXXXX`.
+      escapeStrict: true,
     },
     comment: { lex: false },
     map: { extend: false },
