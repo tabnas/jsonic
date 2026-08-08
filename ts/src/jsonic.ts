@@ -347,6 +347,12 @@ function applyRuleFilter(tabnas: any): void {
 }
 
 
+// VERSION is this package's version. It MUST equal package.json "version":
+// the release orchestrator rewrites both, and the version test fails the
+// build if they drift. Mirrors `const VERSION` in go/jsonic.go.
+const VERSION = '0.4.4'
+
+
 let root: any = undefined
 
 // The global root Jsonic instance — its parsing rules cannot be
@@ -387,6 +393,11 @@ root.S = S
 root.jsonic = jsonicPlugin
 root.registerJsonicGrammar = registerJsonicGrammar
 root.Tabnas = Tabnas
+
+// `module.exports = Jsonic` below replaces the CJS exports object, so the
+// named export alone is not reachable as `require('@tabnas/jsonic').VERSION`.
+// Hang it off the root too, which is what CJS consumers actually receive.
+root.VERSION = VERSION
 
 
 // Export most of the engine types for use by plugins (re-exported from
@@ -431,6 +442,7 @@ export { Tabnas } from '@tabnas/parser'
 export type { Plugin as TabnasPlugin } from '@tabnas/parser'
 
 export {
+  VERSION,
   applyRuleFilter,
   // Jsonic is both a type and a value.
   Jsonic as Jsonic,
