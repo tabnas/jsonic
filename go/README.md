@@ -1,6 +1,6 @@
 # jsonic (Go)
 
-Version: 0.1.22
+Version: 0.4.4
 
 A Go port of [jsonic](https://github.com/tabnas/jsonic), the lenient
 JSON parser. Same architecture, same syntax, same results. If you

@@ -308,10 +308,11 @@ tabnasjsonic.Options{
 
 ## Constants
 
-### `Version`
+### `VERSION`
 
 ```go
-const Version = "0.1.22"
+const VERSION = "0.4.4"
 ```
 
-The current version of the jsonic Go module.
+This module's version. It MUST equal `ts/package.json` "version";
+`TestVersionMatchesPackageJSON` fails the build if they drift.

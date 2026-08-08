@@ -63,7 +63,7 @@ three files plus tests:
 - `jsonic.go` — the legacy API and the plugin: `Make`/`Empty`/`MakeJSON`/
   `Parse`, the idiomatic `Grammar` plugin (branding + grammar) and the
   internal `grammarPlugin` (grammar only), `jsonicOptions` (the jsonic
-  error/identity branding), and `Version`.
+  error/identity branding), and `VERSION`.
 - `grammar.go` — the relaxed-JSON grammar. `grammarPlugin` (in
   `jsonic.go`) first calls `tjson.RegisterJSONGrammar` to install the
   standard-JSON core (now built on the engine's native-value `$`-builtins),

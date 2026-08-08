@@ -45,6 +45,7 @@ describe('api', function () {
       'jsonic',
       'registerJsonicGrammar',
       'Tabnas',
+      'VERSION',
     ])
 
     assert.ok(Debug != null)
