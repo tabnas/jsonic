@@ -70,6 +70,12 @@ token abandoned. Fixed in `github.com/tabnas/parser/go` (`isExponentStart` in
 exponent digits (`2.e`) the token stays text in both, matching TS's regexp,
 whose exponent group requires a digit.
 
+Base-prefixed integers beyond int64 (`0xFFFFFFFFFFFFFFFF`) are **aligned**:
+both ports evaluate the exact value and round once to nearest float64, so
+`0xFFFFFFFFFFFFFFFF` is 1.8446744073709552e19 in both (Go previously lexed
+the run as text). Pinned, with the clamping trap called out, in
+`test/spec/alignment-number-prefix-separator.tsv`.
+
 Out-of-range exponents are **also now aligned**. TS coerces with unary `+`,
 which saturates instead of failing, and Go's `parseNumericString` used to treat
 `strconv.ParseFloat`'s `ErrRange` as a hard failure and drop the token to the
