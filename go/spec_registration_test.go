@@ -33,6 +33,8 @@ var bespokeShape = map[string]string{
 	"feature-list-child-deep":      "3 cols: input, expected_array, expected_child",
 	"feature-list-child-pair":      "3 cols: input, expected_array, expected_child",
 	"feature-list-child-pair-deep": "3 cols: input, expected_array, expected_child",
+	"lex": "2 cols: input, token stream — asserts TOKENS not values, so it " +
+		"is run by go/lexspec_test.go and ts/test/lexspec.test.js, not runParserTSV",
 	"divergent": "6 cols: name, opts, input, go, ts, justification — the " +
 		"parity-debt ledger; each port asserts its OWN column, so it is run by " +
 		"go/divergent_test.go and ts/test/divergent.test.js, not runParserTSV",
