@@ -60,3 +60,30 @@ wiring it into both, and a fixture that only one runtime runs proves nothing.
   case fix TS first and pin the corrected behaviour here.
 - A new fixture must pass in BOTH runtimes: run `go test ./...` (from `go/`)
   and `npm test` (from `ts/`) before considering it done.
+
+## Never author an expected value — probe for it
+
+`scripts/parity-probe.sh <file-of-sources>` runs each source through BOTH
+ports and prints one line per candidate:
+
+```
+AGREE   <src>\t<value>       -> paste straight into a fixture
+DIFFER  <src>\t<go>\t<ts>    -> adjudicate; if deliberate, add to divergent.tsv
+```
+
+A row is only trustworthy if both engines were asked. Hand-written rows pin
+what the author believed, and that has gone wrong here more than once: a
+base-prefix overflow row was authored as 2^72 when the literal is 2^76 (the
+parser was right, the arithmetic was not), and a fixture read as "failing"
+because its author compared JSON strings where the runners compare parsed
+values. Downstream adopted this same workflow after finding 15 of 254 rows
+in a supposed parity corpus encoded one port's behaviour only.
+
+The two probes share no rendering code — only the source list and the
+output convention (`ERROR:<code>`, or the value as JSON, with non-finite
+numbers as `"@@Infinity"` / `"@@-Infinity"` / `"@@NaN"`). A shared renderer
+could hide a divergence inside itself. The non-finite markers exist because
+the JSON encoders disagree about how to fail on ±Inf — without them `1e400`
+reports DIFFER while both parsers agree, which is the one thing a probe
+must never do.
+
