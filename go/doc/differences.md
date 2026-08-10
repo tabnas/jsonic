@@ -41,6 +41,22 @@ replaced control char is skipped when locating the first offending one).
 
 ### Number + Text
 
+Base-prefixed runs with a dot continuation (`0xFF.5`, `0b1.`) and
+separator-at-run-edge forms (`+_1`, `1_`, `1.5_`, `1e_2`) are **aligned**:
+both ports decline the whole run to lenient text as one string. Previously
+the TS scanner claimed the prefix and emitted the trailing fixed token at
+the wrong position — `[0xFF.5]` parsed as `[[],"xFF.5"]`, fabricating
+elements and destroying characters — and the Go scanner silently swallowed
+edge separators, parsing `+_1` as the number `1`. Numeric separators are
+legal only between the digits of a run. Pinned cross-port by
+`test/spec/alignment-number-prefix-separator.tsv`.
+
+Key insertion order is **representable in both ports**: Go's `*OrderedMap`
+always preserves it; TS opts in with `map: { ordered: true }` + `keyOrder`
+(plain objects reorder integer-like keys — a JS semantic). The twin tables
+in `go/ordered_test.go` and `ts/test/ordered.test.js` pin the parity.
+
+
 A leading-digit token that is not a valid number is treated as text in **both**
 runtimes (this was previously listed as a divergence and is not one): `123abc`
 parses to the string `"123abc"` on both sides.
