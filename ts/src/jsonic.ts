@@ -13,7 +13,7 @@
  *  up in the callable-with-properties shape jsonic users expect.
  */
 
-import {
+import { keyOrder,
   Tabnas,
   TabnasError as JsonicError,
   util,
@@ -399,6 +399,11 @@ root.Tabnas = Tabnas
 // Hang it off the root too, which is what CJS consumers actually receive.
 root.VERSION = VERSION
 
+// keyOrder must ALSO hang off the root, same reason as VERSION above: the
+// `module.exports = Jsonic` at the bottom replaces the CJS exports object,
+// so an `export { keyOrder }` alone is unreachable from require().
+root.keyOrder = keyOrder
+
 
 // Export most of the engine types for use by plugins (re-exported from
 // `tabnas` via ./types).
@@ -439,6 +444,12 @@ export type {
 // that plugin authors who build on the jsonic grammar can construct an
 // engine and type their plugins without a separate `tabnas` import.
 export { Tabnas } from '@tabnas/parser'
+// keyOrder reads the insertion order recorded under `map: { ordered: true }`
+// — the TS mirror of the Go port's OrderedMap.Keys. Without the option it
+// falls back to Object.keys, whose integer-like keys enumerate ascending
+// regardless of source order (a JS language semantic; plain-object mode
+// cannot represent `{2:9,1:8}`'s key order).
+export { keyOrder } from '@tabnas/parser'
 export type { Plugin as TabnasPlugin } from '@tabnas/parser'
 
 export {

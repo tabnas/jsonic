@@ -27,7 +27,7 @@ function mark(node: any, marker: string, data: any): void {
 }
 
 function grammar(jsonic: Jsonic) {
-  const { deep } = jsonic.util
+  const { deep, recordKeyOrder, keyOrder } = jsonic.util
 
   const {
     // Fixed tokens
@@ -191,6 +191,7 @@ function grammar(jsonic: Jsonic) {
     // longer threads it through r.u.prev): read it straight off the node
     // so a repeated key (`a:1,a:2`) or a deep object can merge/extend.
     const prev = r.node[key]
+    const incoming = val
 
     val = null == prev
       ? val
@@ -199,6 +200,35 @@ function grammar(jsonic: Jsonic) {
         : ctx.cfg.map.extend
           ? deep(prev, val)
           : val
+
+    // map.ordered: record key insertion order in the engine's side
+    // channel (read with keyOrder). Plain objects enumerate integer-like
+    // keys ascending regardless of source order — {2:9,1:8} loses
+    // 2-before-1 at creation, unrecoverably — while the Go port's
+    // OrderedMap keeps it. First insertion wins, as Go's Set does.
+    if (ctx.cfg.map.ordered) {
+      if (!(key in r.node)) {
+        recordKeyOrder(r.node, key)
+      } else if (
+        // A deep-merged duplicate key (`a:b:1,a:c:2`): deep() writes the
+        // incoming object's keys straight onto the existing node,
+        // bypassing this function, so append the newly-arrived keys to
+        // the existing node's record in THEIR recorded source order. Go
+        // needs no equivalent — OrderedMap.Set is its only write path.
+        val === prev &&
+        incoming !== prev &&
+        null != incoming &&
+        'object' === typeof incoming &&
+        !Array.isArray(incoming)
+      ) {
+        const have = new Set(keyOrder(val))
+        for (const k of keyOrder(incoming)) {
+          if (!have.has(k)) {
+            recordKeyOrder(val, k)
+          }
+        }
+      }
+    }
 
     r.node[key] = val
   }
@@ -594,6 +624,9 @@ function grammar(jsonic: Jsonic) {
               let val = r.child.node
               val = undefined === val ? null : val
               let pairObj = Object.create(null)
+              if (ctx.cfg.map.ordered) {
+                recordKeyOrder(pairObj, key)
+              }
               pairObj[key] = val
               r.node.push(pairObj)
             } else {

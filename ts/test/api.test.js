@@ -46,6 +46,9 @@ describe('api', function () {
       'registerJsonicGrammar',
       'Tabnas',
       'VERSION',
+      // Reads insertion order recorded under `map: { ordered: true }` —
+      // the TS mirror of the Go port's OrderedMap.Keys.
+      'keyOrder',
     ])
 
     assert.ok(Debug != null)

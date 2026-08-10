@@ -83,6 +83,13 @@ describe('alignment', function () {
     tsvTest('alignment-number-text')
   })
 
+  // The number-scanner class the boru differential probe exposed:
+  // base-prefixed dot continuations and separator-at-run-edge forms fall
+  // to lenient text whole — no character eaten, no element fabricated.
+  it('alignment-number-prefix-separator', () => {
+    tsvTest('alignment-number-prefix-separator')
+  })
+
   it('alignment-structure', () => {
     tsvTest('alignment-structure')
   })

@@ -43,6 +43,15 @@ func TestAlignmentNumberText(t *testing.T) {
 	runParserTSV(t, "alignment-number-text.tsv", Make())
 }
 
+// TestAlignmentNumberPrefixSeparator pins the number-scanner class the
+// boru differential probe exposed: base-prefixed runs with a dot
+// continuation, and separator-at-run-edge forms, must fall to lenient
+// text WHOLE — no character eaten, no element fabricated, no separator
+// silently swallowed. See the fixture header for the specific defects.
+func TestAlignmentNumberPrefixSeparator(t *testing.T) {
+	runParserTSV(t, "alignment-number-prefix-separator.tsv", Make())
+}
+
 // TestAlignmentStructure tests auto-close behavior for unclosed structures.
 func TestAlignmentStructure(t *testing.T) {
 	runParserTSV(t, "alignment-structure.tsv", Make())

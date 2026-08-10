@@ -120,6 +120,27 @@ Controls object/map behavior.
 | `extend` | boolean | `true` | Deep-merge duplicate keys |
 | `merge` | function | -- | Custom merge function: `(prev, curr) => result` |
 | `child` | boolean | `false` | Parse bare colon as `child$` key |
+| `ordered` | boolean | `false` | Record key insertion order; read it with `keyOrder(result)` |
+
+With `ordered: true` the result is still a plain object, but the order every
+key first appeared in the source is recorded on the side (non-enumerable, so
+`Object.keys`, spread and `JSON.stringify` are unaffected) and read back with
+the exported `keyOrder` function. A repeated key keeps its first position,
+exactly as the Go port's `OrderedMap.Set` does:
+
+```js
+const { Jsonic, keyOrder } = require('@tabnas/jsonic')
+const j = Jsonic.make({ map: { ordered: true } })
+keyOrder(j.parse('{2:9, 1:8}'))        // => ['2', '1']
+keyOrder(j.parse('{10:a, 2:b, x:c}'))  // => ['10', '2', 'x']
+```
+
+Without the option, plain-object mode **loses integer-like key order**:
+JavaScript enumerates integer-like keys in ascending numeric order no matter
+the order they were written, so `{2:9, 1:8}` enumerates as `['1', '2']`. That
+is a language semantic, not a fixable bug in the plain representation — the
+Go port's `*jsonic.OrderedMap` preserves insertion order for every key, and
+`ordered: true` is the TS mirror of that information.
 
 ## `list`
 
