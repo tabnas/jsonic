@@ -57,6 +57,12 @@ func TestAlignmentStructure(t *testing.T) {
 	runParserTSV(t, "alignment-structure.tsv", Make())
 }
 
+// TestAlignmentUTF8 tests that non-ASCII keys, values, comments and string
+// bodies (astral planes included) lex and parse identically in both runtimes.
+func TestAlignmentUTF8(t *testing.T) {
+	runParserTSV(t, "alignment-utf8.tsv", Make())
+}
+
 // TestAlignmentEmpty tests that empty/comment-only inputs return null.
 func TestAlignmentEmpty(t *testing.T) {
 	path := filepath.Join(specDir(), "alignment-empty.tsv")

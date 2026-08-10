@@ -94,6 +94,10 @@ describe('alignment', function () {
     tsvTest('alignment-structure')
   })
 
+  it('alignment-utf8', () => {
+    tsvTest('alignment-utf8')
+  })
+
   it('alignment-empty', () => {
     tsvNullTest('alignment-empty')
   })
