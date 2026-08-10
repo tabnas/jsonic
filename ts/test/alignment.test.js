@@ -437,4 +437,134 @@ describe('alignment', function () {
     ji('a:1')
     assert.ok(tokens.length > 0)
   })
+
+  // Fixtures that were on disk but registered in NEITHER runner until the
+  // registration gate (test/spec-registration.test.js) made that a failure.
+  // Each was verified against the current parser before wiring, not assumed.
+
+  it('comma-implicit-comma', () => {
+    tsvTest('comma-implicit-comma')
+  })
+
+  it('comma-optional-comma', () => {
+    tsvTest('comma-optional-comma')
+  })
+
+  it('feature-debug-cases', () => {
+    tsvTest('feature-debug-cases')
+  })
+
+  it('feature-implicit-map', () => {
+    tsvTest('feature-implicit-map')
+  })
+
+  it('feature-implicit-object', () => {
+    tsvTest('feature-implicit-object')
+  })
+
+  it('feature-nested-space-pairs', () => {
+    tsvTest('feature-nested-space-pairs')
+  })
+
+  it('fv-arrays', () => {
+    tsvTest('fv-arrays')
+  })
+
+  it('fv-comma', () => {
+    tsvTest('fv-comma')
+  })
+
+  it('fv-deep', () => {
+    tsvTest('fv-deep')
+  })
+
+  it('fv-drop-outs', () => {
+    tsvTest('fv-drop-outs')
+  })
+
+  it('fv-numbers', () => {
+    tsvTest('fv-numbers')
+  })
+
+  it('fv-subobj', () => {
+    tsvTest('fv-subobj')
+  })
+
+  it('fv-types', () => {
+    tsvTest('fv-types')
+  })
+
+  it('fv-works', () => {
+    tsvTest('fv-works')
+  })
+
+  it('happy', () => {
+    tsvTest('happy')
+  })
+
+  it('jsonic-basic-array-tree', () => {
+    tsvTest('jsonic-basic-array-tree')
+  })
+
+  it('jsonic-basic-json', () => {
+    tsvTest('jsonic-basic-json')
+  })
+
+  it('jsonic-basic-mixed-tree', () => {
+    tsvTest('jsonic-basic-mixed-tree')
+  })
+
+  it('jsonic-basic-object-tree', () => {
+    tsvTest('jsonic-basic-object-tree')
+  })
+
+  it('jsonic-funky-keys', () => {
+    tsvTest('jsonic-funky-keys')
+  })
+
+  it('jsonic-process-array', () => {
+    tsvTest('jsonic-process-array')
+  })
+
+  it('jsonic-process-implicit-object', () => {
+    tsvTest('jsonic-process-implicit-object')
+  })
+
+  it('jsonic-process-mixed-nodes', () => {
+    tsvTest('jsonic-process-mixed-nodes')
+  })
+
+  it('jsonic-process-object-tree', () => {
+    tsvTest('jsonic-process-object-tree')
+  })
+
+  it('jsonic-process-scalars', () => {
+    tsvTest('jsonic-process-scalars')
+  })
+
+  it('jsonic-process-text', () => {
+    tsvTest('jsonic-process-text')
+  })
+
+  it('jsonic-process-whitespace', () => {
+    tsvTest('jsonic-process-whitespace')
+  })
+
+  // These need non-default options — the reason they read as 'failing' when
+  // first run against a stock parser.
+  it('feature-list-pair', () => {
+    tsvTest('feature-list-pair', Jsonic.make({ list: { pair: true } }))
+  })
+
+  it('feature-map-child', () => {
+    tsvTest('feature-map-child', Jsonic.make({ map: { child: true } }))
+  })
+
+  it('feature-map-child-deep', () => {
+    tsvTest('feature-map-child-deep', Jsonic.make({ map: { child: true }, list: { child: true } }))
+  })
+
+  it('alignment-safe-key', () => {
+    tsvTest('alignment-safe-key')
+  })
 })

@@ -1250,3 +1250,91 @@ func TestAlignmentModListDeleteThenCustom(t *testing.T) {
 		t.Errorf("ModList result: got %v, want %v", result, expectedCustom)
 	}
 }
+
+// --- Fixtures that were on disk but registered in NEITHER runner ---------
+//
+// 39 of jsonic's 64 shared fixtures were never executed by either port —
+// they looked like a cross-port corpus and were measuring nothing. The
+// registration gate (spec_registration_test.go) now makes that a build
+// failure. Each fixture below was verified against the current parser
+// before being wired, not assumed to pass; three needed the non-default
+// options that made them read as "failing" against a stock parser.
+//
+// KEEP IN SYNC with ts/test/alignment.test.js — the gate asserts both.
+
+func TestAlignmentCommaImplicitComma(t *testing.T) {
+	runParserTSV(t, "comma-implicit-comma.tsv", Make())
+}
+func TestAlignmentCommaOptionalComma(t *testing.T) {
+	runParserTSV(t, "comma-optional-comma.tsv", Make())
+}
+func TestFeatureDebugCases(t *testing.T) {
+	runParserTSV(t, "feature-debug-cases.tsv", Make())
+}
+func TestFeatureImplicitMap(t *testing.T) {
+	runParserTSV(t, "feature-implicit-map.tsv", Make())
+}
+func TestFeatureImplicitObject(t *testing.T) {
+	runParserTSV(t, "feature-implicit-object.tsv", Make())
+}
+func TestFeatureNestedSpacePairs(t *testing.T) {
+	runParserTSV(t, "feature-nested-space-pairs.tsv", Make())
+}
+func TestFvArrays(t *testing.T)   { runParserTSV(t, "fv-arrays.tsv", Make()) }
+func TestFvComma(t *testing.T)    { runParserTSV(t, "fv-comma.tsv", Make()) }
+func TestFvDeep(t *testing.T)     { runParserTSV(t, "fv-deep.tsv", Make()) }
+func TestFvDropOuts(t *testing.T) { runParserTSV(t, "fv-drop-outs.tsv", Make()) }
+func TestFvNumbers(t *testing.T)  { runParserTSV(t, "fv-numbers.tsv", Make()) }
+func TestFvSubobj(t *testing.T)   { runParserTSV(t, "fv-subobj.tsv", Make()) }
+func TestFvTypes(t *testing.T)    { runParserTSV(t, "fv-types.tsv", Make()) }
+func TestFvWorks(t *testing.T)    { runParserTSV(t, "fv-works.tsv", Make()) }
+func TestHappy(t *testing.T)      { runParserTSV(t, "happy.tsv", Make()) }
+func TestJsonicBasicArrayTree(t *testing.T) {
+	runParserTSV(t, "jsonic-basic-array-tree.tsv", Make())
+}
+func TestJsonicBasicJSON(t *testing.T) {
+	runParserTSV(t, "jsonic-basic-json.tsv", Make())
+}
+func TestJsonicBasicMixedTree(t *testing.T) {
+	runParserTSV(t, "jsonic-basic-mixed-tree.tsv", Make())
+}
+func TestJsonicBasicObjectTree(t *testing.T) {
+	runParserTSV(t, "jsonic-basic-object-tree.tsv", Make())
+}
+func TestJsonicFunkyKeys(t *testing.T) {
+	runParserTSV(t, "jsonic-funky-keys.tsv", Make())
+}
+func TestJsonicProcessArray(t *testing.T) {
+	runParserTSV(t, "jsonic-process-array.tsv", Make())
+}
+func TestJsonicProcessImplicitObject(t *testing.T) {
+	runParserTSV(t, "jsonic-process-implicit-object.tsv", Make())
+}
+func TestJsonicProcessMixedNodes(t *testing.T) {
+	runParserTSV(t, "jsonic-process-mixed-nodes.tsv", Make())
+}
+func TestJsonicProcessObjectTree(t *testing.T) {
+	runParserTSV(t, "jsonic-process-object-tree.tsv", Make())
+}
+func TestJsonicProcessScalars(t *testing.T) {
+	runParserTSV(t, "jsonic-process-scalars.tsv", Make())
+}
+func TestJsonicProcessText(t *testing.T) {
+	runParserTSV(t, "jsonic-process-text.tsv", Make())
+}
+func TestJsonicProcessWhitespace(t *testing.T) {
+	runParserTSV(t, "jsonic-process-whitespace.tsv", Make())
+}
+
+// These need non-default options — the reason they read as "failing" when
+// first run against a stock parser.
+func TestFeatureListPair(t *testing.T) {
+	runParserTSV(t, "feature-list-pair.tsv", Make(Options{List: &ListOptions{Pair: boolPtr(true)}}))
+}
+func TestFeatureMapChild(t *testing.T) {
+	runParserTSV(t, "feature-map-child.tsv", Make(Options{Map: &MapOptions{Child: boolPtr(true)}}))
+}
+func TestFeatureMapChildDeep(t *testing.T) {
+	runParserTSV(t, "feature-map-child-deep.tsv",
+		Make(Options{Map: &MapOptions{Child: boolPtr(true)}, List: &ListOptions{Child: boolPtr(true)}}))
+}
