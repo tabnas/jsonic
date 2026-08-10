@@ -14,12 +14,19 @@ Tab-separated, one case per line, with a header row naming the columns
 `expected` column is either a JSON value (the parse result) or `ERROR:<code>`
 for input that must be rejected with that code.
 
-**Escaping is not symmetric — mind it.** The TypeScript `loadTSV` unescapes
-`\n`, `\r` and `\r\n` in *every* column; the Go `loadTSV` returns columns
-verbatim and its callers apply `preprocessEscapes` to the parser-input column
-only. So an escape in `input` behaves the same in both, while an escape
-anywhere else is decoded by TypeScript and taken literally by Go. Keep
-escapes in the `input` column until the two loaders are aligned.
+**Escaping applies to the `input` column only, in both runtimes.** Each
+runner decodes `\n`, `\r`, `\r\n` and `\t` there: the TypeScript `loadTSV`
+unescapes `cols[0]`, and the Go `loadTSV` returns columns verbatim with its
+callers applying `preprocessEscapes` to the parser-input column. Every other
+column is taken as written, so the `expected` column is raw JSON and JSON's
+own escape rules apply to it — write `"a\nb"` for a string holding a newline,
+exactly as you would in a `.json` file.
+
+The two loaders used to disagree here: TypeScript decoded *every* column and
+did not handle `\t`, so an `expected` value containing a JSON escape became a
+raw control character and failed `JSON.parse`, while a `\t` in `input` reached
+the parser as a literal backslash-t. Both are fixed; the note that once told
+you to keep escapes out of non-input columns no longer applies.
 
 ## Who runs what
 
