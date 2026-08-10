@@ -49,3 +49,22 @@ _1	"_1"
 1.5	1.5
 .5	0.5
 1.	1
+# Base-prefixed integers beyond int64. JS Number("0x…") computes the exact
+# mathematical value of the digit string and rounds ONCE to nearest float64;
+# Go now matches via big.Int rather than strconv.ParseInt, which CLAMPS to
+# MaxInt64. The 0xFFFF… row is the one that distinguishes a correct fix from
+# the clamped one: clamping returns 9.223372036854776e18 here — silently off
+# by 2x — while 0x8000000000000000 agrees under either, by coincidence
+# (float64(MaxInt64) and float64(2^63) round to the same double). Keep BOTH
+# rows: the first alone would pass a wrong implementation.
+0x8000000000000000	9223372036854775808
+0xFFFFFFFFFFFFFFFF	18446744073709551616
+0o1000000000000000000000	9223372036854775808
+0b1000000000000000000000000000000000000000000000000000000000000000	9223372036854775808
+-0x8000000000000001	-9223372036854775808
++0xFFFFFFFFFFFFFFFF	18446744073709551616
+0x10000000000000000000	7.555786372591432e+22
+# In-range base literals and the decimal overflow siblings are unchanged.
+0o17	15
+0b101	5
+9223372036854775808	9223372036854775808
