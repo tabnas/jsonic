@@ -1,0 +1,21 @@
+name	opts	input	go	ts	justification
+# The LIVE cross-port divergence ledger.
+#
+# Six tab-separated columns. `go` and `ts` are what each port ACTUALLY
+# produces today, as JSON, or ERROR:<code>. `opts` is a JSON object of
+# make() options, or `-` for a stock parser.
+#
+# Every row is asserted by BOTH runners: the Go runner must reproduce the
+# `go` column and the TS runner the `ts` column, on every run. So a
+# divergence that gets FIXED fails this suite as loudly as one that
+# regresses, and the row must then be deleted. That is the whole point —
+# go/doc/differences.md is prose, and prose rots: through this session it
+# claimed 2.e3 and 1e999 still diverged for some time after they were
+# aligned, and claimed base-prefixed overflow was aligned before it was.
+# A ledger nothing executes is documentation, not a gate.
+#
+# Adding a row here is an admission of parity debt, not a way to silence a
+# failure. Fix the divergence if you can; record it here only when you
+# cannot, with a justification a reader can act on.
+string-replace-control	{"string":{"replace":{"\n":"X"}}}	"a\nc"	ERROR:unprintable	"aXc"	TS string.replace can map a control character to a replacement, making it legal string body. The Go string matcher rejects the raw control character before replacement is consulted, reporting unprintable. (go/doc/differences.md said unterminated_string; this ledger caught that on its first run — the prose predated the error-code alignment.) Replacement of PRINTABLE characters is aligned (see the control row below), and the unprintable error scan does honour replace mappings when locating the first offending character — only this legality question differs.
+string-replace-printable	{"string":{"replace":{"-":"X"}}}	"a-c"	"aXc"	"aXc"	Control row, not a divergence: printable replacement is aligned. Kept adjacent so a fix to the row above cannot be mistaken for a regression here.

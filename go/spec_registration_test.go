@@ -33,10 +33,13 @@ var bespokeShape = map[string]string{
 	"feature-list-child-deep":      "3 cols: input, expected_array, expected_child",
 	"feature-list-child-pair":      "3 cols: input, expected_array, expected_child",
 	"feature-list-child-pair-deep": "3 cols: input, expected_array, expected_child",
-	"utility-deep":                 "5 cols: arg1..arg4, expected — util.deep, not a parse",
-	"utility-modlist":              "3 cols: input, opts, expected — util.modlist, not a parse",
-	"utility-str":                  "3 cols: input, maxlen, expected — util.str, not a parse",
-	"utility-strinject":            "3 cols: template, values, expected — util.strinject, not a parse",
+	"divergent": "6 cols: name, opts, input, go, ts, justification — the " +
+		"parity-debt ledger; each port asserts its OWN column, so it is run by " +
+		"go/divergent_test.go and ts/test/divergent.test.js, not runParserTSV",
+	"utility-deep":      "5 cols: arg1..arg4, expected — util.deep, not a parse",
+	"utility-modlist":   "3 cols: input, opts, expected — util.modlist, not a parse",
+	"utility-str":       "3 cols: input, maxlen, expected — util.str, not a parse",
+	"utility-strinject": "3 cols: template, values, expected — util.strinject, not a parse",
 }
 
 func TestSpecFixturesRegisteredInBothRunners(t *testing.T) {
