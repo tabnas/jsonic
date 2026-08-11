@@ -5,6 +5,8 @@ package tabnasjsonic
 import (
 	"reflect"
 	"strings"
+
+	support "github.com/tabnas/support/go"
 )
 
 // splitGroupTags splits a comma-separated group-tag string into trimmed,
@@ -103,37 +105,11 @@ func deepEqualPlain(got, want any) bool {
 	return reflect.DeepEqual(plainDeep(got), plainDeep(want))
 }
 
-// preprocessEscapes unescapes the \n, \r and \t sequences that appear
-// literally in the shared .tsv conformance fixtures' input column, so the
-// parser receives the real control characters. Test-only helper.
+// preprocessEscapes decodes the escapes the shared fixture format allows
+// in the input column, so the parser receives the real control characters.
+// It is the shared codec now — same rules, same two languages — and it
+// additionally decodes \\, which the hand-written version did not.
+// Test-only helper.
 func preprocessEscapes(s string) string {
-	if len(s) == 0 {
-		return s
-	}
-
-	runes := []rune(s)
-	var out []rune
-	i := 0
-	for i < len(runes) {
-		if runes[i] == '\\' && i+1 < len(runes) {
-			switch runes[i+1] {
-			case 'n':
-				out = append(out, '\n')
-				i += 2
-			case 'r':
-				out = append(out, '\r')
-				i += 2
-			case 't':
-				out = append(out, '\t')
-				i += 2
-			default:
-				out = append(out, runes[i])
-				i++
-			}
-		} else {
-			out = append(out, runes[i])
-			i++
-		}
-	}
-	return string(out)
+	return support.Unescape(s)
 }
