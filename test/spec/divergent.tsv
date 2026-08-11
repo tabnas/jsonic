@@ -1,5 +1,8 @@
 name	opts	input	go	ts	justification
-# The LIVE cross-port divergence ledger.
+# The LIVE cross-port divergence ledger -- the AUTHORITATIVE list.
+# DIVERGENCE.md at the repository root explains the shape of these
+# disagreements and points here; this file is what actually RUNS, so if
+# the two ever disagree, this one wins.
 #
 # Six tab-separated columns. `go` and `ts` are what each port ACTUALLY
 # produces today, as JSON, or ERROR:<code>. `opts` is a JSON object of
