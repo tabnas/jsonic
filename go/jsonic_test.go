@@ -1,16 +1,16 @@
 package tabnasjsonic
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	"math"
-	"os"
 	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
 	"testing"
+
+	support "github.com/tabnas/support/go"
 )
 
 // tsvRow holds a row from a TSV file.
@@ -19,30 +19,30 @@ type tsvRow struct {
 	lineNo int
 }
 
-// loadTSV reads a TSV file and returns its rows (excluding the header).
+// loadTSV reads a TSV file and returns its rows (excluding the header),
+// now a thin shim over github.com/tabnas/support/go.
+//
+// The fixtures live at the repo root (test/spec), above both runtimes, so
+// ts/ runs the same files — and both runtimes now read them with the same
+// loader, in two languages written to behave identically. That is what
+// this repo's own history argues for: the TS loader used to decode escapes
+// in EVERY column while this one decoded only the input, and this one kept
+// #-leading comment lines the TS loader dropped. Both were fixed by hand,
+// twice. There is one loader now.
+//
+// The shape returned is unchanged — raw cols, physical line number — so
+// every caller here needs no edit.
 func loadTSV(path string) ([]tsvRow, error) {
-	f, err := os.Open(path)
+	spec, err := support.LoadSpec(path, nil)
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
 
-	var rows []tsvRow
-	scanner := bufio.NewScanner(f)
-	lineNo := 0
-	for scanner.Scan() {
-		lineNo++
-		if lineNo == 1 {
-			continue // skip header
-		}
-		line := scanner.Text()
-		if line == "" {
-			continue
-		}
-		cols := strings.Split(line, "\t")
-		rows = append(rows, tsvRow{cols: cols, lineNo: lineNo})
+	rows := make([]tsvRow, 0, len(spec.Rows))
+	for _, row := range spec.Rows {
+		rows = append(rows, tsvRow{cols: row.Cols, lineNo: row.Line})
 	}
-	return rows, scanner.Err()
+	return rows, nil
 }
 
 // parseExpected parses the expected JSON string into a Go value.
@@ -167,9 +167,17 @@ func formatValue(v any) string {
 	return string(b)
 }
 
-// specDir returns the path to the spec directory.
+// specDir returns the path to the spec directory, found by walking up
+// from the package directory rather than by counting `..` hops.
 func specDir() string {
-	return filepath.Join("..", "test", "spec")
+	dir, err := support.FindSpecDir("")
+	if err != nil {
+		// Every caller uses this to build a path it then opens, and the
+		// open reports the failure with the path in it. Falling back keeps
+		// that behaviour rather than panicking at init.
+		return filepath.Join("..", "test", "spec")
+	}
+	return dir
 }
 
 // parserTSVFiles lists all parser-related TSV files (excluding utility-* files).

@@ -1,54 +1,39 @@
-const { readFileSync, existsSync } = require('fs')
+/* Copyright (c) 2013-2026 Richard Rodger and other contributors, MIT License */
+
+// The TSV fixture loader, now a thin shim over @tabnas/support.
+//
+// The fixtures live at the repo root (`test/spec`), above both runtimes, so
+// `go/` runs the same files — and both runtimes now read them with the same
+// loader, in two languages written to behave identically. That is what this
+// repo's own history argues for: its loader used to decode escapes in EVERY
+// column, so an `expected` value holding a JSON string escape ("ab\n😀")
+// became a raw control character and failed JSON.parse; and it used to keep
+// `#`-leading comment lines that the Go runners dropped, so a documented
+// fixture ran clean in Go and crashed here. Both were fixed by hand, twice.
+// There is one loader now.
+//
+// The shape returned is unchanged — `{ cols, row }`, with only the INPUT
+// column escape-decoded — so the eight suites that call this need no edit.
+// Two things do change, both improvements: `row` is the PHYSICAL line
+// number rather than an index among non-blank lines, so a failure points an
+// editor at the offending row; and `\\` is decoded, so a fixture can carry
+// a literal backslash.
+
 const { join } = require('path')
 
-// Decode the escapes the fixture format allows in the INPUT column. `\t` is
-// included to match the Go loader's preprocessEscapes and the format
-// documented in test/AGENTS.md; without it a `\t` row silently fed the
-// parser a literal backslash-t.
-function unescape(str) {
-  return str.replace(/\\r\\n|\\n|\\r|\\t/g, (m) => {
-    if (m === '\\r\\n') return '\r\n'
-    if (m === '\\n') return '\n'
-    if (m === '\\r') return '\r'
-    if (m === '\\t') return '\t'
-    return m
-  })
-}
+const { findSpecDir, loadSpec } = require('@tabnas/support')
+
+const SPEC = findSpecDir(__dirname)
 
 function loadTSV(name) {
-  // The fixtures live at the repo root (test/spec), above both runtimes, so
-  // go/ runs the same files — the @tabnas/parser convention.
-  const specPath = join(__dirname, '..', '..', 'test', 'spec', name + '.tsv')
+  const spec = loadSpec(join(SPEC, name + '.tsv'))
 
-  if (!existsSync(specPath)) {
-    throw new Error('spec file not found: ' + specPath)
-  }
-
-  const lines = readFileSync(specPath, 'utf8').split(/\r?\n/).filter(Boolean)
-  return lines
-    .slice(1)
-    .map((line, i) => {
-      // Only the INPUT column is escape-decoded. The Go runner already works
-      // this way (preprocessEscapes on cols[0], parseExpected on the raw
-      // cols[1]), and test/AGENTS.md documents it as the format — but this
-      // loader used to decode EVERY column, so an `expected` value holding a
-      // JSON string escape (`"ab\n😀"`) was turned into a raw control
-      // character and failed JSON.parse. Decoding the input alone makes the
-      // two runtimes read the same file the same way.
-      const cols = line.split('\t')
-      if (0 < cols.length) {
-        cols[0] = unescape(cols[0])
-      }
-      return { cols, row: i + 1 }
-    })
-    // A `#`-leading line with no tab is a comment. The Go runners already
-    // skip these (any row with fewer than two columns is ignored there),
-    // so without this filter a documented fixture ran clean in Go and
-    // crashed the TS runner on JSON.parse(undefined) — the two loaders
-    // must agree on what a row IS before the rows can pin agreement on
-    // anything else. A `#`-leading source with a tab is still data, so a
-    // C-preprocessor-style input column works.
-    .filter((e) => !(1 === e.cols.length && e.cols[0].startsWith('#')))
+  return spec.rows.map((row) => ({
+    // Only the input column is decoded. The expected column is raw JSON,
+    // which carries its own escape rules and must not be decoded twice.
+    cols: [row.unesc(0), ...row.cols.slice(1)],
+    row: row.line,
+  }))
 }
 
 module.exports = { loadTSV }
