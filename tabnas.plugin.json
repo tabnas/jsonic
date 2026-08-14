@@ -1,0 +1,16 @@
+{
+  "$schema": "https://tabnas.dev/schema/plugin.schema.json",
+  "name": "@tabnas/jsonic",
+  "go": "github.com/tabnas/jsonic/go",
+  "description": "The jsonic base grammar: relaxed, extensible JSON for the tabnas engine.",
+  "base": "@tabnas/json",
+  "engine": "@tabnas/parser",
+  "extensions": [
+    ".jsonic"
+  ],
+  "specDir": "test/spec",
+  "errorCodes": [],
+  "docs": "https://tabnas.dev/docs/packages",
+  "repository": "https://github.com/tabnas/jsonic",
+  "versionSource": "ts/package.json"
+}
