@@ -155,16 +155,38 @@ describe('error', function () {
   })
 
   it('error-json-desc', () => {
+    // The engine's A1 work replaced the old ad-hoc error JSON
+    // ({code, details, meta, lineNumber, columnNumber}) with the structured
+    // diagnostic that the engine's schema/diagnostic.schema.json specifies.
+    // This assertion still pinned the old shape, so it went red against the
+    // engine's main as soon as that landed.
+    //
+    // Asserted by FIELD now, and only the fields the schema makes required.
+    // `message` and `hint` are deliberately excluded — they are prose, and
+    // explicitly not contractual. The old substring match over
+    // JSON.stringify also depended on key ORDER, which nothing promises.
+    //
+    // The empty catch was itself a defect: a version of Jsonic that did not
+    // throw at all would have passed this test.
+    let caught = false
     try {
       Jsonic(']')
     } catch (e) {
-      // console.log(e)
-      assert.deepEqual(
-        JSON.stringify(e).includes(
-          '{"code":"unexpected","details":{"state":"open"},' +
-            '"meta":{},"lineNumber":1,"columnNumber":1',
-        ), true)
+      caught = true
+      const d = JSON.parse(JSON.stringify(e))
+      for (const k of [
+        'status', 'code', 'row', 'col', 'pos', 'len',
+        'rule', 'ruleStack', 'token', 'expected', 'src', 'plugins', 'version',
+      ]) {
+        assert.ok(k in d, 'diagnostic is missing required field: ' + k)
+      }
+      assert.equal(d.status, 'failure')
+      assert.equal(d.code, 'unexpected')
+      assert.equal(d.row, 1)
+      assert.equal(d.col, 1)
+      assert.equal(d.rule, 'val')
     }
+    assert.ok(caught, 'Jsonic("]") must throw')
   })
 
   it('bad-syntax', () => {
