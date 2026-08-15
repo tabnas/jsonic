@@ -224,6 +224,11 @@ func TestRuleFinishErrors(t *testing.T) {
 	runErrorTSV(t, "rule-finish-errors.tsv", j)
 }
 
+func TestStringAllowControl(t *testing.T) {
+	j := Make(Options{String: &StringOptions{AllowControl: boolPtr(true)}})
+	runParserTSV(t, "string-allow-control.tsv", j)
+}
+
 // --- Include group TSV tests (parity for rule.include) ---
 
 // TestIncludeJSON runs the shared include-json.tsv to confirm that

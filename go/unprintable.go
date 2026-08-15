@@ -115,6 +115,21 @@ func unprintableMatch(l *Lex, _ *Rule) *Token {
 		// A raw control char in the string body: TS reports this as
 		// `unprintable`, positioned at the character itself.
 		if c < 32 {
+			// ...unless string.allowControl is set, which TS honours by
+			// taking a NON-LINE control char as ordinary string body
+			// (lexer.ts: `else if (allowControl && !lineBM[cc])`). This
+			// pre-scan reads StringLex and StringAbandon from l.Config at
+			// match time but never read this flag, so it answered
+			// `unprintable` regardless — and a grammar built on jsonic
+			// could not enable an engine option TypeScript already
+			// honours. Line chars are excluded for the same reason they
+			// are excluded there: they stay governed by MultiChars, and
+			// are handled above.
+			if cfg.AllowControl && !cfg.LineChars[c] {
+				sI += csize
+				cI++
+				continue
+			}
 			tkn := MakeToken("#BD", TinBD, nil, src[sI:sI+csize],
 				Point{Len: len(src), SI: sI, RI: rI, CI: cI})
 			tkn.Why = "unprintable"
