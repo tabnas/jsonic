@@ -219,6 +219,11 @@ func TestExcludeCommaErrors(t *testing.T) {
 	runErrorTSV(t, "exclude-comma-errors.tsv", j)
 }
 
+func TestRuleFinishErrors(t *testing.T) {
+	j := Make(Options{Rule: &RuleOptions{Finish: boolPtr(false)}})
+	runErrorTSV(t, "rule-finish-errors.tsv", j)
+}
+
 // --- Include group TSV tests (parity for rule.include) ---
 
 // TestIncludeJSON runs the shared include-json.tsv to confirm that

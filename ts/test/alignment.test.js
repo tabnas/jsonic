@@ -128,6 +128,11 @@ describe('alignment', function () {
     tsvErrorTest('exclude-comma-errors', jj)
   })
 
+  it('rule-finish-errors', () => {
+    const jj = Jsonic.make({ rule: { finish: false } })
+    tsvErrorTest('rule-finish-errors', jj)
+  })
+
   // --- Include group TSV tests (parity for rule.include) ---
 
   it('include-json', () => {

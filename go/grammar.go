@@ -64,7 +64,17 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) error {
 	ref := map[FuncRef]any{
 		"@finish": AltError(func(r *Rule, ctx *Context) *Token {
 			if !cfg.FinishRule {
-				return ctx.T0
+				// The CODE, not just the rejection. TypeScript sets
+				// `ctx.t0.err = 'end_of_source'` here; this port returned the
+				// token bare, so parser.go's `if tkn.Err != ""` fell through
+				// to the generic `unexpected` and the two runtimes answered a
+				// contractual error code differently. Every grammar built on
+				// jsonic with `rule.finish: false` inherited that gap.
+				//
+				// Bad() is copy-on-write against the NoToken sentinel, so the
+				// RESULT carries the code; mutating the receiver would write
+				// into a discarded copy.
+				return ctx.T0.Bad("end_of_source")
 			}
 			return nil
 		}),
