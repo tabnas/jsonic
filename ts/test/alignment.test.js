@@ -133,6 +133,11 @@ describe('alignment', function () {
     tsvErrorTest('rule-finish-errors', jj)
   })
 
+  it('string-allow-control', () => {
+    const jj = Jsonic.make({ string: { allowControl: true } })
+    tsvTest('string-allow-control', jj)
+  })
+
   // --- Include group TSV tests (parity for rule.include) ---
 
   it('include-json', () => {
