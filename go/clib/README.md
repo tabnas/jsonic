@@ -64,6 +64,10 @@ const c = @cImport(@cInclude("tabnas.h"));
 // c.tabnas_free.
 ```
 
+## Format notes
+
+`Make()` swallows its grammar-install error (a documented legacy-signature limitation), so handle creation probes the instance with a canary parse - a partially installed grammar fails `tabnas_grammar` loudly instead of mislabeling every input as a rejection. (`Empty()`+`Grammar()` was considered and rejected: it does not reproduce the full lenient grammar.)
+
 ## Layout
 
 - `core.go` — the behaviour, in plain Go (testable).
