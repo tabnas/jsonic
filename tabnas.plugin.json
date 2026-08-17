@@ -8,6 +8,16 @@
   "extensions": [
     ".jsonic"
   ],
+  "languageId": "jsonic",
+  "pluginKind": "grammar",
+  "grammarKind": "imperative",
+  "lexStream": "clean",
+  "syncGroups": [
+    "end",
+    "comma",
+    "close",
+    "sync"
+  ],
   "specDir": "test/spec",
   "clib": {
     "dir": "go/clib",

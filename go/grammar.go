@@ -487,7 +487,7 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) error {
 			R: "list", U: map[string]any{"implist": true}, G: "list,val,imp,comma,jsonic"},
 		{C: map[string]any{"n.dlist": CLte(0), "n.dmap": CLte(0)},
 			R: "list", U: map[string]any{"implist": true}, B: 1, G: "list,val,imp,space,jsonic"},
-		{S: "#ZZ", G: "jsonic"},
+		{S: "#ZZ", G: "end,jsonic"},
 	})...)
 	valClose = append(valClose, jvc[1])
 	jsonVal.ClearClose().AddClose(valClose...)
@@ -516,7 +516,7 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) error {
 
 	mapClose := resolve([]*GrammarAltSpec{
 		{S: "#CB", C: map[string]any{"n.pk": CLte(0)}, G: "end,json"},
-		{S: "#CB", B: 1, G: "path,jsonic"},
+		{S: "#CB", B: 1, G: "path,close,jsonic"},
 	})
 	mapClose = append(mapClose, ResolveGrammarAltStatic(
 		&GrammarAltSpec{S: []string{"#CA #CS #VAL"}, B: 1, G: "end,path,jsonic"}, ref))
@@ -571,19 +571,19 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) error {
 	jsonPair.ClearOpen().AddOpen(pairOpen...)
 
 	pairClose := resolve([]*GrammarAltSpec{
-		{S: "#CB", C: map[string]any{"n.pk": CLte(0)}, B: 1, G: "map,pair,json"},
+		{S: "#CB", C: map[string]any{"n.pk": CLte(0)}, B: 1, G: "map,pair,close,json"},
 		{S: "#CA #CB", C: map[string]any{"n.pk": CLte(0)}, B: 1, G: "map,pair,comma,jsonic"},
 		{S: "#CA #ZZ", G: "end,jsonic"},
-		{S: "#CA", C: map[string]any{"n.pk": CLte(0)}, R: "pair", G: "map,pair,json"},
-		{S: "#CA", C: map[string]any{"n.dmap": CLte(1)}, R: "pair", G: "map,pair,jsonic"},
-		{S: "#KEY", C: map[string]any{"n.dmap": CLte(1)}, R: "pair", B: 1, G: "map,pair,imp,jsonic"},
+		{S: "#CA", C: map[string]any{"n.pk": CLte(0)}, R: "pair", G: "map,pair,sync,json"},
+		{S: "#CA", C: map[string]any{"n.dmap": CLte(1)}, R: "pair", G: "map,pair,sync,jsonic"},
+		{S: "#KEY", C: map[string]any{"n.dmap": CLte(1)}, R: "pair", B: 1, G: "map,pair,imp,sync,jsonic"},
 	})
 	pairClose = append(pairClose, ResolveGrammarAltStatic(
 		&GrammarAltSpec{S: []string{"#CB #CA #CS #KEY"}, C: map[string]any{"n.pk": CGt(0)},
-			B: 1, G: "map,pair,imp,path,jsonic"}, ref))
+			B: 1, G: "map,pair,imp,path,close,jsonic"}, ref))
 	pairClose = append(pairClose, resolve([]*GrammarAltSpec{
 		{S: "#CS", E: "@elem-close-err", G: "end,jsonic"},
-		{S: "#ZZ", E: "@finish", G: "map,pair,json"},
+		{S: "#ZZ", E: "@finish", G: "map,pair,end,json"},
 		{R: "pair", B: 1, G: "map,pair,imp,jsonic"},
 	})...)
 	jsonPair.ClearClose().AddClose(pairClose...)
@@ -620,9 +620,9 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) error {
 		ResolveGrammarAltStatic(&GrammarAltSpec{S: []string{"#CA", "#CS #ZZ"}, B: 1, G: "list,elem,comma,jsonic"}, ref),
 	}
 	elemClose = append(elemClose, resolve([]*GrammarAltSpec{
-		{S: "#CA", R: "elem", G: "list,elem,json"},
-		{S: "#CS", B: 1, G: "list,elem,json"},
-		{S: "#ZZ", E: "@finish", G: "list,elem,json"},
+		{S: "#CA", R: "elem", G: "list,elem,sync,json"},
+		{S: "#CS", B: 1, G: "list,elem,close,json"},
+		{S: "#ZZ", E: "@finish", G: "list,elem,end,json"},
 		{S: "#CB", E: "@elem-close-err", G: "end,jsonic"},
 		{R: "elem", B: 1, G: "list,elem,imp,jsonic"},
 	})...)
