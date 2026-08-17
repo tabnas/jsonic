@@ -342,7 +342,7 @@ function grammar(jsonic: Jsonic) {
               b: 1,
             },
 
-            { s: '#ZZ', g: 'jsonic' },
+            { s: '#ZZ', g: 'end,jsonic' },
 
           ],
           inject: {
@@ -399,7 +399,7 @@ function grammar(jsonic: Jsonic) {
           },
 
           // Not yet at end of path dive, keep ascending.
-          { s: '#CB', b: 1, g: 'path,jsonic' },
+          { s: '#CB', b: 1, g: 'path,close,jsonic' },
 
           // End of implicit path
           { s: ['#CA #CS #VAL'], b: 1, g: 'end,path,jsonic' },
@@ -537,7 +537,7 @@ function grammar(jsonic: Jsonic) {
             s: '#CB',
             c: { 'n.pk': { $lte: 0 } },
             b: 1,
-            g: 'map,pair,json',
+            g: 'map,pair,close,json',
           },
 
           // Ignore trailing comma at end of map.
@@ -555,7 +555,7 @@ function grammar(jsonic: Jsonic) {
             s: '#CA',
             c: { 'n.pk': { $lte: 0 } },
             r: 'pair',
-            g: 'map,pair,json',
+            g: 'map,pair,sync,json',
           },
 
           // TODO: try CA VAL ? works anywhere?
@@ -564,7 +564,7 @@ function grammar(jsonic: Jsonic) {
             s: '#CA',
             c: { 'n.dmap': { $lte: 1 } },
             r: 'pair',
-            g: 'map,pair,jsonic',
+            g: 'map,pair,sync,jsonic',
           },
 
           // TODO: try VAL CL ? works anywhere?
@@ -574,7 +574,7 @@ function grammar(jsonic: Jsonic) {
             c: { 'n.dmap': { $lte: 1 } },
             r: 'pair',
             b: 1,
-            g: 'map,pair,imp,jsonic',
+            g: 'map,pair,imp,sync,jsonic',
           },
 
           // End of implicit path (eg. a:b:1), keep closing until pk=0.
@@ -582,14 +582,14 @@ function grammar(jsonic: Jsonic) {
             s: ['#CB #CA #CS #KEY'],
             c: { 'n.pk': { $gt: 0 } },
             b: 1,
-            g: 'map,pair,imp,path,jsonic',
+            g: 'map,pair,imp,path,close,jsonic',
           },
 
           // Can't close a map with `]`
           { s: '#CS', e: (r: Rule) => r.c0, g: 'end,jsonic' },
 
           // Fail if auto-close option is false.
-          { s: '#ZZ', e: '@finish', g: 'map,pair,json' },
+          { s: '#ZZ', e: '@finish', g: 'map,pair,end,json' },
 
           // Who needs commas anyway?
           {
@@ -697,13 +697,13 @@ function grammar(jsonic: Jsonic) {
           { s: ['#CA', '#CS #ZZ'], b: 1, g: 'list,elem,comma,jsonic' },
 
           // Next element.
-          { s: '#CA', r: 'elem', g: 'list,elem,json' },
+          { s: '#CA', r: 'elem', g: 'list,elem,sync,json' },
 
           // End of list.
-          { s: '#CS', b: 1, g: 'list,elem,json' },
+          { s: '#CS', b: 1, g: 'list,elem,close,json' },
 
           // Fail if auto-close option is false.
-          { s: '#ZZ', e: '@finish', g: 'list,elem,json' },
+          { s: '#ZZ', e: '@finish', g: 'list,elem,end,json' },
 
           // Can't close a list with `}`
           { s: '#CB', e: (r: Rule) => r.c0, g: 'end,jsonic' },
