@@ -350,7 +350,7 @@ function applyRuleFilter(tabnas: any): void {
 // VERSION is this package's version. It MUST equal package.json "version":
 // the release orchestrator rewrites both, and the version test fails the
 // build if they drift. Mirrors `const VERSION` in go/jsonic.go.
-const VERSION = '0.6.3'
+const VERSION = '0.6.4'
 
 
 let root: any = undefined
