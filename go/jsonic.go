@@ -14,7 +14,7 @@ import (
 // VERSION is this module's version. It MUST equal ts/package.json
 // "version": the release orchestrator rewrites both, and
 // TestVersionMatchesPackageJSON fails the build if they drift.
-const VERSION = "0.6.2"
+const VERSION = "0.6.3"
 
 // grammarMark is the decoration key that records whether the relaxed-JSON
 // grammar has already been installed on an instance. It guards the Grammar
