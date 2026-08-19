@@ -7,9 +7,40 @@ Go-specific additions.
 ## Behavioral Differences
 
 The two runtimes produce identical parse results for the shared conformance
-fixtures (`test/spec/*.tsv`, run by both suites). The differences below do
-**not** change a successful parse value; they concern empty input, error
-codes, and host-language type representation.
+fixtures (`test/spec/*.tsv`, run by both suites).
+
+> **This file is prose, and prose rots.**
+> [`test/spec/divergent.tsv`](../../test/spec/divergent.tsv) is the
+> authority: it is EXECUTED by both suites, so a divergence that gets fixed
+> fails as loudly as one that regresses. This file has been wrong in both
+> directions — claiming `2.e3` and `1e999` still diverged after they were
+> aligned, and claiming base-prefixed overflow was aligned before it was.
+> Where the two disagree, the ledger wins.
+
+### Divergences that DO change a parse result
+
+The sections after this one concern empty input, error codes and
+host-language type representation, and none of them changes a successful
+parse value. These three do, and are recorded in the ledger with the engine
+PR that closes each. They are inherited from `@tabnas/parser`, not
+introduced here, and they close on adoption rather than by a change in this
+repo.
+
+| input | TypeScript | Go | closes with |
+|---|---|---|---|
+| `a"b` | `"a\"b"` | `ERROR:unterminated_string` | `parser#128` |
+| `{a:1"}` | `{"a":"1\""}` — a **string** | `ERROR:unterminated_string` | `parser#128` |
+| `{a:x<U+2028>y}` | `ERROR:unexpected` | `{"a":"x\u2028y"}` | `parser#125` |
+| `{a:"p\u00st"}` | `{"a":"p\u0000"}` | `ERROR:invalid_unicode` | `parser#123` |
+
+The last is a **defect in the canonical port**, not a defensible
+difference: `parseInt` used as a validator stops at the first non-hex
+character and returns what it read, so the `st` is consumed and discarded
+and a character that was never in the input is emitted. It is recorded
+rather than repaired only because the repair is in the engine.
+
+`{a:1"}` is the one to notice: the divergence changes the parsed value's
+TYPE, not merely whether the document parses.
 
 ### Empty / Whitespace Input
 
