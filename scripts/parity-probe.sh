@@ -64,11 +64,54 @@ if [ "$golines" != "$srclines" ] || [ "$tslines" != "$srclines" ]; then
   exit 1
 fi
 
-paste -d'\t' "$tmp/src.txt" "$tmp/go.out" "$tmp/ts.out" |
-  while IFS=$'\t' read -r src go ts; do
-    if [ "$go" = "$ts" ]; then
-      printf 'AGREE\t%s\t%s\n' "$src" "$go"
-    else
-      printf 'DIFFER\t%s\t%s\t%s\n' "$src" "$go" "$ts"
-    fi
-  done
+# Compare by VALUE, not by the two renderings' bytes.
+#
+# Each port still renders with its OWN encoder — that is the point of the
+# design above, and a shared renderer could hide a divergence inside itself.
+# But the two encoders disagree about things that are not parse differences,
+# and comparing their bytes reported those as divergences:
+#
+#   {a:"x<U+2028>y"}   go {"a":"x\u2028y"}   ts {"a":"x<U+2028>y"}
+#
+# Identical strings. Go's json.Marshal escapes U+2028 and U+2029 (they are
+# line terminators in JavaScript, so escaping them keeps the output safe to
+# embed in a script); JSON.stringify leaves them raw. A DIFFER there is an
+# encoder artifact, and acting on it would have put a row in the divergence
+# ledger recording a disagreement that does not exist — which is the one
+# thing this probe must never cause, because the ledger is what people
+# trust instead of re-measuring.
+#
+# So both renderings are parsed and re-encoded once, canonically, before
+# comparison. A real value difference survives that; an encoder difference
+# does not. Same approach as css/scripts/divergence-probe.sh.
+paste -d'\t' "$tmp/src.txt" "$tmp/go.out" "$tmp/ts.out" > "$tmp/joined.tsv"
+
+node -e '
+const fs = require("fs")
+
+// Sorted keys so object order — which is outside the value contract,
+// ADR-15 — cannot register as a divergence either.
+const canon = (v) => Array.isArray(v) ? v.map(canon)
+  : (v && "object" === typeof v)
+    ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, canon(v[k])]))
+    : v
+
+// An ERROR:<code> line is not JSON; compare those as the strings they are.
+// A rendering this cannot parse is compared as a string too, rather than
+// being silently called equal.
+const norm = (cell) => {
+  if (cell.startsWith("ERROR")) return cell
+  try { return JSON.stringify(canon(JSON.parse(cell))) }
+  catch { return cell }
+}
+
+for (const line of fs.readFileSync(process.argv[1], "utf8").split("\n")) {
+  if (!line) continue
+  const [src, go, ts] = line.split("\t")
+  if (norm(go) === norm(ts)) {
+    process.stdout.write("AGREE\t" + src + "\t" + go + "\n")
+  } else {
+    process.stdout.write("DIFFER\t" + src + "\t" + go + "\t" + ts + "\n")
+  }
+}
+' "$tmp/joined.tsv"
