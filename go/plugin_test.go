@@ -1567,6 +1567,24 @@ func TestRuleExcludeFromOptions(t *testing.T) {
 	})
 	j2.SetOptions(Options{Rule: &RuleOptions{Exclude: "experimental"}})
 
+	// Establish that the alt is there to exclude, using the instance built
+	// above without the exclude. Without this the test asserts an absence
+	// it never showed was an absence: if AddOpen stopped adding, or the
+	// group tag stopped being set, j2 would carry no experimental alt for
+	// the reason the exclude is supposed to provide and the check below
+	// would stay green while proving nothing. j was constructed for this
+	// and then never inspected.
+	present := 0
+	for _, alt := range j.RSM()["val"].OpenAlts() {
+		if strings.Contains(alt.G, "experimental") {
+			present++
+		}
+	}
+	if 0 == present {
+		t.Fatal("sanity: without the exclude there is no experimental " +
+			"alt, so excluding one proves nothing")
+	}
+
 	// The experimental alt should be excluded.
 	found := false
 	for _, alt := range j2.RSM()["val"].OpenAlts() {
