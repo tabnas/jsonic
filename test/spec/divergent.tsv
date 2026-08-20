@@ -22,15 +22,30 @@ name	opts	input	go	ts	justification
 # cannot, with a justification a reader can act on.
 string-replace-control	{"string":{"replace":{"\n":"X"}}}	"a\nc"	ERROR:unprintable	"aXc"	TS string.replace can map a control character to a replacement, making it legal string body. The Go string matcher rejects the raw control character before replacement is consulted, reporting unprintable. (go/doc/differences.md said unterminated_string; this ledger caught that on its first run — the prose predated the error-code alignment.) Replacement of PRINTABLE characters is aligned (see the control row below), and the unprintable error scan does honour replace mappings when locating the first offending character — only this legality question differs.
 string-replace-printable	{"string":{"replace":{"-":"X"}}}	"a-c"	"aXc"	"aXc"	Control row, not a divergence: printable replacement is aligned. Kept adjacent so a fix to the row above cannot be mistaken for a regression here.
-# --- Downstream of engine defects, added 2026-08-19 ------------------------
-# Measured with scripts/parity-probe.sh, not authored. All six are live in
-# this repo and were absent from this ledger while it described itself as
-# the AUTHORITATIVE list -- three whole classes the audit had already named
-# (U1, U3/U4, U5). Each cites the engine PR that closes it; when that lands,
-# the row goes red and must be deleted.
-text-ender-bare-quote	-	a"b	ERROR:unterminated_string	"a\"b"	Audit U1 (engine P1/P2). The text matcher's ender set omits the string quote characters in Go, so a quote ENDS a text run there and does not here: Go reaches the string matcher and reports an unterminated string, TypeScript keeps the quote inside the text value. ~2/3 of the 1,612 divergences in this repo's own 6,000-case fuzz run were this shape. Engine repair: tabnas/parser#128 — this row goes red on adoption, which is the signal to delete it.
-text-ender-quote-in-text	-	{a:b"c}	ERROR:unterminated_string	{"a":"b\"c"}	Same defect as text-ender-bare-quote, inside a map value rather than at the top level. Kept separate because the two reach the string matcher through different rules, and a partial fix could close one and not the other.
-text-ender-quote-after-value	-	{a:1"}	ERROR:unterminated_string	{"a":"1\""}	Same defect after a NUMBER-shaped text run. TypeScript's value is the string "1\"", not the number 1, which is worth seeing: the divergence changes the TYPE of the parsed value, not only whether it parses.
-line-separator-bare	-	{a:x y}	{"a":"x\u2028y"}	ERROR:unexpected	Audit U5 (engine P4). JavaScript's `.` excludes four line terminators and RE2's excludes one, so a text run crosses U+2028 in Go and does not here. NOTE: the input holds a RAW U+2028, invisible in an editor. It cannot be written \u2028 — the shared loader decodes only \n \r \t \\. The `go` column is its own sentinel: lose the character and Go yields {"a":"xy"}, so the row fails rather than silently testing something else. Engine repair: tabnas/parser#125.
-paragraph-separator-bare	-	{a:x y}	{"a":"x\u2029y"}	ERROR:unexpected	As line-separator-bare, for U+2029. Both are pinned because the engine fix routes them through one byte-table entry (0xE2) and a repair that handled only one would leave this red.
-malformed-unicode-escape	-	{a:"p\\u00st"}	ERROR:invalid_unicode	{"a":"p\u0000"}	Audit U3/U4 (engine P3). `parseInt` used as a validator stops at the first non-hex character and returns what it read, so TypeScript ACCEPTS this and emits a character that was never in the input — the `st` is consumed and discarded. Go rejects. This is a DEFECT in the canonical port on its own terms, not a defensible difference, and test/AGENTS.md says that where Go has exposed a genuine TS defect the fix goes in TS first and the CORRECTED behaviour is pinned. That is the intended outcome here. The row exists only because the repair is in the ENGINE (tabnas/parser#123) and this repo pins a published parser, so it cannot be fixed from here -- "record it here only when you cannot", per this file's own header. The ts column is an admission of parity debt and must not be read as the expected behaviour: when #123 is adopted this row goes red and is DELETED, not updated.
+# --- Downstream of engine defects: all six CLOSED, 2026-08-20 -------------
+# Six rows stood here, measured 2026-08-19 with scripts/parity-probe.sh.
+# Each cited the engine PR that would close it, and said the row goes red on
+# adoption and must be deleted. All six landed the same day and all six went
+# red, so all six are gone. Re-measured in BOTH ports before deleting, since
+# a row that changed is not automatically a row that closed:
+#
+#   text-ender-bare-quote          go ERROR:unterminated_string -> "a\"b"
+#   text-ender-quote-in-text       go ERROR:unterminated_string -> {"a":"b\"c"}
+#   text-ender-quote-after-value   go ERROR:unterminated_string -> {"a":"1\""}
+#       parser#128 (P1/P2) — a quote no longer ends a Go text run. This was
+#       ~2/3 of the 1,612 divergences in this repo's own 6,000-case fuzz.
+#
+#   line-separator-bare            go {"a":"x<U+2028>y"} -> ERROR:unexpected
+#   paragraph-separator-bare       go {"a":"x<U+2029>y"} -> ERROR:unexpected
+#       parser#125 (P4) — decided as "move Go": a Go text run now stops at
+#       U+2028/U+2029, so both ports refuse. The other direction was argued
+#       and declined; see parser#140.
+#
+#   malformed-unicode-escape       ts {"a":"p\u0000"} -> ERROR:invalid_unicode
+#       parser#139 (P3) — the TypeScript escape decode now requires the full
+#       hex run, so it stops inventing a character from a truncated escape.
+#
+# Every one now agrees between the ports. MEASURE AGAINST THE SIBLING
+# CHECKOUTS: polyglot-ci links them, so these suites run against parser's
+# main, not the version this repo pins. Against the pinned release the six
+# rows still look live, which is a statement about a build nothing runs.
