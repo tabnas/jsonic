@@ -23,7 +23,46 @@ shape of the disagreements and the ones that are deliberate.
 
 ## Currently divergent
 
-One row, at the time of writing — see the .tsv for the authoritative list.
+**No count here, deliberately.** This page used to say "one row, at the
+time of writing", which was literally accurate about the file and wrong
+about the world: three whole divergence classes were live and unrecorded
+while it said so. A count in prose is a claim that rots the moment the
+ledger changes and nothing checks it. Read
+[`test/spec/divergent.tsv`](test/spec/divergent.tsv) for what diverges
+today; what follows is the SHAPE of each class, not an inventory.
+
+### Downstream of engine defects
+
+Three classes, all rooted in `@tabnas/parser` and all closing when the
+engine repair is adopted. Each ledger row names the PR that closes it, and
+goes red when it lands.
+
+**A quote ends a text run in Go and not here.** The text matcher's ender
+set omits the string quote characters in Go, so `a"b` reaches the string
+matcher there and reports `unterminated_string`, while TypeScript keeps the
+quote inside the text value. `{a:1"}` is worth seeing: TypeScript's value
+is the *string* `"1\""`, not the number `1` — the divergence changes the
+type of the parsed value, not only whether the document parses. Roughly
+two thirds of the 1,612 divergences in this repo's own 6,000-case fuzz run
+were this shape. Closes with `tabnas/parser#128`.
+
+**A text run crosses U+2028/U+2029 in Go and not here.** JavaScript's `.`
+excludes four line terminators and RE2's excludes one. Closes with
+`tabnas/parser#125`.
+
+**A malformed `\u` escape is ACCEPTED here.** `parseInt` used as a
+validator stops at the first non-hex character and returns what it read, so
+`"p\u00st"` decodes and silently discards the `st`, emitting a character
+that was never in the input. Go rejects it.
+
+> This one is a **defect in the canonical port on its own terms**, not a
+> defensible difference. `test/AGENTS.md` says that where Go has exposed a
+> genuine TS defect, TS is fixed first and the corrected behaviour pinned —
+> and that is the intended outcome here. The ledger row exists only because
+> the repair is in the ENGINE (`tabnas/parser#123`), not in this repo,
+> which pins a published parser. The row is an admission of parity debt, in
+> the register's own words, and must not be read as the expected behaviour.
+> When #123 is adopted the row goes red and is deleted, not updated.
 
 ### `string.replace` of a control character
 
