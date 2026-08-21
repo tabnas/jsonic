@@ -9,6 +9,8 @@
 
 A dynamic JSON parser that isn't strict and can be customized.
 
+Docs, guides, the error reference and the playground: **[tabnas.dev](https://tabnas.dev)**.
+
 ```
 a:1,foo:bar  →  {"a": 1, "foo": "bar"}
 ```
