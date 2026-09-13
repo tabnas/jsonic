@@ -51,7 +51,7 @@ parser.parse('a:1, b:[x,y,z]')   // => { a: 1, b: ['x','y','z'] }
 ```
 
 Because it is a normal plugin, other grammar plugins can depend on it and
-layer their own syntax on top of jsonic's value/map/list rules — register
+layer their own syntax on top of jsonic's value/map/list rules; register
 jsonic first:
 
 ```js
@@ -167,9 +167,9 @@ j.use(myPlugin, { tildeValue: 42 })
 j('~')  // => 42
 ```
 
-Consider what just happened: we invented a new syntax element (`~`),
-told the parser what to do when it encounters one, and wired it up with
-a configurable value. The parser itself doesn't care what symbols you
+Consider what just happened. That plugin invented a new syntax element
+(`~`), told the parser what to do when it encounters one, and wired it
+up with a configurable value. The parser itself doesn't care what symbols you
 use. It only cares about rules.
 
 See [doc/plugins.md](doc/plugins.md) for the plugin authoring guide.
@@ -206,13 +206,13 @@ result, err := jsonic.Parse("a:1, b:2")
 
 Organized by what you are trying to do:
 
-- **Learning** — [Tutorial](doc/tutorial.md): from install to your
+- **Learning**. [Tutorial](doc/tutorial.md): from install to your
   first parse, step by step.
-- **Tasks** — [How-to guide](doc/guide.md) and
+- **Tasks**. [How-to guide](doc/guide.md) and
   [Writing plugins](doc/plugins.md): focused recipes.
-- **Reference** — [API](doc/api.md), [Options](doc/options.md), and
+- **Reference**. [API](doc/api.md), [Options](doc/options.md), and
   [Syntax](doc/syntax.md): complete method, option, and syntax lists.
-- **Understanding** — [Concepts](doc/concepts.md): how the parser is
+- **Understanding**. [Concepts](doc/concepts.md): how the parser is
   built and why.
 
 

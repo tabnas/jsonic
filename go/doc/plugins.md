@@ -6,7 +6,7 @@ registering custom matchers, or subscribing to parse events.
 ## jsonic is itself a plugin
 
 jsonic is a grammar plugin for the `tabnas` engine
-(`github.com/tabnas/parser/go`) — the engine ships no grammar, jsonic
+(`github.com/tabnas/parser/go`); the engine ships no grammar, and jsonic
 supplies the relaxed-JSON one. The idiomatic way to use it, and to write
 plugins that build on it, is at the engine level:
 
@@ -28,7 +28,7 @@ unchanged. Register a grammar's dependencies before the grammar itself.
 
 ## Plugin Structure
 
-A plugin is a function with signature `Plugin` — it returns an `error`
+A plugin is a function with signature `Plugin`; it returns an `error`
 (`nil` on success):
 
 ```go
@@ -113,7 +113,7 @@ func myPlugin(j *tabnasjsonic.Jsonic, opts map[string]any) error {
 | `P` | `string` | Push a new rule by name |
 | `R` | `string` | Replace current rule |
 | `B` | `int` | Backtrack: tokens to put back |
-| `G` | `string` | Group tag (e.g., `"json"`, `"jsonic,map"`) |
+| `G` | `string` | Group tag (for example `"json"`, `"jsonic,map"`) |
 | `H` | `AltModifier` | Custom handler: `func(alt *AltSpec, r *Rule, ctx *Context) *AltSpec` |
 | `E` | `func(r *Rule, ctx *Context) *Token` | Error function |
 | `PF` | `func(r *Rule, ctx *Context) string` | Dynamic push |

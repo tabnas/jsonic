@@ -91,7 +91,7 @@ map[string]*CommentDef{
 
 `Def` entries given to `Make` merge with the defaults, as in TS: a new
 name adds a marker alongside the defaults, a partial def for a default
-name inherits the fields it leaves unset (e.g. `{"hash": {EatLine: &t}}`
+name inherits the fields it leaves unset (for example `{"hash": {EatLine: &t}}`
 keeps the `#` start), and a `nil` def removes just that marker. For a
 default name, `Line: false` is honored when the def also sets `End`
 (block conversion); without `End` it reads as unset (see

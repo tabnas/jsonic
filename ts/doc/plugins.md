@@ -6,7 +6,7 @@ registering custom matchers, or subscribing to parse events.
 ## jsonic is itself a plugin
 
 jsonic is a grammar plugin for the
-[`tabnas`](https://github.com/tabnas/parser) engine — the engine ships no
+[`tabnas`](https://github.com/tabnas/parser) engine; the engine ships no
 grammar, jsonic supplies the relaxed-JSON one. The idiomatic way to use
 it, and to write plugins that build on it, is at the engine level:
 
@@ -82,7 +82,7 @@ Token names conventionally use `#XX` format. Built-in tokens:
 The parser uses named rules, each with an `open` and a `close` phase.
 `rs.open(alts)` and `rs.close(alts)` add a list of **alternates**; each
 alternate matches a token pattern and fires actions. Pass the alternates you
-want to add — they are appended to the rule's existing alternates.
+want to add; they are appended to the rule's existing alternates.
 
 ```js
 function myPlugin(jsonic) {
@@ -111,7 +111,7 @@ function myPlugin(jsonic) {
 | `p` | Push a new rule onto the stack by name |
 | `r` | Replace current rule with another |
 | `b` | Backtrack: number of tokens to put back |
-| `g` | Group tag string (e.g., `'json'`, `'jsonic,map'`) |
+| `g` | Group tag string (for example `'json'`, `'jsonic,map'`) |
 | `h` | Custom handler: `(alt, rule, ctx) => alt` |
 | `e` | Error function: `(rule, ctx) => token` |
 

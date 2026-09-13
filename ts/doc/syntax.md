@@ -9,7 +9,7 @@ Standard JSON objects work as expected. jsonic also supports:
 
 ### Unquoted Keys
 
-A key does not need quotes when it is a single unquoted token — a run of
+A key does not need quotes when it is a single unquoted token: a run of
 characters with no whitespace and no structural character (`{}`, `[]`, `:`,
 `,`). Letters, digits, `_`, `-`, and `.` are all fine inside the token.
 
@@ -19,7 +19,7 @@ characters with no whitespace and no structural character (`{}`, `[]`, `:`,
 {a.b.c: 1}            → {"a.b.c": 1}
 ```
 
-A key that contains a space must be quoted — the space ends the token:
+A key that contains a space must be quoted, because the space ends the token:
 
 ```
 {"my key": "value"}   → {"my key": "value"}
@@ -67,7 +67,7 @@ a b c                 → ["a", "b", "c"]
 ### Key-Value Pairs in Arrays
 
 By default, a key-value pair inside an array is *permitted* (it is not an
-error) but does not contribute an element — the pair is consumed and dropped:
+error) but does not contribute an element: the pair is consumed and dropped:
 
 ```
 [1, a:2, 3]           → [1, 3]
@@ -99,7 +99,7 @@ Double quotes, single quotes, and backticks all work as string delimiters.
 A value that is not a number, boolean, or null is treated as an unquoted
 string. An unquoted string is a single token: it extends to the next
 whitespace or structural character (`,`, `:`, `{`, `}`, `[`, `]`). It does
-**not** span spaces — to include spaces in a value, quote it.
+**not** span spaces; to include spaces in a value, quote it.
 
 ```
 {a: hello}            → {"a": "hello"}

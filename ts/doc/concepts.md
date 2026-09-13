@@ -1,7 +1,7 @@
 # Concepts
 
 Background on how jsonic is put together, and why. This is
-understanding-oriented reading — for steps see the
+understanding-oriented reading; for steps see the
 [tutorial](tutorial.md) and [how-to guide](guide.md), and for exact
 signatures see the [API](api.md) and [options](options.md) references.
 
@@ -9,11 +9,11 @@ signatures see the [API](api.md) and [options](options.md) references.
 
 jsonic is two things wearing one coat:
 
-- a **parsing engine** — a rule-based parser over a configurable,
-  matcher-based lexer — which lives in the separate
+- a **parsing engine** (a rule-based parser over a configurable,
+  matcher-based lexer) which lives in the separate
   [`tabnas`](https://github.com/tabnas/parser) package, and
-- the **relaxed-JSON grammar** — the rules that turn `a:1,b:2` into an
-  object — which lives here, in `src/grammar.ts`.
+- the **relaxed-JSON grammar** (the rules that turn `a:1,b:2` into an
+  object) which lives here, in `src/grammar.ts`.
 
 `src/jsonic.ts` constructs a `tabnas` engine instance, installs the
 grammar on it, and dresses it in the historic `Jsonic` shape: a parse
@@ -35,15 +35,15 @@ from independent **matchers**, one per token kind (fixed punctuation,
 space, line endings, strings, comments, numbers, text, and your custom
 matchers). At each position the matchers run in a fixed priority order
 and the first to produce a token wins. Matchers are configured, not
-hard-coded — disabling comments or adding a quote character is an
+hard-coded: disabling comments or adding a quote character is an
 option change, and the lexer rebuilds itself from the resolved
 configuration.
 
 The **parser** consumes tokens according to named **rules** (`val`,
 `map`, `list`, `pair`, `elem`). Each rule has an **open** and a
 **close** phase, and each phase holds a list of **alternates**. An
-alternate matches a short token pattern — at most two tokens of
-lookahead — and when it matches it can run an **action** that builds the
+alternate matches a short token pattern (at most two tokens of
+lookahead) and when it matches it can run an **action** that builds the
 result, **push** a child rule, **replace** the current rule, or
 **backtrack** a token so another rule sees it. Four state-action hooks
 (before/after open, before/after close) let a rule run code at each
@@ -61,7 +61,7 @@ the rule set, and the plugins applied to it. `Jsonic.make(options)`
 derives a new instance: it merges the parent's options with your
 overrides and **re-runs every plugin** the parent registered against the
 merged options. Re-running matters because grammar can be
-option-conditional — an alternate that only exists when a flag is set
+option-conditional: an alternate that only exists when a flag is set
 must be re-evaluated for the child, not copied stale. This is also why
 plugins must be idempotent.
 
@@ -78,7 +78,7 @@ localised through the `error` and `hint` options.
 
 Longer-form explorations live alongside this document:
 
-- [LSP feasibility](lsp-feasibility.md) — language-server angles on the
+- [LSP feasibility](lsp-feasibility.md). Language-server angles on the
   parser.
 
 For how the Go port differs from this canonical behavior, see

@@ -1,4 +1,4 @@
-# Tutorial — your first jsonic parse
+# Tutorial: your first jsonic parse
 
 This walks you from nothing to a working parse, then through one
 customization and one error. Follow it in order; each step builds on
@@ -25,7 +25,7 @@ const { Jsonic } = require('@tabnas/jsonic')
 Jsonic('a:1, b:2')   // => { a: 1, b: 2 }
 ```
 
-You wrote `a:1, b:2` — no braces, no quotes around the key — and got
+You wrote `a:1, b:2` (no braces, no quotes around the key) and got
 back an object. That is the point: jsonic parses what you meant. It
 still accepts ordinary JSON, so `Jsonic('{"a":1}')` works too.
 
@@ -43,8 +43,8 @@ array; key-value pairs become an object.
 ## 3. Make a configured instance
 
 `Jsonic` uses sensible defaults, but you do not have to accept them.
-`Jsonic.make(options)` returns a *new* parser instance — itself
-callable — with the behavior you choose:
+`Jsonic.make(options)` returns a *new* parser instance, itself
+callable, with the behavior you choose:
 
 ```js
 const { Jsonic } = require('@tabnas/jsonic')
@@ -56,7 +56,7 @@ noNumbers('a:1, b:2')       // => { a: '1', b: '2' }
 ```
 
 The instance is reusable; call it as many times as you like. Options
-compose — turn things off, turn things on — and the original `Jsonic`
+compose (turn things off, turn things on) and the original `Jsonic`
 is unaffected.
 
 ## 4. Add a keyword
@@ -97,13 +97,13 @@ try {
 ```
 
 `err.message` is a multi-line, human-readable report with a source
-extract and a hint — useful to show a user. The structured fields
+extract and a hint, which is useful to show a user. The structured fields
 (`code`, `lineNumber`, `columnNumber`) are for your code to branch on.
 
 ## Where to go next
 
-- [How-to guide](guide.md) — focused recipes for individual tasks.
-- [Syntax reference](syntax.md) — everything jsonic accepts.
-- [Options reference](options.md) — every configuration field.
-- [Writing plugins](plugins.md) — extend the grammar itself.
-- [Concepts](concepts.md) — how the parser is put together, and why.
+- [How-to guide](guide.md). Focused recipes for individual tasks.
+- [Syntax reference](syntax.md). Everything jsonic accepts.
+- [Options reference](options.md). Every configuration field.
+- [Writing plugins](plugins.md). Extend the grammar itself.
+- [Concepts](concepts.md). How the parser is put together, and why.

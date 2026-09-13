@@ -21,7 +21,7 @@ const json = Jsonic.make('json')
 
 json('{"a":1}')   // => { a: 1 }
 
-// `json('a:1')` throws — an unquoted key is rejected:
+// `json('a:1')` throws, because an unquoted key is rejected:
 let threw = false
 try { json('a:1') } catch (e) { threw = true }
 threw             // => true
@@ -49,7 +49,7 @@ const j = Jsonic.make({ comment: { lex: false } })
 
 j('a:1')           // => { a: 1 }
 
-// `j('a:1 # x')` throws — `#` is no longer a comment:
+// `j('a:1 # x')` throws, because `#` is no longer a comment:
 let threw = false
 try { j('a:1 # x') } catch (e) { threw = true }
 threw              // => true
@@ -132,7 +132,7 @@ the [error reference](api.md#error-handling).
 ## Watch lexing and parsing
 
 `instance.sub({ lex, rule })` registers observers that fire as the parse
-runs. They watch only — they cannot change the result:
+runs. They watch only; they cannot change the result:
 
 ```js
 const j = Jsonic.make()

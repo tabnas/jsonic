@@ -95,7 +95,7 @@ jsonic.rule('val', (rs) => {
 
 ### `instance.token(ref)`
 
-Get or create a token type. `ref` is a string name (e.g., `'#OB'` for open
+Get or create a token type. `ref` is a string name (for example `'#OB'` for open
 brace); the call returns the token's Tin number, minting one if the name is
 new.
 
@@ -143,7 +143,7 @@ that case `use()` returns whatever the plugin returns, otherwise the same
 instance. Plugins are **re-applied when deriving a child instance with
 `make()`**, so `.use()` decorations propagate to children.
 
-Plugins may also be supplied at construction time — equivalent to calling
+Plugins may also be supplied at construction time, equivalent to calling
 `.use()` for each, in order:
 
 ```js

@@ -82,7 +82,7 @@ Default comment definitions:
 
 `def` entries merge with the defaults: a new name adds a marker alongside
 them, a partial entry for a default name inherits the fields it leaves
-unset (e.g. `{ hash: { eatline: true } }` keeps the `#` start), and a
+unset (for example `{ hash: { eatline: true } }` keeps the `#` start), and a
 `null` (or `false`) entry removes just that marker.
 
 Each definition has:
@@ -138,7 +138,7 @@ keyOrder(j.parse('{10:a, 2:b, x:c}'))  // => ['10', '2', 'x']
 Without the option, plain-object mode **loses integer-like key order**:
 JavaScript enumerates integer-like keys in ascending numeric order no matter
 the order they were written, so `{2:9, 1:8}` enumerates as `['1', '2']`. That
-is a language semantic, not a fixable bug in the plain representation — the
+is a language semantic, not a fixable bug in the plain representation: the
 Go port's `*jsonic.OrderedMap` preserves insertion order for every key, and
 `ordered: true` is the TS mirror of that information.
 
