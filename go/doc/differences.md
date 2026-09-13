@@ -13,7 +13,7 @@ fixtures (`test/spec/*.tsv`, run by both suites).
 > [`test/spec/divergent.tsv`](../../test/spec/divergent.tsv) is the
 > authority: it is EXECUTED by both suites, so a divergence that gets fixed
 > fails as loudly as one that regresses. This file has been wrong in both
-> directions — claiming `2.e3` and `1e999` still diverged after they were
+> directions, claiming `2.e3` and `1e999` still diverged after they were
 > aligned, and claiming base-prefixed overflow was aligned before it was.
 > Where the two disagree, the ledger wins.
 
@@ -29,7 +29,7 @@ repo.
 | input | TypeScript | Go | closes with |
 |---|---|---|---|
 | `a"b` | `"a\"b"` | `ERROR:unterminated_string` | `parser#128` |
-| `{a:1"}` | `{"a":"1\""}` — a **string** | `ERROR:unterminated_string` | `parser#128` |
+| `{a:1"}` | `{"a":"1\""}`, a **string** | `ERROR:unterminated_string` | `parser#128` |
 | `{a:x<U+2028>y}` | `ERROR:unexpected` | `{"a":"x\u2028y"}` | `parser#125` |
 | `{a:"p\u00st"}` | `{"a":"p\u0000"}` | `ERROR:invalid_unicode` | `parser#123` |
 
@@ -54,8 +54,8 @@ grammar behavior.
 
 Error codes are aligned with TypeScript. In particular, a raw control
 character (code point below 32) inside a quoted string reports
-`unprintable`, positioned at the offending character — including a raw
-newline in a non-multiline string — while a string that simply hits end of
+`unprintable`, positioned at the offending character (including a raw
+newline in a non-multiline string) while a string that simply hits end of
 source reports `unterminated_string`, exactly as in TS. (Earlier Go
 versions reported `unterminated_string` for both; the alignment is
 implemented as a jsonic-installed lex matcher, `jsonic$unprintable` in
@@ -63,8 +63,8 @@ implemented as a jsonic-installed lex matcher, `jsonic$unprintable` in
 engine's string matcher.)
 
 One related edge is **not** aligned: TS `string.replace` can map a control
-character to a replacement (e.g. `{'\n': 'X'}`), making it *legal* string
-body — `j1('"aAc\n"') === 'aBcX'` in TS. The Go engine's string matcher
+character to a replacement (for example `{'\n': 'X'}`), making it *legal* string
+body: `j1('"aAc\n"') === 'aBcX'` in TS. The Go engine's string matcher
 still rejects the raw control character (`unterminated_string`) even when
 it has a replacement mapping. Replacement of printable characters is fully
 supported, and the `unprintable` error scan honours replace mappings (a
@@ -76,15 +76,15 @@ Base-prefixed runs with a dot continuation (`0xFF.5`, `0b1.`) and
 separator-at-run-edge forms (`+_1`, `1_`, `1.5_`, `1e_2`) are **aligned**:
 both ports decline the whole run to lenient text as one string. Previously
 the TS scanner claimed the prefix and emitted the trailing fixed token at
-the wrong position — `[0xFF.5]` parsed as `[[],"xFF.5"]`, fabricating
-elements and destroying characters — and the Go scanner silently swallowed
+the wrong position (`[0xFF.5]` parsed as `[[],"xFF.5"]`, fabricating
+elements and destroying characters) and the Go scanner silently swallowed
 edge separators, parsing `+_1` as the number `1`. Numeric separators are
 legal only between the digits of a run. Pinned cross-port by
 `test/spec/alignment-number-prefix-separator.tsv`.
 
 Key insertion order is **representable in both ports**: Go's `*OrderedMap`
 always preserves it; TS opts in with `map: { ordered: true }` + `keyOrder`
-(plain objects reorder integer-like keys — a JS semantic). The twin tables
+(plain objects reorder integer-like keys, a JS semantic). The twin tables
 in `go/ordered_test.go` and `ts/test/ordered.test.js` pin the parity.
 
 
@@ -92,7 +92,7 @@ A leading-digit token that is not a valid number is treated as text in **both**
 runtimes (this was previously listed as a divergence and is not one): `123abc`
 parses to the string `"123abc"` on both sides.
 
-A trailing dot before an exponent — `2.e3`, `0.e1`, `2.e+3`, `2.e-3` — was
+A trailing dot before an exponent (`2.e3`, `0.e1`, `2.e+3`, `2.e-3`) was
 previously text in Go and a number in TS. **This is now aligned**: the engine's
 `matchNumber` checked whether the character after the dot was trailing text
 before it checked for an exponent, so the `e` was misread as text and the whole
@@ -159,10 +159,9 @@ option space, `jsonicOptions`, exactly as in TS `defaults.ts`):
 - adding a def **extends** the default markers (`#`, `//`, `/* */`)
   instead of replacing them;
 - a partial def for a default name (`hash` / `slash` / `multi`) inherits
-  the fields it leaves unset (start, end, line, lex, eatline) — e.g.
-  `{"hash": {EatLine: &t}}` keeps the `#` start;
+  the fields it leaves unset (start, end, line, lex, eatline). For example `{"hash": {EatLine: &t}}` keeps the `#` start;
 - a `nil` def removes just that marker (TS `hash: null`);
-- a def for a **new** name is inactive unless it sets `Lex` — mirroring TS
+- a def for a **new** name is inactive unless it sets `Lex`, mirroring TS
   `makeCommentMatcher`'s `lex: !!om.lex`. (The raw Go engine defaults an
   unset `Lex` to true; `jsonic.Make` normalizes to the TS behavior.)
 
@@ -174,7 +173,7 @@ Two engine-level edges are **not** aligned:
   leaves unset. Adding or removing whole defs via `SetOptions` is aligned.
 - Go bool fields cannot distinguish unset from `false`, so for a default
   name an explicit `Line: false` (TS `line: false`) is honored only when
-  the def also sets `End` — the unambiguous block-conversion shape, since
+  the def also sets `End`, the unambiguous block-conversion shape, since
   line comments never use `End`. A bare `{Line: false}` without `End`
   (degenerate in TS too: a block comment with no end marker) reads as
   unset and keeps the default `Line: true`. To express anything else,
@@ -203,9 +202,9 @@ The following TypeScript features are not yet available in Go:
 
 | Feature | TS Option | Notes |
 |---|---|---|
-| Token-set overrides reaching the built grammar | `tokenSet` | The Go jsonic grammar resolves `#KEY`/`#VAL` statically when its rules are built, so a custom `tokenSet` (e.g. adding an identifier token to `KEY`) does not change the existing alternates. Workaround: modify the rules directly via `j.Rule(...)`. |
+| Token-set overrides reaching the built grammar | `tokenSet` | The Go jsonic grammar resolves `#KEY`/`#VAL` statically when its rules are built, so a custom `tokenSet` (for example adding an identifier token to `KEY`) does not change the existing alternates. Workaround: modify the rules directly via `j.Rule(...)`. |
 | Alt `h` modifier action suppression | (Rule flags) | The TS `h` modifier can set `rule.ao/bc/ac = false` to suppress state actions; the Go `Rule` has no such flags. |
-| Deep-copied option values | (all options) | TS copies options deeply, so mutating an option value (e.g. a `value.def` map) after `make()` has no effect; Go keeps the caller's reference. |
+| Deep-copied option values | (all options) | TS copies options deeply, so mutating an option value (for example a `value.def` map) after `make()` has no effect; Go keeps the caller's reference. |
 
 ## Go-Specific Features
 

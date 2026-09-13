@@ -1,4 +1,4 @@
-# Tutorial — your first jsonic parse (Go)
+# Tutorial: your first jsonic parse (Go)
 
 This walks you from nothing to a working parse, then through one
 customization and one error. Follow it in order; each step builds on
@@ -41,8 +41,8 @@ func main() {
 }
 ```
 
-Run it with `go run .`. You wrote `a:1, b:2` — no braces, no quotes
-around the keys — and got back an object. `tabnasjsonic.Parse` is the
+Run it with `go run .`. You wrote `a:1, b:2` (no braces, no quotes
+around the keys) and got back an object. `tabnasjsonic.Parse` is the
 zero-config convenience function; it builds a fresh parser each call.
 It still accepts ordinary JSON, so `tabnasjsonic.Parse(`{"a":1}`)` works too.
 
@@ -97,7 +97,7 @@ documented in the [options reference](options.md).
 
 ## 5. Catch an error
 
-When the input is malformed, `Parse` returns an `error` — it never
+When the input is malformed, `Parse` returns an `error`; it never
 panics. Inspect the structured detail with `errors.As`:
 
 ```go
@@ -117,15 +117,15 @@ if errors.As(err, &je) {
 ```
 
 `err.Error()` renders a formatted message with a caret pointing at the
-source location — useful to show a user. The `*tabnasjsonic.JsonicError`
+source location, which is useful to show a user. The `*tabnasjsonic.JsonicError`
 fields (`Code`, `Row`, `Col`, `Hint`, …) are for your code to branch on.
 
 ## Where to go next
 
-- [How-to guide](guide.md) — focused recipes for individual tasks.
-- [Syntax reference](syntax.md) — supported syntax and return types.
-- [Options reference](options.md) — every configuration field.
-- [Concepts](concepts.md) — how the package is built, and the
+- [How-to guide](guide.md). Focused recipes for individual tasks.
+- [Syntax reference](syntax.md). Supported syntax and return types.
+- [Options reference](options.md). Every configuration field.
+- [Concepts](concepts.md). How the package is built, and the
   guarantees it makes.
-- [Differences from TypeScript](differences.md) — if you also use the
+- [Differences from TypeScript](differences.md). If you also use the
   TS version.

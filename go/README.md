@@ -10,7 +10,7 @@ read on.
 jsonic accepts all standard JSON -- and then goes further. Unquoted
 keys, implicit objects, comments, trailing commas, single-quoted
 strings, multiline strings, path diving, and more. It parses what you
-meant, not just what you typed.
+meant rather than only what you typed.
 
 ## Install
 
@@ -61,7 +61,7 @@ out, _ := j.Parse("a:1, b:[x,y,z]")   // map[a:1 b:[x y z]]
 ```
 
 Because it is a normal plugin, other grammar plugins can depend on it and
-layer their own syntax on top of jsonic's value/map/list rules — register
+layer their own syntax on top of jsonic's value/map/list rules; register
 jsonic first:
 
 ```go
@@ -94,7 +94,7 @@ j := tabnasjsonic.Make(tabnasjsonic.Options{
 })
 
 result, err := j.Parse("a:1, b:2")
-// {"a": "1", "b": "2"} — numbers are kept as strings
+// {"a": "1", "b": "2"} (numbers are kept as strings)
 ```
 
 Options compose. Turn things off, turn things on. You can always change
@@ -118,13 +118,13 @@ jsonic accepts all standard JSON plus the relaxations listed in the
 
 The docs are organized by what you are trying to do:
 
-- **Learning** — [Tutorial](doc/tutorial.md): from install to your first
+- **Learning**. [Tutorial](doc/tutorial.md): from install to your first
   parse, step by step.
-- **Tasks** — [How-to guide](doc/guide.md) and [Plugin guide](doc/plugins.md):
+- **Tasks**. [How-to guide](doc/guide.md) and [Plugin guide](doc/plugins.md):
   focused recipes.
-- **Reference** — [API](doc/api.md), [Options](doc/options.md), and
+- **Reference**. [API](doc/api.md), [Options](doc/options.md), and
   [Syntax](doc/syntax.md): complete field, method, and syntax lists.
-- **Understanding** — [Concepts](doc/concepts.md) and, if you also use
+- **Understanding**. [Concepts](doc/concepts.md) and, if you also use
   the TypeScript version, [Differences from TypeScript](doc/differences.md).
 
 ## License

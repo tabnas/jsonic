@@ -239,12 +239,12 @@ modification. Prefer `Token()`, `Rule()`, and `options.lex.match` for most work.
 
 ### Filtering the grammar by group tag
 
-Every grammar alternate carries group tags (e.g. `json`, `jsonic`, `map`).
+Every grammar alternate carries group tags (for example `json`, `jsonic`, `map`).
 Filter them through the `Rule` options rather than a method:
 
-- `Rule.Include` — keep only alternates tagged with these (comma-separated)
+- `Rule.Include`. Keep only alternates tagged with these (comma-separated)
   groups; applied first.
-- `Rule.Exclude` — drop alternates tagged with these groups; applied after
+- `Rule.Exclude`. Drop alternates tagged with these groups; applied after
   `Include`.
 
 ```go
@@ -266,7 +266,7 @@ input). Numbers must be exactly the RFC 8259 form
 ```go
 j := tabnasjsonic.MakeJSON()
 j.Parse(`{"a":1}`) // ok
-j.Parse("a:1")      // *JsonicError — unquoted key rejected
+j.Parse("a:1")      // *JsonicError: unquoted key rejected
 ```
 
 ## Error Handling

@@ -2,7 +2,7 @@
 
 The Go version of jsonic supports the same core syntax as the TypeScript
 version. See the [TypeScript syntax reference](../../ts/doc/syntax.md) for the
-full specification — it is canonical and the Go port produces the same parse
+full specification: it is canonical, and the Go port produces the same parse
 results.
 
 This page notes Go-specific behavior. For a complete list of differences, see

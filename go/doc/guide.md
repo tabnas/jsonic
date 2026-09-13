@@ -22,7 +22,7 @@ single/backtick quotes, empty input):
 j := tabnasjsonic.MakeJSON()
 
 j.Parse(`{"a":1}`) // ok
-j.Parse("a:1")      // *JsonicError — unquoted key rejected
+j.Parse("a:1")      // *JsonicError: unquoted key rejected
 ```
 
 Under the hood this filters the grammar to alternates tagged `json`. To
@@ -97,8 +97,8 @@ your overrides on top. The parent is left unchanged.
 base  := tabnasjsonic.Make(tabnasjsonic.Options{Number: &tabnasjsonic.NumberOptions{Hex: boolp(false)}})
 child := base.Derive(tabnasjsonic.Options{Comment: &tabnasjsonic.CommentOptions{Lex: boolp(false)}})
 
-child.Parse("0xa")  // "0xa"  — hex still off (inherited), comments off too
-base.Parse("0xa")   // "0xa"  — parent unaffected
+child.Parse("0xa")  // "0xa"  (hex still off, inherited; comments off too)
+base.Parse("0xa")   // "0xa"  (parent unaffected)
 ```
 
 ## Add a custom matcher
@@ -132,5 +132,5 @@ j := tabnasjsonic.Make(tabnasjsonic.Options{Lex: &tabnasjsonic.LexOptions{
 
 `Order` controls priority (lower runs first); the built-in priorities
 are listed in the [plugin guide](plugins.md#custom-matchers). For
-grammar changes (new tokens and rules), write a plugin — see the
+grammar changes (new tokens and rules), write a plugin; see the
 [plugin guide](plugins.md).

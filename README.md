@@ -16,7 +16,7 @@ a:1,foo:bar  →  {"a": 1, "foo": "bar"}
 ```
 
 jsonic accepts all standard JSON and then relaxes it for humans: you can
-skip the quotes, the braces, the commas — and jsonic will still parse
+skip the quotes, the braces, the commas, and jsonic will still parse
 what you meant. Every relaxation below is verified against the shared
 conformance fixtures, works identically in TypeScript and Go, and can be
 switched off individually if you want less magic.
@@ -58,7 +58,7 @@ a:                   →  {"a": null}
 ### Path diving
 
 A chain of colons dives into nested objects, and repeated keys
-deep-merge instead of clobbering — handy for config files:
+deep-merge instead of clobbering, which is handy for config files:
 
 ```
 a:b:c:1              →  {"a": {"b": {"c": 1}}}
@@ -163,7 +163,7 @@ j('start: 2026-07-17')         // => { start: new Date('2026-07-17') }
 
 jsonic is itself a grammar plugin on the
 [tabnas](https://github.com/tabnas/parser) engine, so the same mechanism
-that builds it extends it — the `csv`, `toml`, `yaml`, and `ini`
+that builds it extends it: the `csv`, `toml`, `yaml`, and `ini`
 grammars are all plugins layered on jsonic:
 
 ```js
@@ -198,9 +198,9 @@ ordinary own property and never touches `Object.prototype`.
 
 ## Every relaxation is optional
 
-Each feature above sits behind an option group — `comment.lex`,
+Each feature above sits behind an option group (`comment.lex`,
 `number.hex`, `string.multiChars`, `map.extend`, `rule.finish`, and so
-on — so you can dial jsonic anywhere between "strict JSON"
+on) so you can dial jsonic anywhere between "strict JSON"
 (`Jsonic.make('json')`) and fully relaxed. See the options reference
 ([TS](ts/doc/options.md), [Go](go/doc/options.md)) for the full list.
 
@@ -216,7 +216,7 @@ Both packages are grammar plugins built on the
 jsonic's relaxed syntax on the standard-JSON core supplied by the
 [`@tabnas/json`](https://github.com/tabnas/json) plugin (TypeScript uses
 the npm packages, Go uses `github.com/tabnas/parser/go` and
-`github.com/tabnas/json/go`). TypeScript is canonical — both runtimes
+`github.com/tabnas/json/go`). TypeScript is canonical: both runtimes
 share the conformance fixtures in [`test/spec/`](test/spec/) and
 produce the same parse results:
 
@@ -230,13 +230,13 @@ result, err := jsonic.Parse("a:1, b:2")   // map[a:1 b:2]
 
 Organized by what you are trying to do:
 
-- **Learning** — tutorials: [TypeScript](ts/doc/tutorial.md), [Go](go/doc/tutorial.md).
-- **Tasks** — how-to guides ([TS](ts/doc/guide.md), [Go](go/doc/guide.md))
+- **Learning**. Tutorials: [TypeScript](ts/doc/tutorial.md), [Go](go/doc/tutorial.md).
+- **Tasks**. How-to guides ([TS](ts/doc/guide.md), [Go](go/doc/guide.md))
   and plugin guides ([TS](ts/doc/plugins.md), [Go](go/doc/plugins.md)).
-- **Reference** — syntax, API, and options per runtime
+- **Reference**. Syntax, API, and options per runtime
   ([TS](ts/doc/syntax.md) / [Go](go/doc/syntax.md), and the api/options
   docs alongside them).
-- **Understanding** — concepts ([TS](ts/doc/concepts.md), [Go](go/doc/concepts.md))
+- **Understanding**. Concepts ([TS](ts/doc/concepts.md), [Go](go/doc/concepts.md))
   and the Go [differences from TypeScript](go/doc/differences.md).
 
 Working on the codebase? Each directory has an `AGENTS.md` with build,
