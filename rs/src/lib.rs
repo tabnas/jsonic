@@ -42,17 +42,171 @@ pub const VERSION: &str = "0.1.0";
 fn jsonic_document() -> serde_json::Value {
     serde_json::json!({
         "v": 2,
+        // The relaxed surface, mirroring `ts/src/defaults.ts`. Most of
+        // these are not "relaxations" of an engine default but REPAIRS of
+        // what the json layer locked down, so the values are taken from
+        // jsonic's own defaults rather than from what looks permissive.
         "options": {
-            // See above: both of these undo a json-layer restriction
-            // rather than relaxing a lexer default.
-            "rule": { "include": "" },
-            "number": { "check": null },
+            // Both undo a json-layer lock rather than widening a default.
+            // `rule.include` is "json" there, keeping ONLY json-tagged
+            // alternates, which would exclude every alternate below;
+            // `number.check` is json's strict-number preflight, which
+            // rejects hex, octal, binary and separator forms before the
+            // lexer is reached.
+            "rule": { "include": "", "finish": true },
+            "number": {
+                "check": null, "exclude": null,
+                "lex": true, "hex": true, "oct": true, "bin": true, "sep": "_",
+            },
 
-            // The relaxed lexer surface.
+            // Text runs end at a FIXED token, so declaring them is what
+            // stops a text run swallowing structure. Without this,
+            // `[1,2,]` parses as `[1,2,"]"]`: text lexing is on, but the
+            // run has no ender and eats the bracket.
+            "fixed": {
+                "lex": true,
+                "token": {
+                    "#OB": "{", "#CB": "}",
+                    "#OS": "[", "#CS": "]",
+                    "#CL": ":", "#CA": ",",
+                },
+            },
             "text": { "lex": true },
-            "comment": { "lex": true },
+
+            "string": {
+                "lex": true,
+                "chars": "'\"`",
+                "multiChars": "`",
+                "escapeChar": "\\",
+                // json DELETED v / ' / ` by mapping them to null. jsonic
+                // needs them back, so they are re-declared with values
+                // rather than merely un-suppressed.
+                "escape": {
+                    "b": "\u{0008}", "f": "\u{000c}", "n": "\n", "r": "\r",
+                    "t": "\t", "v": "\u{000b}",
+                    "\"": "\"", "'": "'", "`": "`", "\\": "\\", "/": "/",
+                },
+                "allowUnknown": true,
+                "escapeStrict": false,
+                "abandon": false,
+            },
+
+            "comment": {
+                "lex": true,
+                "def": {
+                    "hash":  { "line": true,  "start": "#",  "lex": true, "eatline": false },
+                    "slash": { "line": true,  "start": "//", "lex": true, "eatline": false },
+                    "multi": { "line": false, "start": "/*", "end": "*/", "lex": true, "eatline": false },
+                },
+            },
+
+            "value": {
+                "lex": true,
+                "def": {
+                    "true":  { "val": true },
+                    "false": { "val": false },
+                    "null":  { "val": null },
+                },
+            },
+
             "map": { "extend": true },
+            "list": { "property": true },
             "lex": { "empty": true },
+            "safe": { "key": true },
+
+            // json locks KEY to `["#ST"]` -- quoted strings only. That one
+            // line is what keeps `{a:1}` from parsing however many relaxed
+            // alternates are added, because the `#KEY #CL` alts below
+            // never match an unquoted key.
+            "tokenSet": {
+                "KEY": ["#TX", "#NR", "#ST", "#VL"],
+                "VAL": ["#TX", "#NR", "#ST", "#VL"],
+            },
+        },
+
+        "rule": {
+            // HYPOTHESIS CHECK: json parsed its own `#KEY #CL` alt while
+            // tokenSet.KEY was locked to ["#ST"], so that alt is frozen to
+            // quoted keys. Re-declaring it here, AFTER the set is widened,
+            // should make `{a:1}` parse.
+            "pair": {
+                "open": {
+                    "alts": [
+                        { "s": "#KEY #CL", "p": "val", "u": { "pair": true },
+                          "a": "@key$", "g": "map,pair,key,jsonic" },
+                    ],
+                },
+            },
+
+            "val": {
+                "open": {
+                    "alts": [
+                        // A pair key at top level: `a: ...`, an implicit
+                        // map. `@reset$` mirrors json's #OB/#OS opens, so
+                        // val-close coalesces to the pushed map rather
+                        // than the inherited parent container.
+                        { "s": "#KEY #CL", "c": { "d": 0 }, "p": "map", "b": 2,
+                          "a": "@reset$", "g": "pair,jsonic,top" },
+
+                        // A pair dive: `a:b: ...`. Without `@reset$` a
+                        // dive inside an explicit map (`{a:b:1}`)
+                        // coalesces a's value to the OUTER map, which is
+                        // a circular self-reference.
+                        { "s": "#KEY #CL", "p": "map", "b": 2,
+                          "n": { "pk": 1 }, "a": "@reset$", "g": "pair,jsonic" },
+
+                        // A plain value. Replaces json's own #VAL open,
+                        // which `delete: [2]` removes below.
+                        { "s": "#VAL", "a": "@reset$", "g": "val,json" },
+
+                        // Implicit ends: `{a:}` -> {"a":null}.
+                        { "s": ["#CB #CS"], "b": 1, "c": { "d": { "$gt": 0 } },
+                          "a": "@reset$", "g": "val,imp,null,jsonic" },
+
+                        // Implicit list at top level opening on a comma:
+                        // `,` -> [null]. Allocated here because this path
+                        // does not reach @list-bo's promotion and json's
+                        // `@array$` only runs for `[`.
+                        { "s": "#CA", "c": { "d": 0 }, "p": "list", "b": 1,
+                          "a": "@array$", "k": { "array$": { "implicit": true } },
+                          "g": "list,imp,jsonic" },
+
+                        // Implicitly null before a comma.
+                        { "s": "#CA", "b": 1, "a": "@reset$",
+                          "g": "list,val,imp,null,jsonic" },
+
+                        { "s": "#ZZ", "g": "jsonic" },
+                    ],
+                    // APPEND, not prepend: json's strict opens must still
+                    // be tried first. `delete: [2]` drops json's #VAL open
+                    // so the re-declared one above carries jsonic's tags.
+                    "inject": { "append": true, "delete": [2] },
+                },
+
+                "close": {
+                    "alts": [
+                        { "s": ["#CB #CS"], "b": 1, "g": "val,json,close",
+                          "e": "@val-close-error" },
+
+                        // Implicit comma-separated list, top level only.
+                        { "s": "#CA",
+                          "c": { "n.dlist": { "$lte": 0 }, "n.dmap": { "$lte": 0 } },
+                          "r": "list", "u": { "implist": true },
+                          "g": "list,val,imp,comma,jsonic" },
+
+                        // Implicit space-separated list, top level only.
+                        { "c": { "n.dlist": { "$lte": 0 }, "n.dmap": { "$lte": 0 } },
+                          "r": "list", "u": { "implist": true },
+                          "g": "list,val,imp,space,jsonic", "b": 1 },
+
+                        { "s": "#ZZ", "g": "end,jsonic" },
+                    ],
+                    // `move: [1, -1]` sends json's "there is more JSON"
+                    // close to the end, so the implicit-list closes get
+                    // their chance first.
+                    "inject": { "append": true, "move": [1, -1] },
+                },
+            },
         },
     })
 }
@@ -65,6 +219,22 @@ fn jsonic_document() -> serde_json::Value {
 /// relaxed alternate is tried before the strict one it widens.
 pub fn jsonic(parser: &mut Tabnas) -> Result<(), GrammarError> {
     tabnas_json::json(parser)?;
+
+    // BEFORE the document: the engine snapshots the reference tables when
+    // a grammar is installed, so a name the document uses must already be
+    // registered or the install fails with "unknown ... function
+    // reference".
+    //
+    // `@val-close-error`: a `}` or `]` at depth 0 has nothing to close,
+    // so it is an error there and an ordinary close everywhere else.
+    parser.alt_error("@val-close-error", |rule, context| {
+        if rule.d == 0 {
+            context.t.first().cloned()
+        } else {
+            None
+        }
+    });
+
     let spec = GrammarSpec::from_value(jsonic_document())?;
     parser.grammar(&spec)?;
     Ok(())
