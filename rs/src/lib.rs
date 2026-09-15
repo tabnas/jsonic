@@ -125,16 +125,153 @@ fn jsonic_document() -> serde_json::Value {
         },
 
         "rule": {
-            // HYPOTHESIS CHECK: json parsed its own `#KEY #CL` alt while
-            // tokenSet.KEY was locked to ["#ST"], so that alt is frozen to
-            // quoted keys. Re-declaring it here, AFTER the set is widened,
-            // should make `{a:1}` parse.
+            "map": {
+                "open": {
+                    // Auto-close `{` at end of source, allocating the
+                    // empty object so `{` -> `{}` when finish is allowed.
+                    "alts": [
+                        { "s": "#OB #ZZ", "b": 1, "a": "@object$",
+                          "e": "@finish", "g": "end,jsonic" },
+
+                        // The brace-less entry to a map. json's map opens
+                        // only match `#OB`, so this path allocates the
+                        // container itself: `@object$` with the static
+                        // implicit flag, the counterpart of json's
+                        // `implicit: false`. Without it `a:1` has no way
+                        // into the map rule at all.
+                        //
+                        // The canonical grammar adds this in a SECOND
+                        // `.open()` call with `append: true`, after json's
+                        // `#OB` alts. Here both groups are one ordered
+                        // list, and it is placed after the auto-close alt
+                        // for the same reason: `#OB` must still win when
+                        // a brace is actually present.
+                        { "s": "#KEY #CL", "p": "pair", "b": 2, "a": "@object$",
+                          "k": { "object$": { "implicit": true } },
+                          "g": "pair,list,val,imp,jsonic" },
+                    ],
+                    "inject": { "append": true },
+                },
+                // A SECOND open list, appended rather than prepended: the
+                // brace-less entry to a map. json's map opens only match
+                // `#OB`, so this path has to allocate the container
+                // itself -- `@object$` with the static implicit flag,
+                // the brace-less counterpart of json's `implicit: false`.
+                // Without it `a:1` has no way into the map rule at all.
+                "close": {
+                    "alts": [
+                        // Normal end of map, no path dive.
+                        { "s": "#CB", "c": { "n.pk": { "$lte": 0 } }, "g": "end,json" },
+                        // Mid path dive: keep ascending.
+                        { "s": "#CB", "b": 1, "g": "path,close,jsonic" },
+                        // End of an implicit path.
+                        { "s": ["#CA #CS #VAL"], "b": 1, "g": "end,path,jsonic" },
+                        { "s": "#ZZ", "e": "@finish", "g": "end,jsonic" },
+                    ],
+                    "inject": { "append": true, "delete": [0] },
+                },
+            },
+
+            "list": {
+                "open": {
+                    // A bracket-less list promoted by `@list-bo`.
+                    "alts": [
+                        { "c": { "prev.u.implist": { "$eq": true } }, "p": "elem" },
+                    ],
+                },
+                "close": {
+                    "alts": [
+                        { "s": "#ZZ", "e": "@finish", "g": "end,jsonic" },
+                    ],
+                    "inject": { "append": true },
+                },
+            },
+
             "pair": {
                 "open": {
                     "alts": [
+                        // Re-declared, not reused. json parsed its own
+                        // `#KEY #CL` alt while `tokenSet.KEY` was locked
+                        // to `["#ST"]`, so that alternate is FROZEN to
+                        // quoted keys and widening the set cannot reach
+                        // it. Re-declaring here, after the widening, is
+                        // what makes `{a:1}` parse -- and it binds
+                        // `@pairkey`, which keys on the token source for
+                        // numbers and keywords where json uses the
+                        // decoded value.
                         { "s": "#KEY #CL", "p": "val", "u": { "pair": true },
-                          "a": "@key$", "g": "map,pair,key,jsonic" },
+                          "a": "@pairkey", "g": "map,pair,key,json" },
+
+                        // Ignore a leading comma: `{,a:1}`.
+                        { "s": "#CA", "g": "map,pair,comma,jsonic" },
                     ],
+                    // `clear` drops json's pair opens first; see above.
+                    "inject": { "append": true, "clear": true },
+                },
+                "close": {
+                    "alts": [
+                        // End of map: reset the implicit depth counter so
+                        // `a:b:c:1,d:2` -> {"a":{"b":{"c":1}},"d":2}.
+                        { "s": "#CB", "c": { "n.pk": { "$lte": 0 } }, "b": 1,
+                          "g": "map,pair,close,json" },
+                        // Trailing comma at end of map.
+                        { "s": "#CA #CB", "c": { "n.pk": { "$lte": 0 } }, "b": 1,
+                          "g": "map,pair,comma,jsonic" },
+                        // A SEQUENCE of two tokens (comma then end of
+                        // source), not one token that is either. Written
+                        // as `["#CA #ZZ"]` it matches any lone comma and
+                        // ends the pair, so `{a:1,b:2}` stops at the
+                        // comma.
+                        { "s": ["#CA", "#ZZ"], "g": "end,jsonic" },
+                        // A comma starts a new pair at the same level.
+                        { "s": "#CA", "c": { "n.pk": { "$lte": 0 } }, "r": "pair",
+                          "g": "map,pair,sync,json" },
+                        { "s": "#CA", "c": { "n.dmap": { "$lte": 1 } }, "r": "pair",
+                          "g": "map,pair,sync,jsonic" },
+                        // A key starts a new pair in an implicit top map.
+                        { "s": "#KEY", "c": { "n.dmap": { "$lte": 1 } }, "r": "pair",
+                          "b": 1, "g": "map,pair,imp,sync,jsonic" },
+                        // End of an implicit path: keep closing to pk=0.
+                        { "s": ["#CB #CA #CS #KEY"], "c": { "n.pk": { "$gt": 0 } },
+                          "b": 1, "g": "map,pair,imp,path,close,jsonic" },
+                        // A `]` cannot close a map.
+                        { "s": "#CS", "e": "@close-mismatch", "g": "end,jsonic" },
+                        { "s": "#ZZ", "e": "@finish", "g": "map,pair,end,json" },
+                        // Who needs commas anyway.
+                        { "r": "pair", "b": 1, "g": "map,pair,imp,jsonic" },
+                    ],
+                    "inject": { "append": true, "delete": [0, 1] },
+                },
+            },
+
+            "elem": {
+                "open": {
+                    "alts": [
+                        // Empty commas insert nulls. Close consumes one
+                        // comma, which is why `b: 2` is right here.
+                        { "s": "#CA #CA", "b": 2, "u": { "done": true },
+                          "a": "@elem-push-null", "g": "list,elem,imp,null,jsonic" },
+                        { "s": "#CA", "u": { "done": true },
+                          "a": "@elem-push-null", "g": "list,elem,imp,null,jsonic" },
+                        // A pair inside a list: `[a:1]`.
+                        { "s": "#KEY #CL", "p": "val", "n": { "pk": 1, "dmap": 1 },
+                          "u": { "done": true, "pair": true, "list": true },
+                          "a": "@pairkey", "g": "elem,pair,jsonic" },
+                    ],
+                },
+                "close": {
+                    "alts": [
+                        // Trailing comma.
+                        { "s": ["#CA", "#CS #ZZ"], "b": 1, "g": "list,elem,comma,jsonic" },
+                        { "s": "#CA", "r": "elem", "g": "list,elem,sync,json" },
+                        { "s": "#CS", "b": 1, "g": "list,elem,close,json" },
+                        { "s": "#ZZ", "e": "@finish", "g": "list,elem,end,json" },
+                        // A `}` cannot close a list.
+                        { "s": "#CB", "e": "@close-mismatch", "g": "end,jsonic" },
+                        // Who needs commas anyway.
+                        { "r": "elem", "b": 1, "g": "list,elem,imp,jsonic" },
+                    ],
+                    "inject": { "delete": [-1, -2] },
                 },
             },
 
@@ -211,6 +348,74 @@ fn jsonic_document() -> serde_json::Value {
     })
 }
 
+/// Write `key: value` onto the rule's node, merging with any previous
+/// value at that key.
+///
+/// The previous value is read STRAIGHT OFF THE NODE rather than threaded
+/// through the rule, which is what lets a repeated key (`a:1,a:2`) or a
+/// deep object (`a:b:1,a:c:2`) merge rather than clobber.
+fn pairval(rule: &mut tabnas::Rule, context: &tabnas::Context) {
+    let key = match rule.u.get("key") {
+        Some(Value::String(key)) => key.clone(),
+        _ => return,
+    };
+
+    // Unsafe keys are not set on a list, so a crafted document cannot
+    // reach a prototype through the list path.
+    if rule.u.get("list") == Some(&Value::Bool(true))
+        && context.options.safe.key
+        && (key == "__proto__" || key == "constructor")
+    {
+        return;
+    }
+
+    let mut val = rule.child_node.clone();
+    if val == Value::Undefined {
+        val = Value::Null;
+    }
+
+    let extend = context.options.map.extend;
+    if let Value::Object(map) = &mut *rule.node.borrow_mut() {
+        let merged = match map.get(&key) {
+            Some(prev) if !matches!(prev, Value::Null | Value::Undefined) && extend => {
+                deep_merge(prev.clone(), val)
+            }
+            _ => val,
+        };
+        map.insert(key, merged);
+    }
+}
+
+/// Recursive object merge: `incoming` wins on a leaf, and two objects at
+/// the same key merge rather than replace.
+fn deep_merge(prev: Value, incoming: Value) -> Value {
+    match (prev, incoming) {
+        (Value::Object(mut base), Value::Object(over)) => {
+            for (key, value) in over {
+                let merged = match base.shift_remove(&key) {
+                    Some(existing) => deep_merge(existing, value),
+                    None => value,
+                };
+                base.insert(key, merged);
+            }
+            Value::Object(base)
+        }
+        (_, incoming) => incoming,
+    }
+}
+
+/// A one-entry object, for `list.pair`.
+///
+/// Built through `serde_json` rather than by naming the engine's map type
+/// directly, which would mean depending on `indexmap` at a version that
+/// has to track the engine's. This crate already enables `preserve_order`,
+/// so key order survives the round trip.
+fn single_entry_object(key: String, value: Value) -> Value {
+    let mut object = serde_json::Map::new();
+    object.insert(key, value.to_json());
+    Value::from_json(&serde_json::Value::Object(object))
+}
+
 /// Install the relaxed jsonic grammar on `parser`.
 ///
 /// Installs the standard-JSON core first, then layers on it. A second
@@ -233,6 +438,199 @@ pub fn jsonic(parser: &mut Tabnas) -> Result<(), GrammarError> {
         } else {
             None
         }
+    });
+
+    // `@finish`: auto-closing an unterminated structure at end of source
+    // is allowed only when `rule.finish` is on. When it is off, the
+    // remaining structure is an error rather than something to close.
+    parser.alt_error("@finish", |_rule, context| {
+        if context.options.rule.finish {
+            return None;
+        }
+        context.t.first().cloned().map(|mut token| {
+            token.err = "end_of_source".to_string();
+            token
+        })
+    });
+
+    // `@close-mismatch`: a `]` cannot close a map, nor a `}` a list. The
+    // canonical grammar writes this as an inline `(r) => r.c0`.
+    parser.alt_error("@close-mismatch", |rule, _context| rule.c.first().cloned());
+
+    // `@pairkey`: capture the key from the first open token.
+    //
+    // A quoted or unquoted string uses the DECODED value; anything else
+    // (a number, a value keyword) uses the ORIGINAL SOURCE, so `1:x` keys
+    // on "1" rather than on the number, and `__proto__:1` keeps its text.
+    // json's own key action uses the decoded value throughout, which is
+    // why this alternate has to be re-declared rather than reused.
+    parser.action_with_match_ref("@pairkey", |rule, _context, _matched| {
+        if let Some(token) = rule.o.first() {
+            let key = match token.name.as_str() {
+                "#ST" | "#TX" => match &token.val {
+                    Value::String(text) => text.clone(),
+                    other => other.to_string(),
+                },
+                _ => token.src.clone(),
+            };
+            rule.u.insert("key".to_string(), Value::String(key));
+        }
+        Ok(None)
+    });
+
+    // `@map-bo` / `@list-bo`: container depth counters. The relaxed
+    // alternates gate on these (`n.dmap`, `n.dlist`) to keep implicit
+    // structures to the top level.
+    parser.state_action_ref("@map-bo", |rule, _context| {
+        let depth = rule.n.get("dmap").copied().unwrap_or(0);
+        rule.n.insert("dmap".to_string(), depth + 1);
+        Ok(())
+    });
+
+    parser.state_action_ref("@list-bo", |rule, _context| {
+        let depth = rule.n.get("dlist").copied().unwrap_or(0);
+        rule.n.insert("dlist".to_string(), depth + 1);
+
+        // A bracket-less list: json's `@array$` only runs for `[`, so the
+        // array is allocated here and the value already parsed as the
+        // first element is promoted into it.
+        let implist = rule
+            .prev_rule
+            .as_ref()
+            .and_then(|prev| prev.u.get("implist"))
+            .map(|flag| flag == &Value::Bool(true))
+            .unwrap_or(false);
+        if implist {
+            if let Some(prev) = rule.prev_rule.clone() {
+                let first = prev.node.borrow().clone();
+                let promoted = Value::Array(vec![first]);
+                *rule.node.borrow_mut() = promoted.clone();
+                *prev.node.borrow_mut() = promoted;
+            }
+        }
+        Ok(())
+    });
+
+    // `@val-bc/replace`: jsonic's val close coalescing.
+    //
+    // `/replace` takes ownership of the phase, so json's strict `@val-bc`
+    // -- which simply overwrites the node from the matched token -- is
+    // cleared rather than left to run alongside. The order below is the
+    // whole of it, and each rung exists for a case the one above cannot
+    // see:
+    //
+    //   1. a child container (the value WAS a map or list)
+    //   2. else a deliberate PRIMITIVE a plugin set in a val open action.
+    //      A stale parent-seeded node is always a container, so a
+    //      non-object node here can only be intentional.
+    //   3. else the matched scalar token. This beats a stale
+    //      parent-seeded container.
+    //   4. else a deliberate CONTAINER a plugin set (no token matched)
+    //   5. else nothing, which is the implicit null.
+    parser.state_action_ref("@val-bc/replace", |rule, context| {
+        // Stash a plugin's open-action value before any coalescing; the
+        // after-close hook restores it.
+        let open_value = rule.node.borrow().clone();
+        rule.u.insert("openval".to_string(), open_value.clone());
+
+        let resolved = if rule.child_node != Value::Undefined {
+            rule.child_node.clone()
+        } else if !matches!(
+            open_value,
+            Value::Undefined | Value::Object(_) | Value::Array(_)
+        ) && open_value != Value::Null
+        {
+            open_value
+        } else if let Some(token) = rule.o.first().cloned() {
+            token.resolve_val(rule, context)
+        } else if open_value != Value::Undefined {
+            open_value
+        } else {
+            Value::Undefined
+        };
+
+        *rule.node.borrow_mut() = resolved;
+        Ok(())
+    });
+
+    // `@val-ac`: json's `@value$` close ALT action runs after the phase
+    // above and re-resolves the matched token, which would overwrite a
+    // value a plugin set in a val OPEN action. Restore it -- but only a
+    // PRIMITIVE one with no child, since a parent-seeded stale node is
+    // always a container.
+    parser.state_action_ref("@val-ac", |rule, _context| {
+        let restore = match rule.u.get("openval") {
+            Some(value)
+                if !matches!(
+                    value,
+                    Value::Undefined | Value::Null | Value::Object(_) | Value::Array(_)
+                ) =>
+            {
+                Some(value.clone())
+            }
+            _ => None,
+        };
+        if let Some(value) = restore {
+            if rule.child_node == Value::Undefined {
+                *rule.node.borrow_mut() = value;
+            }
+        }
+        Ok(())
+    });
+
+    // `@pair-bc` / `@elem-bc/replace`: the value-building layer.
+    //
+    // json's strict closes write the value for its own alternates. The
+    // relaxed alternates above bypass those, so without these two the
+    // grammar MATCHES more and PRODUCES less: clearing json's pair opens
+    // in favour of `@pairkey` (which only captures the key) drops the
+    // write entirely.
+    parser.state_action_ref("@pair-bc", |rule, context| {
+        if rule.u.get("pair") == Some(&Value::Bool(true)) {
+            pairval(rule, context);
+        }
+        Ok(())
+    });
+
+    // `/replace` takes ownership of the phase: json's strict `@elem-bc`
+    // pushes EVERY child node, which would double-add the done-flagged
+    // elements jsonic produces (implicit nulls, pairs).
+    parser.state_action_ref("@elem-bc/replace", |rule, context| {
+        let done = rule.u.get("done") == Some(&Value::Bool(true));
+        if !done && rule.child_node != Value::Undefined {
+            let child = rule.child_node.clone();
+            if let Value::Array(items) = &mut *rule.node.borrow_mut() {
+                items.push(child);
+            }
+        }
+        if rule.u.get("pair") == Some(&Value::Bool(true)) {
+            if context.options.list.pair {
+                // list.pair: the pair becomes an object element.
+                let key = match rule.u.get("key") {
+                    Some(Value::String(key)) => key.clone(),
+                    _ => return Ok(()),
+                };
+                let mut val = rule.child_node.clone();
+                if val == Value::Undefined {
+                    val = Value::Null;
+                }
+                let pair = single_entry_object(key, val);
+                if let Value::Array(items) = &mut *rule.node.borrow_mut() {
+                    items.push(pair);
+                }
+            } else {
+                pairval(rule, context);
+            }
+        }
+        Ok(())
+    });
+
+    // `@elem-push-null`: an empty comma inserts a null element.
+    parser.action_with_match_ref("@elem-push-null", |rule, _context, _matched| {
+        if let Value::Array(items) = &mut *rule.node.borrow_mut() {
+            items.push(Value::Null);
+        }
+        Ok(None)
     });
 
     let spec = GrammarSpec::from_value(jsonic_document())?;
