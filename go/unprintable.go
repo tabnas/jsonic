@@ -131,7 +131,7 @@ func unprintableMatch(l *Lex, _ *Rule) *Token {
 				continue
 			}
 			tkn := MakeToken("#BD", TinBD, nil, src[sI:sI+csize],
-				Point{Len: len(src), SI: sI, RI: rI, CI: cI})
+				Point{Len: len(src), Site: Site{SI: sI, RI: rI, CI: cI}})
 			tkn.Why = "unprintable"
 			return tkn
 		}

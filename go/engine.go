@@ -102,6 +102,7 @@ type (
 	SafeOptions     = tabnas.SafeOptions
 	ScanOut         = tabnas.ScanOut
 	ScanSpec        = tabnas.ScanSpec
+	Site            = tabnas.Site
 	SpaceOptions    = tabnas.SpaceOptions
 	StateAction     = tabnas.StateAction
 	StringOptions   = tabnas.StringOptions

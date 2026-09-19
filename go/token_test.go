@@ -68,9 +68,11 @@ func TestResolveVal_LazyValueThroughParser(t *testing.T) {
 			Val: TokenValFunc(func(r *Rule, ctx *Context) any {
 				return "resolved"
 			}),
-			SI: start,
-			RI: lex.Cursor().RI,
-			CI: lex.Cursor().CI,
+			Site: Site{
+				SI: start,
+				RI: lex.Cursor().RI,
+				CI: lex.Cursor().CI,
+			},
 		}
 	})
 
