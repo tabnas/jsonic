@@ -102,12 +102,7 @@ type (
 	SafeOptions     = tabnas.SafeOptions
 	ScanOut         = tabnas.ScanOut
 	ScanSpec        = tabnas.ScanSpec
-
-	// Site is the source location a Point sits at and a Token starts at:
-	// the SI/RI/CI triple, named once so the two agree. ScanOut is the
-	// same type, so a Scan result assigns straight onto a Point.
-	Site = tabnas.Site
-
+	Site            = tabnas.Site
 	SpaceOptions    = tabnas.SpaceOptions
 	StateAction     = tabnas.StateAction
 	StringOptions   = tabnas.StringOptions

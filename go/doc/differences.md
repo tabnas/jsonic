@@ -243,6 +243,33 @@ result, _ := j.Parse("a:1")
 // result: tabnasjsonic.MapRef{Val: map[string]any{"a": 1.0}, Implicit: true, Meta: map[string]any{}}
 ```
 
+### `Site`
+
+Go-only, re-exported from the engine alongside `Point`, `Token`,
+`ScanOut` and `Scan`. It names the source-location triple that
+TypeScript spells as the loose `sI`/`rI`/`cI` fields on both `Point` and
+`Token`:
+
+```go
+type Site struct {
+	SI int // Source (string) index, 0-based.
+	RI int // Row index, 1-based.
+	CI int // Column index, 1-based.
+}
+```
+
+`Point` and `Token` embed it anonymously, so `pnt.SI`, `pnt.CI` and
+`tkn.RI` resolve exactly as they did and the custom-matcher recipe in
+[the guide](guide.md#add-a-custom-matcher) needs no change. What the
+name adds is the triple as one value, which is what a composite literal
+now writes: `Point{Len: n, Site: Site{SI: sI, RI: rI, CI: cI}}`.
+`ScanOut` is the same type, so a `Scan` result assigns onto a cursor in
+one statement.
+
+This is an API shape, not a parse-result difference. The engine's own
+porting guide carries the full account, including why the Rust port
+needs a fourth field.
+
 ## Plugin Differences
 
 | Area | TypeScript | Go |
