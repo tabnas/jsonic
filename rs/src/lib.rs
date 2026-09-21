@@ -39,7 +39,7 @@ use regex::Regex;
 use serde_json::json;
 use tabnas::{
     ActionError, Context, GrammarError, GrammarSpec, LexCheckResult, ListRef, Options, Plugin,
-    PluginError, Rule, Tabnas, Text, Tin, Value, TIN_OB, TIN_OS, TIN_ST, TIN_TX, TIN_ZZ,
+    PluginError, Rule, Tabnas, Text, Tin, Token, Value, TIN_OB, TIN_OS, TIN_ST, TIN_TX, TIN_ZZ,
 };
 
 /// This crate's version. It MUST equal `ts/package.json` "version": the
@@ -549,6 +549,20 @@ fn is_fixed(tin: Tin, options: &Options) -> bool {
     options.fixed.tokens.values().any(|token| token.tin == tin)
 }
 
+/// Whether a matched token carries no value, as `r.o0.resolveVal` reads
+/// it in the canonical engine: end of source, or a fixed token that is
+/// still as the lexer made it. This engine's lexer gives a fixed token its
+/// own source text as `val` (`}` carries `"}"`), where the canonical one
+/// gives it nothing, so the source text IS the no-value. Anything else on
+/// a fixed token was put there by a plugin action in `val` open (the
+/// `parser-mixed-token` shape, `r.o0.val = '@' + r.o1.val`) and is a
+/// value like any other.
+fn carries_no_value(token: &Token, options: &Options) -> bool {
+    token.tin == TIN_ZZ
+        || (is_fixed(token.tin, options)
+            && matches!(&token.val, Value::String(text) if text == token.src.as_str()))
+}
+
 /// Recursively merge `overlay` into `base`: objects by key, arrays by
 /// index, everything else replaced by the overlay. The port of the
 /// `deep()` utility the TypeScript grammar merges duplicate keys with,
@@ -637,17 +651,65 @@ fn combine(previous: Value, value: Value, rule: &mut Rule, context: &mut Context
 }
 
 // ---------------------------------------------------------------------------
+// The parse budget
+// ---------------------------------------------------------------------------
+
+/// How many nested containers a parse may hold before it is refused.
+///
+/// The engine's parse loop is iterative, but the value it hands back is a
+/// tree the engine walks with the call stack to display, convert or drop,
+/// one frame per level, and a source of a few thousand `[` ended the
+/// process with a stack overflow, an abort rather than an error, before
+/// this budget existed (past 6,000 levels in a release build and 1,500 in
+/// a debug build on a 2 MiB thread). TypeScript and Go have no limit,
+/// which is recorded in `DIVERGENCE.md`; a document a person writes does
+/// not come near this one. The number is the one `tabnas_json` uses, so
+/// the two Rust crates bound nesting the same way, and it is the depth
+/// `serde_json` accepts.
+const DEPTH_LIMIT: usize = 127;
+
+/// How many containers are open at this point in the parse: the `map` and
+/// `list` rules on the stack, plus the rule the loop is working on, which
+/// the engine hands over separately as `context.rule`. Counted from the
+/// rule NAMES rather than `rule_stack.len()`, because the stack holds
+/// about three rules per level (`val`, then `map` or `list`, then `pair`
+/// or `elem`) and a length-based limit would encode that ratio. A pair
+/// dive (`a:b:c:1`) opens one implicit map per key, so it counts too.
+fn depth(context: &Context) -> usize {
+    let is_container = |name: &str| name == "map" || name == "list";
+    let ancestors = context
+        .rule_stack
+        .iter()
+        .filter(|rule| is_container(&rule.name))
+        .count();
+    let current = usize::from(
+        context
+            .rule
+            .as_ref()
+            .is_some_and(|rule| is_container(&rule.name)),
+    );
+    ancestors + current
+}
+
+/// The budget check: `DEPTH_LIMIT` levels parse, the next one is refused
+/// with the engine's `cancel` code.
+fn within_depth_limit(context: &Context) -> bool {
+    depth(context) <= DEPTH_LIMIT
+}
+
+// ---------------------------------------------------------------------------
 // The closures the grammar names
 // ---------------------------------------------------------------------------
 
 /// Resolve the matched open token to its value, as `r.o0.resolveVal` does:
-/// a fixed token or the end-of-source token carries no value, and under
-/// `info.text` a string keeps its quote character.
+/// the end-of-source token and an untouched fixed token carry no value
+/// (see [`carries_no_value`]), and under `info.text` a string keeps its
+/// quote character.
 fn resolve_token(rule: &mut Rule, context: &mut Context) -> Value {
     let Some(token) = rule.o0().cloned() else {
         return Value::Undefined;
     };
-    if token.tin == TIN_ZZ || is_fixed(token.tin, &context.options) {
+    if carries_no_value(&token, &context.options) {
         return Value::Undefined;
     }
     let value = token.resolve_val(rule, context);
@@ -717,7 +779,7 @@ fn val_after_close(rule: &mut Rule, context: &mut Context) -> Result<(), ActionE
         set_node(rule, openval);
     } else if rule
         .o0()
-        .is_some_and(|token| token.tin == TIN_ZZ || is_fixed(token.tin, &context.options))
+        .is_some_and(|token| carries_no_value(token, &context.options))
     {
         set_node(rule, Value::Undefined);
     }
@@ -994,9 +1056,11 @@ fn grammar_installed(parser: &Tabnas) -> bool {
 ///
 /// The standard-JSON core is installed first, through
 /// [`tabnas_json::json`], then the relaxed alternates and lifecycle
-/// actions are woven around it. Registration is idempotent: an instance
-/// that already carries the grammar is left alone, so a plugin re-run
-/// cannot double the alternates.
+/// actions are woven around it, and a parse budget refusing nesting past
+/// 127 containers (with the engine's `cancel` code) goes on last, unless
+/// the instance already carries a budget of its own. Registration is
+/// idempotent: an instance that already carries the grammar is left
+/// alone, so a plugin re-run cannot double the alternates.
 ///
 /// ```
 /// let mut parser = tabnas::Tabnas::new();
@@ -1024,6 +1088,17 @@ pub fn register_jsonic_grammar(parser: &mut Tabnas) -> Result<(), GrammarError> 
     parser.grammar(&phase_one)?;
     let phase_two = GrammarSpec::from_value(jsonic_document_append())?;
     parser.grammar(&phase_two)?;
+
+    // AFTER the documents, as tabnas_json sets its own: `grammar` applies
+    // a document's options, and an options pass that does not mention
+    // `parse.budget` is not required to preserve one. A budget the caller
+    // set before the grammar (through `make_with`) survived
+    // `restore_relaxed` above and wins; only an instance with none gets
+    // jsonic's. Every iteration, because a sampled check would let the
+    // parse run past the limit by however many levels the sample missed.
+    if parser.config().parse.budget.on_check.is_none() {
+        parser.parse_budget(1, within_depth_limit);
+    }
     Ok(())
 }
 

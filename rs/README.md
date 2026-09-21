@@ -132,6 +132,16 @@ where the host language has no way to say what JavaScript says:
   negative lookahead in TypeScript, and the `regex` crate has no
   lookaround, so `make_json` binds the positive pattern plus an
   inversion, the shape the Go port uses.
+- **Nesting past 127 levels is rejected** with the error code `cancel`,
+  counting lists, maps and the implicit maps of a pair dive alike. The
+  engine walks a value with the call stack to display, convert or drop
+  it, and a source a few thousand levels deep ended the process; the
+  TypeScript and Go ports have no limit. The number is the one
+  `tabnas-json` and `serde_json` use.
+- **`empty()` keeps the five rules with no alternates**, as the Go
+  `Empty` does, so a parse on it fails with `unexpected` where
+  `Jsonic.empty()` in TypeScript, which has no rules at all, returns
+  `undefined`.
 - **Lone surrogates fold to U+FFFD**, and the regular expression dialect
   is the `regex` crate's. Both come from the engine, and both are
   recorded there.

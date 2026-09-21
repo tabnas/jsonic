@@ -93,10 +93,16 @@ do; the rest append.
 
 - **Fixed tokens carry their source text as `val`** (`}` has
   `Value::String("}")`), where the canonical engine's carry `undefined`.
-  jsonic's own coalescing reads them as no value (`resolve_token`), but
-  json's `@value$` close alternate re-resolves the token after the
-  before-close hook, so `a:,b:` came back as `{"a":","}` until
-  `val_after_close` put the no-value back. Keep that branch.
+  jsonic reads a fixed token whose `val` is still its own source text as
+  no value (`carries_no_value`), but json's `@value$` close alternate
+  re-resolves the token after the before-close hook, so `a:,b:` came back
+  as `{"a":","}` until `val_after_close` put the no-value back. Keep that
+  branch. The test is on the VALUE, not the token kind, on purpose: a
+  plugin action in `val` open may assign a fixed token a value
+  (`r.o0.val = '@' + r.o1.val`, the `parser-mixed-token` shape in
+  `ts/test/custom.test.js`), and that value must survive both hooks, as
+  it does in TypeScript. Treating every fixed token as valueless silently
+  dropped such elements (`[QxQy]` parsed as `[]`).
 - **`#ZZ` carries `Undefined`**, and `rule.o` keeps backtracked tokens,
   so `rule.os()` counts them as TypeScript's `r.os` does.
 
@@ -111,6 +117,23 @@ into the enclosing map, and ONE deliberate exception, the implicit-list
 promotion in `list_before_open`, which writes the new array into the
 cell it shares with the replaced `val` rule's snapshot. That is
 `r.prev.node = r.node` in the canonical grammar.
+
+## The depth budget is a crash fix
+
+`register_jsonic_grammar` ends by installing a parse budget that refuses
+nesting past `DEPTH_LIMIT` (127) containers with the engine's `cancel`
+code, unless the instance already carries a budget (a caller's, set
+through `make_with`, wins). The engine parses iteratively, but its
+display, `to_json` and drop of a value walk the tree with the call
+stack, and on a 2 MiB thread the overflow arrived past 6,000 levels in a
+release build and 1,500 in a debug build: an abort, not an error.
+TypeScript and Go have no limit, so the refusal is a recorded divergence
+(`../DIVERGENCE.md`, "The Rust port") that must never reach a shared
+fixture. `restore_relaxed` deliberately drops the budget `tabnas_json`
+installs along with the rest of its profile; jsonic's replaces it, with
+the same limit, so the two Rust crates bound nesting alike. Depth is
+counted from the `map` and `list` rule names, not `rule_stack.len()`,
+for the reason `../../json/rs/AGENTS.md` gives.
 
 ## What a fixture cannot hold
 

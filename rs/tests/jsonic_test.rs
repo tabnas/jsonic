@@ -265,6 +265,47 @@ fn registering_the_grammar_twice_is_a_no_op() {
     assert_eq!(parsed(&parser, "a:1,b:[2]"), r#"{"a":1,"b":[2]}"#);
 }
 
+#[test]
+fn a_plugin_may_give_a_fixed_token_a_value_in_val_open() {
+    // ts/test/custom.test.js 'parser-mixed-token': a val open alternate
+    // matching a fixed token followed by text assigns the fixed token a
+    // value (`r.o0.val = '@' + r.o1.val`), and an elem close alternate
+    // starts the next element on the same pair. The value has to survive
+    // jsonic's val coalescing and json's @value$ re-resolution, in both
+    // hooks: this engine's fixed tokens carry their source text as `val`,
+    // and only that untouched text reads as "no value". A plain `Q` and
+    // the comment marker `/` are the two characters the canonical test
+    // uses, so a marker that is also a comment start is covered.
+    for marker in ["Q", "/"] {
+        let mut parser = make();
+        parser.token_with_source("#T/", marker);
+        parser.action_with_context("@mixed", |rule, _context| {
+            let text = rule.o1().map(|token| match &token.val {
+                Value::String(text) => text.clone(),
+                other => other.to_string(),
+            });
+            let value = format!("@{}", text.unwrap_or_default());
+            std::rc::Rc::make_mut(&mut rule.o)[0].val = Value::String(value);
+            Ok(())
+        });
+        let spec = GrammarSpec::from_value(serde_json::json!({
+            "rule": {
+                "val": { "open": [ { "s": "#T/ #TX", "a": "@mixed" } ] },
+                "elem": { "close": [ { "s": "#T/ #TX", "r": "elem", "b": 2 } ] }
+            }
+        }))
+        .expect("a valid document");
+        parser.grammar(&spec).expect("installs");
+        assert_eq!(
+            parsed(&parser, &format!("[{marker}x{marker}y]")),
+            r#"["@x","@y"]"#,
+            "marker {marker:?}"
+        );
+    }
+    // The untouched fixed token still reads as no value.
+    assert_eq!(json(&parse("a:,b:").unwrap()), r#"{"a":null,"b":null}"#);
+}
+
 // --- The grammar's shape (go/alignment_test.go TestAlignmentGrammarGTags)
 
 /// The group tags of every alternate, per rule and state, in order. The
@@ -436,7 +477,11 @@ fn the_relaxed_profile_is_the_engine_default_profile() {
     assert_eq!(relaxed.rule.exclude, bare.rule.exclude);
     assert_eq!(relaxed.token_set.get("KEY"), bare.token_set.get("KEY"));
     assert_eq!(relaxed.token_set.get("VAL"), bare.token_set.get("VAL"));
-    assert!(relaxed.parse.budget.on_check.is_none());
+    // json's budget is gone with the rest of its profile, and jsonic's
+    // own depth budget (see `nesting_is_bounded_by_the_depth_budget`) is
+    // in its place.
+    assert!(relaxed.parse.budget.on_check.is_some());
+    assert_eq!(relaxed.parse.budget.check_every_n, 1);
     assert_eq!(relaxed.safe.key, bare.safe.key);
     assert_eq!(relaxed.errmsg.name, "jsonic");
     assert_eq!(relaxed.errmsg.link, "https://github.com/tabnas/jsonic");
@@ -1114,6 +1159,78 @@ fn finish_off_names_the_end_of_source() {
         );
     }
     assert_eq!(parsed(&parser, "{a:1}"), r#"{"a":1}"#);
+}
+
+#[test]
+fn nesting_is_bounded_by_the_depth_budget() {
+    // 127 containers parse, the 128th is refused with the engine's
+    // `cancel` code, whatever the containers are: lists, maps, or the
+    // implicit maps of a pair dive. Neither other runtime limits depth
+    // (DIVERGENCE.md records this), but the engine's display, JSON
+    // conversion and drop of a value walk it with the call stack, and a
+    // few thousand levels ended the process with a stack overflow.
+    const LIMIT: usize = 127;
+    type Nest = fn(usize) -> String;
+    let shapes: [(&str, Nest); 3] = [
+        ("lists", |n| format!("{}{}", "[".repeat(n), "]".repeat(n))),
+        ("maps", |n| format!("{}1{}", "{a:".repeat(n), "}".repeat(n))),
+        ("dive", |n| format!("{}1", "a:".repeat(n))),
+    ];
+    let parser = make();
+    for (name, nest) in shapes {
+        for depth in [1, 2, 64, LIMIT] {
+            let value = parser
+                .parse(&nest(depth))
+                .unwrap_or_else(|error| panic!("{name} at depth {depth}: {error}"));
+            // The value is usable: rendered, converted and dropped.
+            assert!(!value.to_string().is_empty());
+            assert!(!value.to_json().is_null());
+        }
+        for depth in [LIMIT + 1, LIMIT + 2, 500, 100_000] {
+            let error = parser
+                .parse(&nest(depth))
+                .err()
+                .unwrap_or_else(|| panic!("{name} at depth {depth} must be refused"));
+            assert_eq!(error.code, "cancel", "{name} at depth {depth}");
+        }
+    }
+    // An unclosed run is refused the same way, and so is the shared
+    // default parser.
+    assert_eq!(
+        parser.parse(&"[".repeat(100_000)).unwrap_err().code,
+        "cancel"
+    );
+    assert_eq!(parse(&"{a:".repeat(100_000)).unwrap_err().code, "cancel");
+    // Width is not depth: ten thousand siblings are fine.
+    let wide: Vec<String> = (0..10_000).map(|i| format!("k{i}:[{i}]")).collect();
+    assert!(parser.parse(&wide.join(",")).is_ok());
+}
+
+#[test]
+fn the_depth_budget_reaches_every_constructor_and_yields_to_a_caller_budget() {
+    let deep = format!("{}{}", "[".repeat(200), "]".repeat(200));
+    assert_eq!(make_json().parse(&deep).unwrap_err().code, "cancel");
+    let mut bare = Tabnas::new();
+    jsonic(&mut bare).expect("installs");
+    assert_eq!(bare.parse(&deep).unwrap_err().code, "cancel");
+    let mut used = Tabnas::new();
+    used.use_plugin(plugin(), None).expect("installs");
+    assert_eq!(used.parse(&deep).unwrap_err().code, "cancel");
+    let derived = make().derive(|_| {}).expect("derives");
+    assert_eq!(derived.parse(&deep).unwrap_err().code, "cancel");
+
+    // A budget the caller set before the grammar is kept, not replaced.
+    let counted = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let seen = counted.clone();
+    let parser = make_with(move |o| {
+        o.parse.budget.check_every_n = 1;
+        o.parse.budget.on_check = Some(Arc::new(move |_context| {
+            seen.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            true
+        }));
+    });
+    assert!(parser.parse(&deep).is_ok());
+    assert!(counted.load(std::sync::atomic::Ordering::Relaxed) > 0);
 }
 
 #[test]

@@ -98,8 +98,58 @@ Rust runner switched to the support crate's `Register`.
 
 Rust inherits the engine-level splits recorded in `@tabnas/parser`'s own
 `DIVERGENCE.md` (lone surrogates fold to U+FFFD; the regular expression
-dialect is the `regex` crate's, with no lookaround), and adds nothing of
-its own.
+dialect is the `regex` crate's, with no lookaround).
+
+### Nesting past 127 levels is refused in Rust
+
+| input | TypeScript | Go | Rust |
+|---|---|---|---|
+| 128 nested `[` | parses | parses | `ERROR:cancel` |
+
+**Deliberate, and Rust-only.** The engine parses iteratively, but the
+value it returns is walked with the call stack to display, convert to
+JSON or drop, one frame per level, and a source a few thousand levels
+deep ended the process with a stack overflow (past 6,000 levels in a
+release build and 1,500 in a debug build, on a 2 MiB thread): an abort
+no caller can catch. A parse budget in `rs/src/lib.rs` refuses the 128th
+container with the engine's `cancel` code, whether it is a list, a map
+or one of the implicit maps a pair dive opens. The number is the one
+`tabnas-json` and `serde_json` use. Pinned by
+`nesting_is_bounded_by_the_depth_budget` in `rs/tests/jsonic_test.rs`;
+it must never reach a shared fixture, and it belongs in the register
+under a `rust` column the day the TypeScript runner can take one.
+
+Measured against the TypeScript suite's own assertions
+(`ts/test/feature.test.js`, `custom.test.js`, `comment.test.js` and
+`error.test.js`: 399 inputs, 294 of them in no fixture), three further
+engine-level splits stand. None is Rust-only, and none can be registered
+here until the register takes a `rust` column:
+
+- **A number separator that is also whitespace, at the end of a
+  number.** Under `number.sep: ' '`, TypeScript reads
+  `a:1 0, b : 2 000 ` as `{"a":10,"b":2000}`: its regexp backtracks off
+  the trailing space, which is an ender. The Go and Rust scanners consume
+  the trailing separator and decline the whole run, so both report
+  `unexpected` at 1:14. The default separator `_` is not an ender in any
+  port, which is why the shared `alignment-number-prefix-separator.tsv`
+  rows agree everywhere; only a whitespace separator splits. This is the
+  engine's number scanner (`parser/rs/src/lexer.rs`,
+  `scan_number_digits`, and its Go counterpart), and TypeScript against
+  both ports, so it belongs in the engine's register.
+- **Error columns inside a string.** Only the code is contractual, and
+  the codes agree; two positions do not. An unknown escape under
+  `string.allowUnknown: false` is reported on the backslash in Rust
+  (`"\w"` at 1:2) and on the escaped character in TypeScript and Go
+  (1:3). A control character replaced through `string.replace` does not
+  advance the row in TypeScript or Go, so the `\r` in `x:\n "ac\n\r"`
+  under `{"\n":"X"}` is reported at 2:6 there and at 3:1 in Rust, where
+  the replaced newline counts as a line.
+- **A source that is only comments or whitespace.** TypeScript returns
+  `undefined`; the Rust engine folds every `undefined` in a finished
+  parse to `null`, so `#`, `//`, `/**/` and a lone space parse to `Null`
+  (the empty string alone is `Undefined`, the `lex.empty` result).
+  `alignment-empty.tsv` already writes `null` for these rows, and Go has
+  one `nil` for both, so no serialized value changes.
 
 ## Not divergences
 
