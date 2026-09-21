@@ -81,6 +81,26 @@ Replacement of **printable** characters is aligned, and the .tsv keeps a
 control row adjacent to that one precisely so a fix to the divergent case
 cannot be mistaken for a regression in the aligned case.
 
+## The Rust port
+
+The Rust port (`rs/`) reproduces the **TypeScript** column of every row
+in the register today: the Rust engine's string lexer consults the
+`string.replace` map before the control-character class, exactly as the
+canonical lexer does, so `"a\nc"` under `{"string":{"replace":{"\n":"X"}}}`
+is `"aXc"` there too. `rs/tests/divergent_test.rs` asserts that column
+and fails, naming the row, the day Rust stops agreeing.
+
+The register has no `rust` column because `ts/test/divergent.test.js`
+asserts exactly six columns; adding one is a change to the TypeScript
+runner first. Until then the rule for a Rust-only split is the same as
+for a Go one: repair it, or record it here AND add the column with the
+Rust runner switched to the support crate's `Register`.
+
+Rust inherits the engine-level splits recorded in `@tabnas/parser`'s own
+`DIVERGENCE.md` (lone surrogates fold to U+FFFD; the regular expression
+dialect is the `regex` crate's, with no lookaround), and adds nothing of
+its own.
+
 ## Not divergences
 
 These differ between the ports but never change a successful parse value,

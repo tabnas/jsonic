@@ -47,12 +47,27 @@ rules.
   suites take the families named after them.
 - Go: `go/jsonic_test.go` (`loadTSV` and `specDir`, over the shared loader,
   plus `parserTSVFiles`) and `go/feature_tsv_test.go`.
+- Rust: `rs/tests/parity_test.rs` runs every standard-shaped file through
+  `tabnas_support::Runner` (the shared loader's Rust half), building the
+  parser per file the way the Go runners do, and the three-column
+  list-child files through its own reader; `rs/tests/lex_test.rs` runs
+  `lex.tsv`, `rs/tests/utility_test.rs` the `utility-*` files, and
+  `rs/tests/divergent_test.rs` the register. `rs/tests/registration_test.rs`
+  is the Rust half of the registration gate.
 
 `specDir` finds `test/spec` by walking up, rather than counting `..` hops,
 and a failure names the fixture's own physical line number.
 
-Every file in this directory is named by BOTH runners; adding a fixture means
-wiring it into both, and a fixture that only one runtime runs proves nothing.
+Every file in this directory is named by ALL THREE runners; adding a fixture
+means wiring it into each, and a fixture that only one runtime runs proves
+nothing.
+
+The register (`divergent.tsv`) has `go` and `ts` columns and no `rust`
+column yet: `ts/test/divergent.test.js` asserts exactly six columns, so a
+seventh cannot be added without changing that runner. The Rust suite
+asserts the `ts` column, which is what Rust produces on every row; when
+the TypeScript runner reads columns by header, add the `rust` column and
+switch the Rust suite to `tabnas_support::Register`.
 
 ## Naming families
 

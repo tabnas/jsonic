@@ -18,8 +18,8 @@ a:1,foo:bar  →  {"a": 1, "foo": "bar"}
 jsonic accepts all standard JSON and then relaxes it for humans: you can
 skip the quotes, the braces, the commas, and jsonic will still parse
 what you meant. Every relaxation below is verified against the shared
-conformance fixtures, works identically in TypeScript and Go, and can be
-switched off individually if you want less magic.
+conformance fixtures, works identically in TypeScript, Go and Rust, and
+can be switched off individually if you want less magic.
 
 ```js
 const { Jsonic } = require('@tabnas/jsonic')
@@ -210,20 +210,26 @@ on) so you can dial jsonic anywhere between "strict JSON"
 |---|---|
 | **TypeScript / JavaScript** (canonical, `jsonic` on npm) | [`ts/README.md`](ts/README.md) |
 | **Go** (`github.com/tabnas/jsonic/go`) | [`go/README.md`](go/README.md) |
+| **Rust** (crate `tabnas-jsonic`) | [`rs/README.md`](rs/README.md) |
 
-Both packages are grammar plugins built on the
+All three packages are grammar plugins built on the
 [`tabnas`](https://github.com/tabnas/parser) parsing engine, layering
 jsonic's relaxed syntax on the standard-JSON core supplied by the
 [`@tabnas/json`](https://github.com/tabnas/json) plugin (TypeScript uses
 the npm packages, Go uses `github.com/tabnas/parser/go` and
-`github.com/tabnas/json/go`). TypeScript is canonical: both runtimes
-share the conformance fixtures in [`test/spec/`](test/spec/) and
-produce the same parse results:
+`github.com/tabnas/json/go`, Rust uses the `tabnas` and `tabnas-json`
+crates from sibling checkouts). TypeScript is canonical: every runtime
+shares the conformance fixtures in [`test/spec/`](test/spec/) and
+produces the same parse results:
 
 ```go
 import jsonic "github.com/tabnas/jsonic/go"
 
 result, err := jsonic.Parse("a:1, b:2")   // map[a:1 b:2]
+```
+
+```rust
+let value = tabnas_jsonic::parse("a:1, b:2")?;   // {"a":1,"b":2}
 ```
 
 ## Documentation
