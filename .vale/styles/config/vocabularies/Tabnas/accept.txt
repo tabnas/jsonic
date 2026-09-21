@@ -18,7 +18,9 @@
 [Ll]exed
 [Ll]exes
 [Ll]exing
+[Ll]ockfile
 [Ll]ookahead
+[Ll]ookaround
 [Mm]akefile
 [Mm]atchers
 [Mm]ultiline
