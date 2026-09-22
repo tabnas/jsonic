@@ -303,8 +303,18 @@ func MakeJSON() *Jsonic {
 		// strict JSON keys are quoted strings only, never #TX/#NR/#VL.
 		// This is what makes `{1:1}` and `{null:null}` errors here, as
 		// they are in TS and in encoding/json.
+		//
+		// The three trailing empty names are LOAD-BEARING, and reading
+		// this as `{"#ST"}` is how they came to be missing. The engine
+		// overlays a named token set onto the installed one BY INDEX, as
+		// the canonical deep merge treats an array, so a one-entry
+		// override replaces slot 0 and leaves #NR, #ST and #VL live
+		// behind it -- and `{1:1}`, `{true:1}` and `{9999E9999:1}` all
+		// parsed. An empty name is the Go spelling of the canonical
+		// `null`: applyTokenSets skips it after the overlay, so each of
+		// the three clears its position.
 		TokenSet: map[string][]string{
-			"KEY": {"#ST"},
+			"KEY": {"#ST", "", "", ""},
 		},
 		Rule: &RuleOptions{
 			Finish:  &f,
