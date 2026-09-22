@@ -220,7 +220,8 @@ the npm packages, Go uses `github.com/tabnas/parser/go` and
 `github.com/tabnas/json/go`, Rust uses the `tabnas` and `tabnas-json`
 crates from sibling checkouts). TypeScript is canonical: every runtime
 shares the conformance fixtures in [`test/spec/`](test/spec/) and
-produces the same parse results:
+produces the same parse results, with the recorded exceptions in
+[`DIVERGENCE.md`](DIVERGENCE.md):
 
 ```go
 import jsonic "github.com/tabnas/jsonic/go"
