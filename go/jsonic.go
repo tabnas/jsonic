@@ -303,8 +303,15 @@ func MakeJSON() *Jsonic {
 		// strict JSON keys are quoted strings only, never #TX/#NR/#VL.
 		// This is what makes `{1:1}` and `{null:null}` errors here, as
 		// they are in TS and in encoding/json.
+		//
+		// The trailing empty names are load-bearing, and are the Go
+		// spelling of the TS `null`: a token set is merged into the
+		// default by INDEX, so a one-element `{"#ST"}` replaces only the
+		// first of the four default KEY tokens and leaves #NR, #ST and
+		// #VL live. applyTokenSets skips an empty name, which is how a
+		// caller shortens a set.
 		TokenSet: map[string][]string{
-			"KEY": {"#ST"},
+			"KEY": {"#ST", "", "", ""},
 		},
 		Rule: &RuleOptions{
 			Finish:  &f,
