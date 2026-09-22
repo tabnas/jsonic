@@ -746,8 +746,8 @@ fn val_before_close(rule: &mut Rule, context: &mut Context) -> Result<(), Action
     let openval = rule.node.borrow().clone();
     rule.u_mut().insert("openval".to_string(), openval.clone());
 
-    let node = if !rule.child_node.is_undefined() {
-        rule.child_node.clone()
+    let node = if rule.has_child_value() {
+        rule.child_value()
     } else if is_primitive(&openval) {
         return Ok(());
     } else if rule.os() != 0 {
@@ -771,7 +771,7 @@ fn val_before_close(rule: &mut Rule, context: &mut Context) -> Result<(), Action
 /// carry nothing: `a:,b:` would give `a` the value `","`. The value the
 /// canonical @value$ produces for a valueless token is put back here.
 fn val_after_close(rule: &mut Rule, context: &mut Context) -> Result<(), ActionError> {
-    if !rule.child_node.is_undefined() {
+    if rule.has_child_value() {
         return Ok(());
     }
     let openval = rule.u.get("openval").cloned().unwrap_or(Value::Undefined);
