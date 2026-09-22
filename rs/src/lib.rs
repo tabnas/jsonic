@@ -1250,7 +1250,13 @@ fn strict_json_document() -> serde_json::Value {
             "rule": { "finish": false, "include": "json" },
             // Strict JSON keys are quoted strings only, never text,
             // numbers or keywords: `{1:1}` and `{null:null}` are errors.
-            "tokenSet": { "KEY": ["#ST"] },
+            // The trailing nulls are load-bearing. An options document is
+            // merged into the defaults entry by entry, arrays by INDEX, so
+            // a one-element `["#ST"]` replaces only the first of the four
+            // default KEY tokens and leaves `#NR`, `#ST` and `#VL` in
+            // place. `ts/src/grammar.ts` spells it the same way, for the
+            // same reason: `deep()` there merges arrays by index too.
+            "tokenSet": { "KEY": ["#ST", null, null, null] },
         },
     })
 }
