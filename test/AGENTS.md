@@ -62,12 +62,17 @@ Every file in this directory is named by ALL THREE runners; adding a fixture
 means wiring it into each, and a fixture that only one runtime runs proves
 nothing.
 
-The register (`divergent.tsv`) has `go` and `ts` columns and no `rust`
-column yet: `ts/test/divergent.test.js` asserts exactly six columns, so a
-seventh cannot be added without changing that runner. The Rust suite
-asserts the `ts` column, which is what Rust produces on every row; when
-the TypeScript runner reads columns by header, add the `rust` column and
-switch the Rust suite to `tabnas_support::Register`.
+The register (`divergent.tsv`) has a column per runtime: `go`, `ts` and
+`rust`. All three runners read columns by HEADER NAME and each asserts
+its own, so a fourth runtime is a column and a runner, not an edit to the
+ones already there. Each runner also asserts that every column in its own
+`RUNTIMES` list exists, so a column dropped in an edit fails loudly
+rather than leaving a port unasserted.
+
+The Rust suite uses a plain `tabnas_support::Runner` rather than
+`Register`: the register type refuses a row whose runtime cells all
+agree, and the ledger keeps one such row on purpose (the printable
+control row).
 
 ## Naming families
 

@@ -148,15 +148,18 @@ for the reason `../../json/rs/AGENTS.md` gives.
 ## The divergence register
 
 `tests/divergent_test.rs` runs `../test/spec/divergent.tsv` and asserts
-the **`ts` column**: the Rust port reproduces TypeScript on every row
-(the engine's string lexer consults `string.replace` before the
-control-character class). It has no `rust` column of its own because
-`ts/test/divergent.test.js` asserts exactly six columns and `ts/` is not
-this port's to change. When that runner reads by header or accepts a
-seventh column, add the column (rust = ts on both rows) and switch the
-test to `tabnas_support::Register::new(runner, "rust", &["go", "ts",
-"rust"])`. Note the register refuses a row whose cells all agree, so the
-control row would need to go through a plain `Runner`.
+the **`rust` column**. The register carries one column per runtime, all
+three runners read columns by header name, and each asserts its own, so
+a Rust-only split is recorded in the `rust` cell rather than argued in
+prose. Rust reproduces TypeScript on both rows today (the engine's string
+lexer consults `string.replace` before the control-character class), and
+the cells say so as a measured fact.
+
+The test uses a plain `Runner` rather than
+`tabnas_support::Register`: the register refuses a row whose runtime
+cells all agree, and the ledger keeps one such row on purpose (the
+printable control row, adjacent to the divergent one so a fix to that one
+cannot be read as a regression here).
 
 ## The unprintable shim is not needed
 

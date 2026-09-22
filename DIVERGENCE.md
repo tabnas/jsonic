@@ -1,15 +1,16 @@
 # Divergences
 
-TypeScript is the canonical implementation; the Go port tracks it. This
-file records where the two ports produce a **different result for the same
-input**.
+TypeScript is the canonical implementation; the Go and Rust ports track
+it. This file records where the ports produce a **different result for the
+same input**.
 
 ## The live register is executable
 
 [`test/spec/divergent.tsv`](test/spec/divergent.tsv) is the authority, not
-this page. Unlike a prose list, it is **run by both suites**: every row
-states what each port actually produces today, the Go runner must reproduce
-the `go` column and the TS runner the `ts` column, on every run.
+this page. Unlike a prose list, it is **run by every suite**: every row
+states what each port actually produces today, and each runner must
+reproduce its own column, on every run. The register carries one column
+per runtime, `go`, `ts` and `rust`, read by header name.
 
 That means a divergence which gets **fixed** fails the suite as loudly as
 one that regresses, and the row must then be deleted. Prose cannot do that,
@@ -83,18 +84,17 @@ cannot be mistaken for a regression in the aligned case.
 
 ## The Rust port
 
-The Rust port (`rs/`) reproduces the **TypeScript** column of every row
-in the register today: the Rust engine's string lexer consults the
-`string.replace` map before the control-character class, exactly as the
-canonical lexer does, so `"a\nc"` under `{"string":{"replace":{"\n":"X"}}}`
-is `"aXc"` there too. `rs/tests/divergent_test.rs` asserts that column
-and fails, naming the row, the day Rust stops agreeing.
+The register carries a `rust` column beside `go` and `ts`, and
+`rs/tests/divergent_test.rs` asserts it. All three runners read columns
+by header name, so each port records its own measured answer and a row
+where one stops agreeing fails that port's suite, naming the row.
 
-The register has no `rust` column because `ts/test/divergent.test.js`
-asserts exactly six columns; adding one is a change to the TypeScript
-runner first. Until then the rule for a Rust-only split is the same as
-for a Go one: repair it, or record it here AND add the column with the
-Rust runner switched to the support crate's `Register`.
+Rust reproduces the TypeScript answer on every row today: the Rust
+engine's string lexer consults the `string.replace` map before the
+control-character class, exactly as the canonical lexer does, so
+`"a\nc"` under `{"string":{"replace":{"\n":"X"}}}` is `"aXc"` there too.
+The rule for a Rust-only split is the same as for a Go one: repair it, or
+record what Rust produces in the `rust` cell and explain the shape here.
 
 Rust inherits the engine-level splits recorded in `@tabnas/parser`'s own
 `DIVERGENCE.md` (lone surrogates fold to U+FFFD; the regular expression
@@ -115,15 +115,16 @@ no caller can catch. A parse budget in `rs/src/lib.rs` refuses the 128th
 container with the engine's `cancel` code, whether it is a list, a map
 or one of the implicit maps a pair dive opens. The number is the one
 `tabnas-json` and `serde_json` use. Pinned by
-`nesting_is_bounded_by_the_depth_budget` in `rs/tests/jsonic_test.rs`;
-it must never reach a shared fixture, and it belongs in the register
-under a `rust` column the day the TypeScript runner can take one.
+`nesting_is_bounded_by_the_depth_budget` in `rs/tests/jsonic_test.rs`
+rather than by a register row, because the input is 128 nested brackets
+and a shared fixture must stay runnable in every port; it must never
+reach one.
 
 Measured against the TypeScript suite's own assertions
 (`ts/test/feature.test.js`, `custom.test.js`, `comment.test.js` and
 `error.test.js`: 399 inputs, 294 of them in no fixture), three further
-engine-level splits stand. None is Rust-only, and none can be registered
-here until the register takes a `rust` column:
+engine-level splits stand. None is Rust-only, and each belongs in the
+engine's own register rather than this one:
 
 - **A number separator that is also whitespace, at the end of a
   number.** Under `number.sep: ' '`, TypeScript reads
