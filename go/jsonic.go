@@ -304,12 +304,15 @@ func MakeJSON() *Jsonic {
 		// This is what makes `{1:1}` and `{null:null}` errors here, as
 		// they are in TS and in encoding/json.
 		//
-		// The trailing empty names are load-bearing, and are the Go
-		// spelling of the TS `null`: a token set is merged into the
-		// default by INDEX, so a one-element `{"#ST"}` replaces only the
-		// first of the four default KEY tokens and leaves #NR, #ST and
-		// #VL live. applyTokenSets skips an empty name, which is how a
-		// caller shortens a set.
+		// The trailing empty names are load-bearing from parser/go v0.11.0
+		// on, and are the Go spelling of the TS `null`: that engine overlays
+		// a token set onto the default by INDEX (parser#151), so a
+		// one-element `{"#ST"}` replaces only the first of the four default
+		// KEY tokens and leaves #NR, #ST and #VL live as keys.
+		// applyTokenSets skips an empty name, which is how a caller shortens
+		// a set. Under the v0.10.0 this module requires, which installs the
+		// named set outright, the two spellings agree, so writing it this
+		// way costs nothing and carries the strict profile over the bump.
 		TokenSet: map[string][]string{
 			"KEY": {"#ST", "", "", ""},
 		},
