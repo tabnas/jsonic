@@ -1286,10 +1286,21 @@ func TestSetOptionsPreservesIgnoreSet(t *testing.T) {
 		t.Errorf("expected 2 IGNORE tokens after Grammar, got %d", len(j.TokenSet("IGNORE")))
 	}
 
-	// Explicit TokenSet override in the new options must still win.
+	// Explicit TokenSet override in the new options must still win, and a
+	// token set is merged into the default by INDEX, as the canonical
+	// `deep()` merges it: `{"#SP"}` replaces only the first of the three
+	// default IGNORE names and leaves #LN and #CM in place. Measured in
+	// TypeScript, which is the contract: `tokenSet: {IGNORE: ['#SP']}`
+	// gives [5,6,7] and `['#SP', null, null]` gives [5].
 	j.SetOptions(Options{TokenSet: map[string][]string{"IGNORE": {"#SP"}}})
+	if len(j.TokenSet("IGNORE")) != 3 {
+		t.Errorf("expected an index merge to leave IGNORE at 3 tokens, got %d", len(j.TokenSet("IGNORE")))
+	}
+
+	// Shortening a set is the empty name, the Go spelling of the TS null.
+	j.SetOptions(Options{TokenSet: map[string][]string{"IGNORE": {"#SP", "", ""}}})
 	if len(j.TokenSet("IGNORE")) != 1 {
-		t.Errorf("expected TokenSet override to shrink IGNORE to 1 token, got %d", len(j.TokenSet("IGNORE")))
+		t.Errorf("expected the nulled form to shrink IGNORE to 1 token, got %d", len(j.TokenSet("IGNORE")))
 	}
 }
 
