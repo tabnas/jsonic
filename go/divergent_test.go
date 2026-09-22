@@ -21,6 +21,7 @@ package tabnasjsonic
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -83,14 +84,19 @@ func TestDivergentLedger(t *testing.T) {
 	}
 }
 
-// renderOutcome renders a parse as the ledger spells it: ERROR:<code> or
-// the value as JSON.
+// renderOutcome renders a parse as the ledger spells it: the value as
+// JSON, or ERROR:<code>@<row>:<col>.
+//
+// The position is rendered, not optional. Two ports can agree on a code
+// and disagree on where they say the error happened, and a cell that
+// pinned the code alone would sit green through exactly that split. The
+// register carries one such row today (string-replace-control-row).
 func renderOutcome(j *Jsonic, src string) string {
 	v, err := j.Parse(src)
 	if err != nil {
 		var je *JsonicError
 		if errors.As(err, &je) {
-			return "ERROR:" + je.Code
+			return fmt.Sprintf("ERROR:%s@%d:%d", je.Code, je.Row, je.Col)
 		}
 		return "ERROR:" + err.Error()
 	}
@@ -114,11 +120,15 @@ func makeFromLedgerOpts(raw string) (*Jsonic, error) {
 		String *struct {
 			Replace map[string]string `json:"replace"`
 		} `json:"string"`
+		Number *struct {
+			Sep *string `json:"sep"`
+		} `json:"number"`
 	}
 	if err := json.Unmarshal([]byte(raw), &spec); err != nil {
 		return nil, err
 	}
 	opts := Options{}
+	known := false
 	if spec.String != nil && spec.String.Replace != nil {
 		rep := make(map[rune]string, len(spec.String.Replace))
 		for k, v := range spec.String.Replace {
@@ -129,7 +139,13 @@ func makeFromLedgerOpts(raw string) (*Jsonic, error) {
 			rep[r[0]] = v
 		}
 		opts.String = &StringOptions{Replace: rep}
-	} else {
+		known = true
+	}
+	if spec.Number != nil && spec.Number.Sep != nil {
+		opts.Number = &NumberOptions{Sep: *spec.Number.Sep}
+		known = true
+	}
+	if !known {
 		return nil, errors.New("unsupported ledger opts (extend makeFromLedgerOpts): " + raw)
 	}
 	return Make(opts), nil

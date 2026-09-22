@@ -10,7 +10,8 @@ same input**.
 this page. Unlike a prose list, it is **run by every suite**: every row
 states what each port actually produces today, and each runner must
 reproduce its own column, on every run. The register carries one column
-per runtime, `go`, `ts` and `rust`, read by header name.
+per runtime, `go`, `ts` and `rust`, read by header name, and an error cell
+pins the reported position as well as the code.
 
 That means a divergence which gets **fixed** fails the suite as loudly as
 one that regresses, and the row must then be deleted. Prose cannot do that,
@@ -122,35 +123,33 @@ reach one.
 
 Measured against the TypeScript suite's own assertions
 (`ts/test/feature.test.js`, `custom.test.js`, `comment.test.js` and
-`error.test.js`: 399 inputs, 294 of them in no fixture), three further
-engine-level splits stand. None is Rust-only, and each belongs in the
-engine's own register rather than this one:
+`error.test.js`: 399 inputs, 294 of them in no fixture), two further
+engine-level splits stand. Neither is Rust-only, and both are now ROWS in
+the register rather than paragraphs here, so each is executed by all
+three suites:
 
-- **A number separator that is also whitespace, at the end of a
-  number.** Under `number.sep: ' '`, TypeScript reads
-  `a:1 0, b : 2 000 ` as `{"a":10,"b":2000}`: its regexp backtracks off
-  the trailing space, which is an ender. The Go and Rust scanners consume
-  the trailing separator and decline the whole run, so both report
-  `unexpected` at 1:14. The default separator `_` is not an ender in any
-  port, which is why the shared `alignment-number-prefix-separator.tsv`
-  rows agree everywhere; only a whitespace separator splits. This is the
-  engine's number scanner (`parser/rs/src/lexer.rs`,
-  `scan_number_digits`, and its Go counterpart), and TypeScript against
-  both ports, so it belongs in the engine's register.
-- **Error columns inside a string.** Only the code is contractual, and
-  the codes agree; two positions do not. An unknown escape under
-  `string.allowUnknown: false` is reported on the backslash in Rust
-  (`"\w"` at 1:2) and on the escaped character in TypeScript and Go
-  (1:3). A control character replaced through `string.replace` does not
-  advance the row in TypeScript or Go, so the `\r` in `x:\n "ac\n\r"`
-  under `{"\n":"X"}` is reported at 2:6 there and at 3:1 in Rust, where
-  the replaced newline counts as a line.
+- `number-sep-space`. A number separator that is also whitespace, at the
+  end of a number.
+- `string-replace-control-row`. The reported ROW of a control character
+  mapped through `string.replace`.
+
+The register's cells pin a position as well as a code
+(`ERROR:<code>@<row>:<col>`), which is what lets the second of those be
+recorded: the three ports agree on `unprintable` and disagree on where
+they say it happened. An unknown-escape COLUMN split stood beside it and
+has closed: under `string.allowUnknown: false`, `"\w"` is reported at 1:3
+in TypeScript, Go and Rust alike.
+
+One further difference is deliberately not a register row:
+
 - **A source that is only comments or whitespace.** TypeScript returns
   `undefined`; the Rust engine folds every `undefined` in a finished
   parse to `null`, so `#`, `//`, `/**/` and a lone space parse to `Null`
   (the empty string alone is `Undefined`, the `lex.empty` result).
   `alignment-empty.tsv` already writes `null` for these rows, and Go has
-  one `nil` for both, so no serialized value changes.
+  one `nil` for both, so no serialized value changes and every runtime
+  cell would read the same. The register refuses a row whose cells all
+  agree, correctly: there is nothing there to diverge.
 
 ## Not divergences
 

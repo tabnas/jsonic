@@ -32,18 +32,30 @@ const SPEC = findSpecDir(__dirname)
 function makeFromLedgerOpts(raw) {
   if ('-' === raw || '' === raw) return Jsonic.make()
   const spec = JSON.parse(raw)
-  const known = Object.keys(spec).every((k) => 'string' === k)
+  const known = Object.keys(spec).every(
+    (k) => ('string' === k && 'replace' in spec[k]) ||
+      ('number' === k && 'sep' in spec[k]))
   if (!known) {
     throw new Error('unsupported ledger opts (extend makeFromLedgerOpts): ' + raw)
   }
   return Jsonic.make(spec)
 }
 
+// A parse outcome in the ledger's vocabulary: the value as JSON, or
+// `ERROR:<code>@<row>:<col>`.
+//
+// The position is rendered, not optional. Two ports can agree on a code
+// and disagree on where they say the error happened, and a cell that
+// pinned the code alone would sit green through exactly that split. The
+// register carries one such row today (`string-replace-control-row`).
 function outcome(j, src) {
   try {
     return JSON.stringify(j.parse(src))
   } catch (e) {
-    return 'ERROR:' + (e.code || e.message)
+    const code = e.code || e.message
+    return 'number' === typeof e.lineNumber && 'number' === typeof e.columnNumber
+      ? `ERROR:${code}@${e.lineNumber}:${e.columnNumber}`
+      : 'ERROR:' + code
   }
 }
 
