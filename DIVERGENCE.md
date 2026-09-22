@@ -90,10 +90,18 @@ The register carries a `rust` column beside `go` and `ts`, and
 by header name, so each port records its own measured answer and a row
 where one stops agreeing fails that port's suite, naming the row.
 
-Rust reproduces the TypeScript answer on every row today: the Rust
-engine's string lexer consults the `string.replace` map before the
+Two rows record a Rust answer that is not TypeScript's, and the register
+is where to read them rather than this paragraph: `number-sep-space`,
+where Go and Rust both decline a run TypeScript reads, and
+`string-replace-control-row`, where Rust alone reports the row after the
+replaced newline. Rust reproduces the TypeScript answer on every other
+row.
+
+Where it does, that is the engine agreeing rather than a coincidence: the
+Rust string lexer consults the `string.replace` map before the
 control-character class, exactly as the canonical lexer does, so
-`"a\nc"` under `{"string":{"replace":{"\n":"X"}}}` is `"aXc"` there too.
+`"a\nc"` under `{"string":{"replace":{"\n":"X"}}}` is `"aXc"` there too,
+and on that row only the reported ROW splits, not the value or the code.
 The rule for a Rust-only split is the same as for a Go one: repair it, or
 record what Rust produces in the `rust` cell and explain the shape here.
 
@@ -124,14 +132,17 @@ reach one.
 Measured against the TypeScript suite's own assertions
 (`ts/test/feature.test.js`, `custom.test.js`, `comment.test.js` and
 `error.test.js`: 399 inputs, 294 of them in no fixture), two further
-engine-level splits stand. Neither is Rust-only, and both are now ROWS in
-the register rather than paragraphs here, so each is executed by all
-three suites:
+engine-level splits stand. Both are now ROWS in the register rather than
+paragraphs here, so each is executed by all three suites, and they do not
+split the same way:
 
 - `number-sep-space`. A number separator that is also whitespace, at the
-  end of a number.
+  end of a number. Go and Rust both decline the run; TypeScript reads it.
+  Not Rust-only.
 - `string-replace-control-row`. The reported ROW of a control character
-  mapped through `string.replace`.
+  mapped through `string.replace`. Go and TypeScript agree at 2:6 and
+  Rust reports 3:1, so this one IS Rust-only. The code is the same in all
+  three, and the code is the contract.
 
 The register's cells pin a position as well as a code
 (`ERROR:<code>@<row>:<col>`), which is what lets the second of those be
