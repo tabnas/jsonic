@@ -1,10 +1,10 @@
 # Agents Guide — shared spec fixtures
 
-`spec/*.tsv` holds the cross-runtime conformance fixtures. Both runtimes run
-the same files, so a change here affects TypeScript and Go together — edit
-with that in mind.
+`spec/*.tsv` holds the cross-runtime conformance fixtures. All three
+runtimes run the same files, so a change here affects TypeScript, Go and
+Rust together. Edit with that in mind.
 
-These moved up from `ts/test/spec/` so the fixtures sit above both runtimes
+These moved up from `ts/test/spec/` so the fixtures sit above every runtime
 rather than inside one of them, matching @tabnas/parser.
 
 ## Format
@@ -20,7 +20,7 @@ The files are read by
 `loadTSV`s are now thin shims over it, returning the shapes their callers
 already expect.
 
-**Escaping applies to the `input` column only, in both runtimes**: `\n`,
+**Escaping applies to the `input` column only, in every runtime**: `\n`,
 `\r`, `\t` and `\\` are decoded there. Every other column is taken as
 written, so the `expected` column is raw JSON and JSON's own escape rules
 apply to it — write `"a\nb"` for a string holding a newline, exactly as
@@ -88,13 +88,14 @@ control row).
 ## Rules
 
 - Prefer adding a fixture here over a one-off in-language assertion when a
-  case is expressible as input → output. That is what keeps the two runtimes
+  case is expressible as input → output. That is what keeps the runtimes
   honest against each other.
-- TypeScript is canonical. If the two runtimes disagree, the TS behaviour is
-  the expected value — unless Go has exposed a genuine TS defect, in which
-  case fix TS first and pin the corrected behaviour here.
-- A new fixture must pass in BOTH runtimes: run `go test ./...` (from `go/`)
-  and `npm test` (from `ts/`) before considering it done.
+- TypeScript is canonical. If the runtimes disagree, the TS behaviour is
+  the expected value — unless a port has exposed a genuine TS defect, in
+  which case fix TS first and pin the corrected behaviour here.
+- A new fixture must pass in EVERY runtime: run `go test ./...` (from
+  `go/`), `npm test` (from `ts/`) and `cargo test --all-targets` (from
+  `rs/`) before considering it done.
 
 ## Never author an expected value — probe for it
 
@@ -105,6 +106,11 @@ ports and prints one line per candidate:
 AGREE   <src>\t<value>       -> paste straight into a fixture
 DIFFER  <src>\t<go>\t<ts>    -> adjudicate; if deliberate, add to divergent.tsv
 ```
+
+The probe covers the Go and TypeScript ports only. A Rust candidate is
+checked by adding the row and running `cargo test --all-targets` from
+`rs/`, which fails with the value Rust produced; the registration test
+makes sure the new file is run at all.
 
 A row is only trustworthy if both engines were asked. Hand-written rows pin
 what the author believed, and that has gone wrong here more than once: a
