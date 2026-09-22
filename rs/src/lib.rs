@@ -736,6 +736,16 @@ fn resolve_token(rule: &mut Rule, context: &mut Context) -> Value {
 /// a deliberate primitive a plugin set in `val` open, then the matched
 /// scalar token (which beats a stale parent-seeded container), then a
 /// deliberate container a plugin set, else no value (implicit null).
+///
+/// The child is read through [`Rule::has_child_value`] /
+/// [`Rule::child_value`], never the raw `child_node` field. A child that
+/// never installed a node cell of its own wrote into THIS rule's cell,
+/// and the engine then leaves `child_node` undefined rather than hold a
+/// second copy-on-write handle on the container this rule is about to
+/// write into again. The accessors answer from the node in that case,
+/// which is what the canonical `r.child.node` reads — there the two are
+/// the same object. Reading the field directly makes such a val look
+/// childless, and `,` then parses as `null` instead of `[null]`.
 fn val_before_close(rule: &mut Rule, context: &mut Context) -> Result<(), ActionError> {
     // Stash the value a plugin set in a val OPEN action (before any
     // coalescing). json's @value$ close ALT action still runs after this
@@ -746,8 +756,8 @@ fn val_before_close(rule: &mut Rule, context: &mut Context) -> Result<(), Action
     let openval = rule.node.borrow().clone();
     rule.u_mut().insert("openval".to_string(), openval.clone());
 
-    let node = if !rule.child_node.is_undefined() {
-        rule.child_node.clone()
+    let node = if rule.has_child_value() {
+        rule.child_value()
     } else if is_primitive(&openval) {
         return Ok(());
     } else if rule.os() != 0 {
@@ -770,8 +780,11 @@ fn val_before_close(rule: &mut Rule, context: &mut Context) -> Result<(), Action
 /// fixed tokens carry their source text where the canonical engine's
 /// carry nothing: `a:,b:` would give `a` the value `","`. The value the
 /// canonical @value$ produces for a valueless token is put back here.
+///
+/// "With no child" is asked through [`Rule::has_child_value`] for the
+/// reason `val_before_close` reads the child through it.
 fn val_after_close(rule: &mut Rule, context: &mut Context) -> Result<(), ActionError> {
-    if !rule.child_node.is_undefined() {
+    if rule.has_child_value() {
         return Ok(());
     }
     let openval = rule.u.get("openval").cloned().unwrap_or(Value::Undefined);
@@ -1250,7 +1263,16 @@ fn strict_json_document() -> serde_json::Value {
             "rule": { "finish": false, "include": "json" },
             // Strict JSON keys are quoted strings only, never text,
             // numbers or keywords: `{1:1}` and `{null:null}` are errors.
-            "tokenSet": { "KEY": ["#ST"] },
+            //
+            // The three trailing nulls are load-bearing, and are exactly
+            // what the canonical `ts/src/grammar.ts` writes. The engine
+            // overlays a token set INDEX-WISE, as TypeScript's deep merge
+            // treats an array: a null clears that position and the
+            // positions beyond the overlay's length keep the default. A
+            // bare `["#ST"]` therefore replaces only slot 0 of the default
+            // `KEY: ['#TX', '#NR', '#ST', '#VL']` and leaves `#NR`, `#ST`
+            // and `#VL` live, so the strict parser still accepts `{1:1}`.
+            "tokenSet": { "KEY": ["#ST", null, null, null] },
         },
     })
 }
