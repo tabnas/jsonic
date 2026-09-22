@@ -136,7 +136,8 @@ rather than the stale one.
 
 Strict-JSON keys are **aligned** and are no longer a difference.
 `Jsonic.make('json')` and Go's `MakeJSON` both restrict map keys to quoted
-strings via `tokenSet: { KEY: ['#ST', ...] }` / `TokenSet: {"KEY": {"#ST"}}`,
+strings via `tokenSet: { KEY: ['#ST', null, null, null] }` /
+`TokenSet: {"KEY": {"#ST", "", "", ""}}`,
 so both runtimes now reject `{1:1}` and `{null:null}`, matching
 `encoding/json` and `JSON.parse`. Go previously accepted them (`{"1":1}`,
 `{"null":null}`) because the engine ignored `Options.TokenSet` and resolved
@@ -145,6 +146,16 @@ so both runtimes now reject `{1:1}` and `{null:null}`, matching
 the per-instance sets. Pinned in
 `test/spec/alignment-strict-json-mode-errors.tsv`, which runs in both
 runtimes.
+
+**Every trailing entry does work, in both spellings.** The engine
+overlays a named token set onto the installed one BY INDEX, so a
+one-entry override replaces slot 0 and leaves the default `#NR`, `#ST`
+and `#VL` live behind it. A parser built from `{"KEY": {"#ST"}}` still
+accepts `{1:1}`, `{true:1}` and `{9999E9999:1}`. TypeScript clears a
+position with `null`; Go's spelling of that is the empty name, which
+`applyTokenSets` drops after the overlay. Reading either form as "the
+key set is `#ST`" is how this went wrong, so the guide spells both in
+full.
 
 ### Token Consumption
 
