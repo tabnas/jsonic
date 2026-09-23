@@ -14,7 +14,7 @@ import (
 // VERSION is this module's version. It MUST equal ts/package.json
 // "version": the release orchestrator rewrites both, and
 // TestVersionMatchesPackageJSON fails the build if they drift.
-const VERSION = "0.6.7"
+const VERSION = "0.7.0"
 
 // grammarMark is the decoration key that records whether the relaxed-JSON
 // grammar has already been installed on an instance. It guards the Grammar
@@ -55,22 +55,28 @@ func jsonicOptions() Options {
 func commentDefDefaults() map[string]*CommentDef {
 	t, f := true, false
 	return map[string]*CommentDef{
-		"hash":  {Line: true, Start: "#", Lex: &t, EatLine: &f},
-		"slash": {Line: true, Start: "//", Lex: &t, EatLine: &f},
-		"multi": {Line: false, Start: "/*", End: "*/", Lex: &t, EatLine: &f},
+		"hash":  {Line: tabnas.Bool(true), Start: "#", Lex: &t, EatLine: &f},
+		"slash": {Line: tabnas.Bool(true), Start: "//", Lex: &t, EatLine: &f},
+		"multi": {Line: tabnas.Bool(false), Start: "/*", End: "*/", Lex: &t, EatLine: &f},
 	}
 }
 
 // normalizeCommentDefs aligns caller comment defs with the TS option
 // merge: a partial def for a default name (hash / slash / multi)
 // inherits the fields it leaves unset (start, end, line, lex, eatline)
-// instead of replacing the whole definition — with Line false honored
-// as an explicit block conversion when End is also set — a nil def
-// stays nil (the removal marker), and a def for a new name is inactive
-// unless it sets Lex — TS makeCommentMatcher reads `lex: !!om.lex`,
-// while the Go engine would default an unset Lex to true. Needed
-// because the engine's option Deep merge replaces map values wholesale
-// per key.
+// instead of replacing the whole definition, a nil def stays nil (the
+// removal marker), and a def for a new name is inactive unless it sets
+// Lex — TS makeCommentMatcher reads `lex: !!om.lex`, while the Go
+// engine would default an unset Lex to true.
+//
+// Line, Lex and EatLine are *bool, so nil is "not supplied" and an
+// explicit false survives the merge: `Line: tabnas.Bool(false)` turns a
+// default line def into a block comment, as TS `line: false` does
+// (tabnas/parser#208, #210). The engine's options overlay also merges a
+// def field by field onto the default of the same name, so the
+// default-name merge here agrees with what Make's whole-Options Deep
+// produces; the Lex default for a new name is the part only this
+// function supplies.
 func normalizeCommentDefs(o *Options) {
 	if o == nil || o.Comment == nil || o.Comment.Def == nil {
 		return
@@ -84,14 +90,6 @@ func normalizeCommentDefs(o *Options) {
 		}
 		if base, ok := defs[name]; ok {
 			if merged, ok := Deep(base, def).(*CommentDef); ok {
-				// Honor an explicit block conversion (TS `line: false`):
-				// the struct merge treats the zero bool as unset and
-				// would keep the default Line:true, but Line false with
-				// an End marker is unambiguous — line comments never
-				// use End.
-				if !def.Line && def.End != "" {
-					merged.Line = false
-				}
 				norm[name] = merged
 				continue
 			}
@@ -231,8 +229,10 @@ func Make(opts ...Options) *Jsonic {
 		base.Rule = &ruleCopy
 	}
 
-	// Merge partial comment defs with jsonic's defaults per name (the
-	// whole-Options Deep below replaces map values wholesale per key).
+	// Align caller comment defs with the TS option merge: partial defs
+	// for the default names inherit jsonic's defaults, and a def for a
+	// new name stays inactive unless it sets Lex (see
+	// normalizeCommentDefs).
 	normalizeCommentDefs(&base)
 
 	// Construct the engine with jsonic's branding as a base and caller

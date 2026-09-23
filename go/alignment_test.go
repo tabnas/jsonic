@@ -267,9 +267,9 @@ func TestFeatureCommentSuffixLine(t *testing.T) {
 	yes := true
 	j := Make(Options{Comment: &CommentOptions{
 		Def: map[string]*CommentDef{
-			"hash":  {Line: true, Start: "#", Lex: &yes, Suffix: "@@"},
-			"line":  {Line: true, Start: "//", Lex: &yes},
-			"block": {Line: false, Start: "/*", End: "*/", Lex: &yes},
+			"hash":  {Line: boolPtr(true), Start: "#", Lex: &yes, Suffix: "@@"},
+			"line":  {Line: boolPtr(true), Start: "//", Lex: &yes},
+			"block": {Line: boolPtr(false), Start: "/*", End: "*/", Lex: &yes},
 		},
 	}})
 	runParserTSV(t, "feature-comment-suffix-line.tsv", j)
@@ -282,9 +282,9 @@ func TestFeatureCommentSuffixBlock(t *testing.T) {
 	yes := true
 	j := Make(Options{Comment: &CommentOptions{
 		Def: map[string]*CommentDef{
-			"hash":  {Line: true, Start: "#", Lex: &yes},
-			"line":  {Line: true, Start: "//", Lex: &yes},
-			"block": {Line: false, Start: "/*", End: "*/", Lex: &yes, Suffix: "!!"},
+			"hash":  {Line: boolPtr(true), Start: "#", Lex: &yes},
+			"line":  {Line: boolPtr(true), Start: "//", Lex: &yes},
+			"block": {Line: boolPtr(false), Start: "/*", End: "*/", Lex: &yes, Suffix: "!!"},
 		},
 	}})
 	runParserTSV(t, "feature-comment-suffix-block.tsv", j)
@@ -301,7 +301,7 @@ func TestFeatureCommentDefAdd(t *testing.T) {
 	yes := true
 	j := Make(Options{Comment: &CommentOptions{
 		Def: map[string]*CommentDef{
-			"semi": {Line: true, Start: ";", Lex: &yes},
+			"semi": {Line: boolPtr(true), Start: ";", Lex: &yes},
 		},
 	}})
 	runParserTSV(t, "feature-comment-def-add.tsv", j)
@@ -338,14 +338,16 @@ func TestFeatureCommentDefRemoveErrors(t *testing.T) {
 }
 
 // TestFeatureCommentDefBlockConv mirrors TS
-// feature-comment-def-block-conv: an explicit Line:false with an End
+// feature-comment-def-block-conv: an explicit false Line with an End
 // marker converts a default line def into a block comment; the other
-// defaults stay intact.
+// defaults stay intact. Line is a *bool, so the false survives both
+// the per-name merge in normalizeCommentDefs and the engine's options
+// overlay (tabnas/parser#208, #210).
 func TestFeatureCommentDefBlockConv(t *testing.T) {
 	yes := true
 	j := Make(Options{Comment: &CommentOptions{
 		Def: map[string]*CommentDef{
-			"hash": {Line: false, Start: "#", End: "@@", Lex: &yes},
+			"hash": {Line: Bool(false), Start: "#", End: "@@", Lex: &yes},
 		},
 	}})
 	runParserTSV(t, "feature-comment-def-block-conv.tsv", j)
@@ -357,7 +359,7 @@ func TestFeatureCommentDefBlockConv(t *testing.T) {
 func TestFeatureCommentDefNoLexErrors(t *testing.T) {
 	j := Make(Options{Comment: &CommentOptions{
 		Def: map[string]*CommentDef{
-			"semi": {Line: true, Start: ";"},
+			"semi": {Line: boolPtr(true), Start: ";"},
 		},
 	}})
 	runErrorTSV(t, "feature-comment-def-nolex-errors.tsv", j)
@@ -562,9 +564,9 @@ func TestAlignmentLineSingle(t *testing.T) {
 func TestAlignmentCommentEatLine(t *testing.T) {
 	j := Make(Options{Comment: &CommentOptions{
 		Def: map[string]*CommentDef{
-			"hash":  {Line: true, Start: "#", EatLine: boolPtr(true)},
-			"line":  {Line: true, Start: "//"},
-			"block": {Line: false, Start: "/*", End: "*/"},
+			"hash":  {Line: boolPtr(true), Start: "#", EatLine: boolPtr(true)},
+			"line":  {Line: boolPtr(true), Start: "//"},
+			"block": {Line: boolPtr(false), Start: "/*", End: "*/"},
 		},
 	}})
 

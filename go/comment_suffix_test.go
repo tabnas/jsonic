@@ -13,7 +13,7 @@ func TestCommentLineSuffixSingleString(t *testing.T) {
 	yes := true
 	j := Make(Options{Comment: &CommentOptions{
 		Def: map[string]*CommentDef{
-			"hash-inline": {Line: true, Start: "#", Lex: &yes, Suffix: "@@"},
+			"hash-inline": {Line: boolPtr(true), Start: "#", Lex: &yes, Suffix: "@@"},
 		},
 	}})
 
@@ -36,7 +36,7 @@ func TestCommentLineSuffixMultiple(t *testing.T) {
 	yes := true
 	j := Make(Options{Comment: &CommentOptions{
 		Def: map[string]*CommentDef{
-			"hash": {Line: true, Start: "#", Lex: &yes, Suffix: []string{"END", "STOP"}},
+			"hash": {Line: boolPtr(true), Start: "#", Lex: &yes, Suffix: []string{"END", "STOP"}},
 		},
 	}})
 
@@ -56,7 +56,7 @@ func TestCommentLineSuffixPreferredLongestFirst(t *testing.T) {
 	yes := true
 	j := Make(Options{Comment: &CommentOptions{
 		Def: map[string]*CommentDef{
-			"hash": {Line: true, Start: "#", Lex: &yes, Suffix: []string{"@", "@@"}},
+			"hash": {Line: boolPtr(true), Start: "#", Lex: &yes, Suffix: []string{"@", "@@"}},
 		},
 	}})
 
@@ -80,7 +80,7 @@ func TestCommentLineSuffixIsConsumed(t *testing.T) {
 	yes := true
 	j := Make(Options{Comment: &CommentOptions{
 		Def: map[string]*CommentDef{
-			"hash": {Line: true, Start: "#", Lex: &yes, Suffix: "@@"},
+			"hash": {Line: boolPtr(true), Start: "#", Lex: &yes, Suffix: "@@"},
 		},
 	}})
 
@@ -100,7 +100,7 @@ func TestCommentLineSuffixFallsBackToNewline(t *testing.T) {
 	yes := true
 	j := Make(Options{Comment: &CommentOptions{
 		Def: map[string]*CommentDef{
-			"hash": {Line: true, Start: "#", Lex: &yes, Suffix: "END"},
+			"hash": {Line: boolPtr(true), Start: "#", Lex: &yes, Suffix: "END"},
 		},
 	}})
 
@@ -123,7 +123,7 @@ func TestCommentLineSuffixBeatsEatLine(t *testing.T) {
 	j := Make(Options{Comment: &CommentOptions{
 		Def: map[string]*CommentDef{
 			"hash": {
-				Line:    true,
+				Line:    boolPtr(true),
 				Start:   "#",
 				Lex:     &yes,
 				EatLine: &yes,
@@ -153,7 +153,7 @@ func TestCommentBlockSuffixEarlyTermination(t *testing.T) {
 	j := Make(Options{Comment: &CommentOptions{
 		Def: map[string]*CommentDef{
 			"block": {
-				Line:   false,
+				Line:   boolPtr(false),
 				Start:  "/*",
 				End:    "*/",
 				Lex:    &yes,
@@ -179,7 +179,7 @@ func TestCommentBlockSuffixStillHonoursEnd(t *testing.T) {
 	j := Make(Options{Comment: &CommentOptions{
 		Def: map[string]*CommentDef{
 			"block": {
-				Line:   false,
+				Line:   boolPtr(false),
 				Start:  "/*",
 				End:    "*/",
 				Lex:    &yes,
@@ -201,7 +201,7 @@ func TestCommentBlockSuffixLosesToEndWhenCloser(t *testing.T) {
 	j := Make(Options{Comment: &CommentOptions{
 		Def: map[string]*CommentDef{
 			"block": {
-				Line:   false,
+				Line:   boolPtr(false),
 				Start:  "/*",
 				End:    "*/",
 				Lex:    &yes,
@@ -235,7 +235,7 @@ func TestCommentSuffixLexMatcherTerminates(t *testing.T) {
 	})
 	j := Make(Options{Comment: &CommentOptions{
 		Def: map[string]*CommentDef{
-			"hash": {Line: true, Start: "#", Lex: &yes, Suffix: matcher},
+			"hash": {Line: boolPtr(true), Start: "#", Lex: &yes, Suffix: matcher},
 		},
 	}})
 
@@ -261,7 +261,7 @@ func TestCommentSuffixLexMatcherCannotAdvance(t *testing.T) {
 	})
 	j := Make(Options{Comment: &CommentOptions{
 		Def: map[string]*CommentDef{
-			"hash": {Line: true, Start: "#", Lex: &yes, Suffix: matcher},
+			"hash": {Line: boolPtr(true), Start: "#", Lex: &yes, Suffix: matcher},
 		},
 	}})
 

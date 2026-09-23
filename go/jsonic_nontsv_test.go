@@ -8,6 +8,8 @@ package tabnasjsonic
 import (
 	"strings"
 	"testing"
+
+	tabnas "github.com/tabnas/parser/go"
 )
 
 // --- helpers ---
@@ -1019,7 +1021,7 @@ func TestCommentDefSetOptionsAdd(t *testing.T) {
 	j := Make()
 	j.SetOptions(Options{Comment: &CommentOptions{
 		Def: map[string]*CommentDef{
-			"semi": {Line: true, Start: ";", Lex: boolPtr(true)},
+			"semi": {Line: boolPtr(true), Start: ";", Lex: boolPtr(true)},
 		},
 	}})
 
@@ -1031,6 +1033,92 @@ func TestCommentDefSetOptionsAdd(t *testing.T) {
 		expected := m("a", 1.0, "b", 2.0)
 		if !valuesEqual(stripRefs(got), expected) {
 			t.Errorf("Parse(%q): got %s, want %s", src, formatValue(stripRefs(got)), formatValue(expected))
+		}
+	}
+}
+
+func TestCommentDefSetOptionsPartial(t *testing.T) {
+	// A partial def for a default name given AFTER construction keeps the
+	// fields it leaves unset, as TS jj.options({comment: {def: {hash:
+	// {eatline: true}}}}) does: the engine's options overlay merges a def
+	// field by field onto the one already there, and nil Line means "not
+	// supplied" rather than false.
+	j := Make()
+	j.SetOptions(Options{Comment: &CommentOptions{
+		Def: map[string]*CommentDef{
+			"hash": {EatLine: Bool(true)},
+		},
+	}})
+
+	d := j.Options().Comment.Def["hash"]
+	if d == nil || d.Start != "#" || d.Line == nil || !*d.Line {
+		t.Fatalf("hash def after partial SetOptions: got %+v, want Start \"#\" and Line true", d)
+	}
+	got, err := j.Parse("a:1 # c\nb:2")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	expected := m("a", 1.0, "b", 2.0)
+	if !valuesEqual(stripRefs(got), expected) {
+		t.Errorf("got %s, want %s", formatValue(stripRefs(got)), formatValue(expected))
+	}
+}
+
+func TestCommentDefSetOptionsBlockConv(t *testing.T) {
+	// The block conversion of feature-comment-def-block-conv, applied
+	// after construction: an explicit false Line survives the overlay.
+	j := Make()
+	j.SetOptions(Options{Comment: &CommentOptions{
+		Def: map[string]*CommentDef{
+			"hash": {Line: Bool(false), End: "@@"},
+		},
+	}})
+
+	got, err := j.Parse("a:1 # c \n d @@ b:2")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	expected := m("a", 1.0, "b", 2.0)
+	if !valuesEqual(stripRefs(got), expected) {
+		t.Errorf("got %s, want %s", formatValue(stripRefs(got)), formatValue(expected))
+	}
+}
+
+func TestCommentDefGrammarPluginSetOptions(t *testing.T) {
+	// The same Line overrides through the idiomatic plugin path,
+	// tabnas.Make().Use(Grammar), rather than the legacy Make. Grammar
+	// applies jsonicOptions (whose defaults now carry a non-nil Line), but
+	// the engine does not re-run plugins on SetOptions, as TS
+	// #setOptions does not, so a later override stands in both
+	// directions. Matches TS new Tabnas().use(jsonic).options(...).
+	cases := []struct {
+		name string
+		def  *CommentDef
+		src  string
+	}{
+		{"hash", &CommentDef{Line: Bool(false), End: "@@"}, "a:1 # c \n d @@ b:2"},
+		{"multi", &CommentDef{Line: Bool(true)}, "a:1 /* c\nb:2"},
+	}
+	for _, c := range cases {
+		j := tabnas.Make()
+		if err := j.Use(Grammar); err != nil {
+			t.Fatalf("Use(Grammar): %v", err)
+		}
+		j.SetOptions(Options{Comment: &CommentOptions{
+			Def: map[string]*CommentDef{c.name: c.def},
+		}})
+
+		d := j.Options().Comment.Def[c.name]
+		if d == nil || d.Line == nil || *d.Line != *c.def.Line {
+			t.Fatalf("%s def after SetOptions: got %+v, want Line %v", c.name, d, *c.def.Line)
+		}
+		got, err := j.Parse(c.src)
+		if err != nil {
+			t.Fatalf("Parse(%q) unexpected error: %v", c.src, err)
+		}
+		expected := m("a", 1.0, "b", 2.0)
+		if !valuesEqual(stripRefs(got), expected) {
+			t.Errorf("Parse(%q): got %s, want %s", c.src, formatValue(stripRefs(got)), formatValue(expected))
 		}
 	}
 }

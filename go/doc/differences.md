@@ -176,20 +176,27 @@ option space, `jsonicOptions`, exactly as in TS `defaults.ts`):
   `makeCommentMatcher`'s `lex: !!om.lex`. (The raw Go engine defaults an
   unset `Lex` to true; `jsonic.Make` normalizes to the TS behavior.)
 
-Two engine-level edges are **not** aligned:
+`CommentDef.Line` is a `*bool`, like `Lex` and `EatLine`, so `nil` means
+"not supplied" and an explicit `false` survives the merge. That makes TS
+`line: false` expressible: `{"hash": {Line: Bool(false), End: "@@"}}`
+turns the default `#` line comment into a `# ... @@` block comment, at
+`Make` time and through `SetOptions` alike. After construction,
+`SetOptions` also merges a def field by field onto the one already
+there, so a partial def keeps the fields it leaves unset, as in TS.
 
-- After construction, `SetOptions` merges the def *map* per key but
-  replaces each def value wholesale (the engine's `Deep` does not recurse
-  into map values), so a post-construction partial def loses the fields it
-  leaves unset. Adding or removing whole defs via `SetOptions` is aligned.
-- Go bool fields cannot distinguish unset from `false`, so for a default
-  name an explicit `Line: false` (TS `line: false`) is honored only when
-  the def also sets `End`, the unambiguous block-conversion shape, since
-  line comments never use `End`. A bare `{Line: false}` without `End`
-  (degenerate in TS too: a block comment with no end marker) reads as
-  unset and keeps the default `Line: true`. To express anything else,
-  use a def under a new name (with `Lex`) and set the default name to
-  `nil`.
+Before engine v0.12.0 (`tabnas/parser#208`, `#210`) `Line` was a plain
+`bool`, the zero `false` read as unset, and neither of those held: the
+port honored `Line: false` only beside an `End`, and a post-construction
+partial def lost its unset fields. Code that wrote `Line: true` or
+`Line: false` now writes `Line: Bool(true)` or `Line: Bool(false)`.
+
+One engine-level edge is **not** aligned. A def that sets `Line` false
+and gives no `End` (degenerate in both runtimes: a block comment with
+no end marker) reports `unterminated_comment` in TS. The Go engine
+instead closes the comment straight after its start marker, so the rest
+of the line lexes as content: `a:1 #\nb:2` parses to `{"a":1,"b":2}`,
+and `a:1 # x\nb:2` fails with `unexpected`. Before v0.12.0 the Go port
+ignored that `false` and kept the default line comment.
 
 ## Missing Features
 
@@ -280,6 +287,15 @@ one statement.
 This is an API shape, not a parse-result difference. The engine's own
 porting guide carries the full account, including why the Rust port
 needs a fourth field.
+
+### `Bool`
+
+Go-only, re-exported from the engine. It returns a pointer to its
+argument, for the `*bool` option fields: `CommentDef{Line: Bool(false)}`.
+Those fields are pointers because the options merge keeps the base
+wherever an overlay field is zero, so a plain `bool` cannot say `false`.
+TypeScript needs no equivalent, since an omitted property is absent and
+`false` is a value.
 
 ## Plugin Differences
 
