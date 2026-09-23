@@ -26,6 +26,11 @@ dependency change.
   however direct the route through one looks.
 - **This repository's own version sites are not dependencies.** They
   include the root entry of its own lockfile. A release bump moves them.
+- **Versions track the latest release.** Every dependency is kept at
+  its latest published version, and none is held on an older one. That
+  is the maintainer's standing instruction, so moving a dependency to
+  its latest version needs no further one. Holding a dependency back,
+  or adding, removing or re-pointing one, still does.
 
 ## What this project is
 
@@ -186,7 +191,7 @@ at the `file:` paths in `ts/package.json` (`../../parser/ts`,
 ```bash
 # TypeScript (from ts/)
 npm install
-npm run build        # tsc --build src test (emits dist/ and dist-test/)
+npm run build        # tsc --build src && tsc --build test (emits dist/ and dist-test/)
 npm test             # node --enable-source-maps --test test/**/*.test.js
 TEST_PATTERN=name npm run test-some
 node --test --experimental-test-coverage test/**/*.test.js
