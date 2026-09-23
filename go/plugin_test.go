@@ -1287,7 +1287,16 @@ func TestSetOptionsPreservesIgnoreSet(t *testing.T) {
 	}
 
 	// Explicit TokenSet override in the new options must still win.
-	j.SetOptions(Options{TokenSet: map[string][]string{"IGNORE": {"#SP"}}})
+	//
+	// Spelled with the two empty names that CLEAR the positions they sit
+	// at, rather than as `{"#SP"}`. The engine overlays a named set onto
+	// the installed one BY INDEX, so a one-entry override replaces slot 0
+	// and leaves #LN and #CM standing -- this assertion read 3, not 1.
+	// The empty name is the Go spelling of the canonical `null`, and
+	// applyTokenSets drops it after the overlay, so the three-entry form
+	// gives [#SP] under an index-wise engine and under a replacing one
+	// alike.
+	j.SetOptions(Options{TokenSet: map[string][]string{"IGNORE": {"#SP", "", ""}}})
 	if len(j.TokenSet("IGNORE")) != 1 {
 		t.Errorf("expected TokenSet override to shrink IGNORE to 1 token, got %d", len(j.TokenSet("IGNORE")))
 	}
