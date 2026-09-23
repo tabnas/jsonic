@@ -148,11 +148,11 @@ the per-instance sets. Pinned in
 runtimes.
 
 **Every trailing entry does work, in both spellings.** The engine
-overlays a named token set onto the installed one BY INDEX, so a
+overlays a named token set onto the installed one by index, so a
 one-entry override replaces slot 0 and leaves the default `#NR`, `#ST`
 and `#VL` live behind it. A parser built from `{"KEY": {"#ST"}}` still
 accepts `{1:1}`, `{true:1}` and `{9999E9999:1}`. TypeScript clears a
-position with `null`; Go's spelling of that is the empty name, which
+position with `null`. Go clears it with the empty name, which
 `applyTokenSets` drops after the overlay. Reading either form as "the
 key set is `#ST`" is how this went wrong, so the guide spells both in
 full.
