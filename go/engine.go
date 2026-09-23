@@ -178,6 +178,13 @@ var (
 // --- Function re-exports ----------------------------------------------
 
 var (
+	// Bool returns a pointer to its argument, for the *bool option
+	// fields (CommentDef.Line, Lex and EatLine among them), so a caller
+	// can write CommentDef{Line: Bool(false)} without importing the
+	// engine. Those fields are pointers so an explicit false survives
+	// the options merge.
+	Bool = tabnas.Bool
+
 	Deep                    = tabnas.Deep
 	NewOrderedMap           = tabnas.NewOrderedMap
 	NewSortedMap            = tabnas.NewSortedMap
