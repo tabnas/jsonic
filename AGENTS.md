@@ -191,7 +191,7 @@ at the `file:` paths in `ts/package.json` (`../../parser/ts`,
 ```bash
 # TypeScript (from ts/)
 npm install
-npm run build        # tsc --build src test (emits dist/ and dist-test/)
+npm run build        # tsc --build src && tsc --build test (emits dist/ and dist-test/)
 npm test             # node --enable-source-maps --test test/**/*.test.js
 TEST_PATTERN=name npm run test-some
 node --test --experimental-test-coverage test/**/*.test.js

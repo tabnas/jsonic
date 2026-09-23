@@ -55,7 +55,7 @@ parse function with the management methods attached as properties.
 
 ```bash
 npm install          # resolves `tabnas` via the file: path in package.json
-npm run build        # tsc --build src test (emits dist/ and dist-test/)
+npm run build        # tsc --build src && tsc --build test (emits dist/ and dist-test/)
 npm test             # node --test test/**/*.test.js
 TEST_PATTERN=name npm run test-some
 node --test --experimental-test-coverage test/**/*.test.js
