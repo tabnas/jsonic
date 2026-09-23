@@ -1,15 +1,17 @@
 # Divergences
 
-TypeScript is the canonical implementation; the Go port tracks it. This
-file records where the two ports produce a **different result for the same
-input**.
+TypeScript is the canonical implementation; the Go and Rust ports track
+it. This file records where the ports produce a **different result for the
+same input**.
 
 ## The live register is executable
 
 [`test/spec/divergent.tsv`](test/spec/divergent.tsv) is the authority, not
-this page. Unlike a prose list, it is **run by both suites**: every row
-states what each port actually produces today, the Go runner must reproduce
-the `go` column and the TS runner the `ts` column, on every run.
+this page. Unlike a prose list, it is **run by every suite**: every row
+states what each port actually produces today, and each runner must
+reproduce its own column, on every run. The register carries one column
+per runtime, `go`, `ts` and `rust`, read by header name, and an error cell
+pins the reported position as well as the code.
 
 That means a divergence which gets **fixed** fails the suite as loudly as
 one that regresses, and the row must then be deleted. Prose cannot do that,
@@ -83,18 +85,25 @@ cannot be mistaken for a regression in the aligned case.
 
 ## The Rust port
 
-The Rust port (`rs/`) reproduces the **TypeScript** column of every row
-in the register today: the Rust engine's string lexer consults the
-`string.replace` map before the control-character class, exactly as the
-canonical lexer does, so `"a\nc"` under `{"string":{"replace":{"\n":"X"}}}`
-is `"aXc"` there too. `rs/tests/divergent_test.rs` asserts that column
-and fails, naming the row, the day Rust stops agreeing.
+The register carries a `rust` column beside `go` and `ts`, and
+`rs/tests/divergent_test.rs` asserts it. All three runners read columns
+by header name, so each port records its own measured answer and a row
+where one stops agreeing fails that port's suite, naming the row.
 
-The register has no `rust` column because `ts/test/divergent.test.js`
-asserts exactly six columns; adding one is a change to the TypeScript
-runner first. Until then the rule for a Rust-only split is the same as
-for a Go one: repair it, or record it here AND add the column with the
-Rust runner switched to the support crate's `Register`.
+Two rows record a Rust answer that is not TypeScript's, and the register
+is where to read them rather than this paragraph: `number-sep-space`,
+where Go and Rust both decline a run TypeScript reads, and
+`string-replace-control-row`, where Rust alone reports the row after the
+replaced newline. Rust reproduces the TypeScript answer on every other
+row.
+
+Where it does, that is the engine agreeing rather than a coincidence: the
+Rust string lexer consults the `string.replace` map before the
+control-character class, exactly as the canonical lexer does, so
+`"a\nc"` under `{"string":{"replace":{"\n":"X"}}}` is `"aXc"` there too,
+and on that row only the reported ROW splits, not the value or the code.
+The rule for a Rust-only split is the same as for a Go one: repair it, or
+record what Rust produces in the `rust` cell and explain the shape here.
 
 Rust inherits the engine-level splits recorded in `@tabnas/parser`'s own
 `DIVERGENCE.md` (lone surrogates fold to U+FFFD; the regular expression
@@ -115,41 +124,43 @@ no caller can catch. A parse budget in `rs/src/lib.rs` refuses the 128th
 container with the engine's `cancel` code, whether it is a list, a map
 or one of the implicit maps a pair dive opens. The number is the one
 `tabnas-json` and `serde_json` use. Pinned by
-`nesting_is_bounded_by_the_depth_budget` in `rs/tests/jsonic_test.rs`;
-it must never reach a shared fixture, and it belongs in the register
-under a `rust` column the day the TypeScript runner can take one.
+`nesting_is_bounded_by_the_depth_budget` in `rs/tests/jsonic_test.rs`
+rather than by a register row, because the input is 128 nested brackets
+and a shared fixture must stay runnable in every port; it must never
+reach one.
 
 Measured against the TypeScript suite's own assertions
 (`ts/test/feature.test.js`, `custom.test.js`, `comment.test.js` and
-`error.test.js`: 399 inputs, 294 of them in no fixture), three further
-engine-level splits stand. None is Rust-only, and none can be registered
-here until the register takes a `rust` column:
+`error.test.js`: 399 inputs, 294 of them in no fixture), two further
+engine-level splits stand. Both are now ROWS in the register rather than
+paragraphs here, so each is executed by all three suites, and they do not
+split the same way:
 
-- **A number separator that is also whitespace, at the end of a
-  number.** Under `number.sep: ' '`, TypeScript reads
-  `a:1 0, b : 2 000 ` as `{"a":10,"b":2000}`: its regexp backtracks off
-  the trailing space, which is an ender. The Go and Rust scanners consume
-  the trailing separator and decline the whole run, so both report
-  `unexpected` at 1:14. The default separator `_` is not an ender in any
-  port, which is why the shared `alignment-number-prefix-separator.tsv`
-  rows agree everywhere; only a whitespace separator splits. This is the
-  engine's number scanner (`parser/rs/src/lexer.rs`,
-  `scan_number_digits`, and its Go counterpart), and TypeScript against
-  both ports, so it belongs in the engine's register.
-- **Error columns inside a string.** Only the code is contractual, and
-  the codes agree; two positions do not. An unknown escape under
-  `string.allowUnknown: false` is reported on the backslash in Rust
-  (`"\w"` at 1:2) and on the escaped character in TypeScript and Go
-  (1:3). A control character replaced through `string.replace` does not
-  advance the row in TypeScript or Go, so the `\r` in `x:\n "ac\n\r"`
-  under `{"\n":"X"}` is reported at 2:6 there and at 3:1 in Rust, where
-  the replaced newline counts as a line.
+- `number-sep-space`. A number separator that is also whitespace, at the
+  end of a number. Go and Rust both decline the run; TypeScript reads it.
+  Not Rust-only.
+- `string-replace-control-row`. The reported ROW of a control character
+  mapped through `string.replace`. Go and TypeScript agree at 2:6 and
+  Rust reports 3:1, so this one IS Rust-only. The code is the same in all
+  three, and the code is the contract.
+
+The register's cells pin a position as well as a code
+(`ERROR:<code>@<row>:<col>`), which is what lets the second of those be
+recorded: the three ports agree on `unprintable` and disagree on where
+they say it happened. An unknown-escape COLUMN split stood beside it and
+has closed: under `string.allowUnknown: false`, `"\w"` is reported at 1:3
+in TypeScript, Go and Rust alike.
+
+One further difference is deliberately not a register row:
+
 - **A source that is only comments or whitespace.** TypeScript returns
   `undefined`; the Rust engine folds every `undefined` in a finished
   parse to `null`, so `#`, `//`, `/**/` and a lone space parse to `Null`
   (the empty string alone is `Undefined`, the `lex.empty` result).
   `alignment-empty.tsv` already writes `null` for these rows, and Go has
-  one `nil` for both, so no serialized value changes.
+  one `nil` for both, so no serialized value changes and every runtime
+  cell would read the same. The register refuses a row whose cells all
+  agree, correctly: there is nothing there to diverge.
 
 ## Not divergences
 

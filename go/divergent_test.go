@@ -4,7 +4,11 @@
 //
 // test/spec/divergent.tsv records each KNOWN split as the value each port
 // actually produces. This runner asserts the `go` column; the TS runner
-// (ts/test/divergent.test.js) asserts the `ts` column, from the same file.
+// (ts/test/divergent.test.js) asserts the `ts` column and the Rust runner
+// (rs/tests/divergent_test.rs) the `rust` column, from the same file.
+//
+// Columns are read by HEADER NAME, not by position, in all three runners:
+// the ledger gained its `rust` column without any of them moving an index.
 //
 // The property that matters: a divergence which gets FIXED fails here just
 // as loudly as one that regresses, forcing the row to be deleted. Prose
@@ -17,35 +21,51 @@ package tabnasjsonic
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
+
+	support "github.com/tabnas/support/go"
 )
 
+// divergentRuntimes names every runtime column the ledger is expected to
+// carry. Named rather than inferred from the header, so a column lost in
+// an edit fails here instead of silently leaving a port unasserted.
+var divergentRuntimes = []string{"go", "ts", "rust"}
+
 func TestDivergentLedger(t *testing.T) {
-	rows, lerr := loadTSV(filepath.Join(specDir(), "divergent.tsv"))
+	spec, lerr := support.LoadSpec(filepath.Join(specDir(), "divergent.tsv"), nil)
 	if lerr != nil {
 		t.Fatalf("cannot load divergent.tsv: %v", lerr)
 	}
-	if len(rows) == 0 {
+	if len(spec.Rows) == 0 {
 		t.Fatal("divergent.tsv has no rows; if the ledger is empty, delete the file and its runners")
 	}
-	for _, row := range rows {
-		// A `#`-leading line with no tab is a comment. loadTSV does not
+	for _, want := range divergentRuntimes {
+		if !slices.Contains(spec.Header, want) {
+			t.Fatalf("divergent.tsv has no %q column (header: %s)",
+				want, strings.Join(spec.Header, ", "))
+		}
+	}
+	for _, row := range spec.Rows {
+		// A `#`-leading line with no tab is a comment. LoadSpec does not
 		// filter these (the TS loader gained that filter earlier from the
 		// other side of the same asymmetry), and this file is heavily
 		// commented by design — a ledger row without its justification is
 		// useless.
-		if len(row.cols) == 1 && strings.HasPrefix(row.cols[0], "#") {
+		if len(row.Cols) == 1 && strings.HasPrefix(row.Cols[0], "#") {
 			continue
 		}
-		if len(row.cols) < 6 {
-			t.Errorf("line %d: want 6 columns (name opts input go ts justification), got %d",
-				row.lineNo, len(row.cols))
+		if len(row.Cols) < len(spec.Header) {
+			t.Errorf("line %d: want %d columns (%s), got %d",
+				row.Line, len(spec.Header), strings.Join(spec.Header, " "), len(row.Cols))
 			continue
 		}
-		name, optsRaw, input, want := row.cols[0], row.cols[1], row.cols[2], row.cols[3]
-		if strings.TrimSpace(row.cols[5]) == "" {
+		name := row.Named("name")
+		optsRaw, input, want := row.Named("opts"), row.Named("input"), row.Named("go")
+		if strings.TrimSpace(row.Named("justification")) == "" {
 			t.Errorf("%s: a ledger row must carry a justification", name)
 		}
 
@@ -64,14 +84,19 @@ func TestDivergentLedger(t *testing.T) {
 	}
 }
 
-// renderOutcome renders a parse as the ledger spells it: ERROR:<code> or
-// the value as JSON.
+// renderOutcome renders a parse as the ledger spells it: the value as
+// JSON, or ERROR:<code>@<row>:<col>.
+//
+// The position is rendered, not optional. Two ports can agree on a code
+// and disagree on where they say the error happened, and a cell that
+// pinned the code alone would sit green through exactly that split. The
+// register carries one such row today (string-replace-control-row).
 func renderOutcome(j *Jsonic, src string) string {
 	v, err := j.Parse(src)
 	if err != nil {
 		var je *JsonicError
 		if errors.As(err, &je) {
-			return "ERROR:" + je.Code
+			return fmt.Sprintf("ERROR:%s@%d:%d", je.Code, je.Row, je.Col)
 		}
 		return "ERROR:" + err.Error()
 	}
@@ -95,11 +120,15 @@ func makeFromLedgerOpts(raw string) (*Jsonic, error) {
 		String *struct {
 			Replace map[string]string `json:"replace"`
 		} `json:"string"`
+		Number *struct {
+			Sep *string `json:"sep"`
+		} `json:"number"`
 	}
 	if err := json.Unmarshal([]byte(raw), &spec); err != nil {
 		return nil, err
 	}
 	opts := Options{}
+	known := false
 	if spec.String != nil && spec.String.Replace != nil {
 		rep := make(map[rune]string, len(spec.String.Replace))
 		for k, v := range spec.String.Replace {
@@ -110,7 +139,13 @@ func makeFromLedgerOpts(raw string) (*Jsonic, error) {
 			rep[r[0]] = v
 		}
 		opts.String = &StringOptions{Replace: rep}
-	} else {
+		known = true
+	}
+	if spec.Number != nil && spec.Number.Sep != nil {
+		opts.Number = &NumberOptions{Sep: *spec.Number.Sep}
+		known = true
+	}
+	if !known {
 		return nil, errors.New("unsupported ledger opts (extend makeFromLedgerOpts): " + raw)
 	}
 	return Make(opts), nil
