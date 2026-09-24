@@ -55,7 +55,7 @@ parse function with the management methods attached as properties.
 
 ```bash
 npm install          # resolves every @tabnas dependency from the registry
-npm run build        # tsc --build src && tsc --build test (emits dist/ and dist-test/)
+npm run build        # tsc --build src (emits dist/; the tests are plain JS)
 npm test             # node --test test/**/*.test.js
 TEST_PATTERN=name npm run test-some
 node --test --experimental-test-coverage test/**/*.test.js

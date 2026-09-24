@@ -200,7 +200,7 @@ from voxgig/util) drives both languages.
 ```bash
 # TypeScript (from ts/)
 npm install
-npm run build        # tsc --build src && tsc --build test (emits dist/ and dist-test/)
+npm run build        # tsc --build src (emits dist/; the tests are plain JS)
 npm test             # node --enable-source-maps --test test/**/*.test.js
 TEST_PATTERN=name npm run test-some
 node --test --experimental-test-coverage test/**/*.test.js
@@ -618,23 +618,18 @@ compose with. **debug is a dev-only test dependency** here — jsonic no longer 
 
 `.github/workflows/ci.yml` is a caller: it delegates to the org-shared
 `tabnas/.github/.github/workflows/polyglot-ci.yml@main` and passes the
-one thing this repo decides, `deps: "parser support debug json"`.
-Nothing in it publishes to npm. The shared workflow git-clones those
-repos as siblings and builds this one against them:
+one thing this repo decides, `deps: "parser support debug json"`, the
+repos it clones as siblings and builds this one against. Nothing in it
+publishes to npm. Because `@tabnas/debug` is a devDependency,
+`test/debug.test.js` runs as part of `npm test` there.
 
-- **ts**: sets `git config --global core.autocrlf false` (CRLF corrupts
-  the `.tsv` fixtures), runs `npm i` in each package in order, replaces
-  each installed `@tabnas/*` copy with the cloned sibling, builds, then
-  runs `npm test` here. Because `@tabnas/debug` is a devDependency,
-  `test/debug.test.js` runs as part of `npm test`.
-- **go**: builds once in a `go work` over the clones, then again with
-  `GOWORK=off`, so the versions `go/go.mod` declares are resolved from
-  the proxy and compiled against, and runs `go test -v` in the
-  workspace.
-
-The operating systems and the Node and Go versions live in that shared
-workflow, not here. The Rust gate is `.github/workflows/rust.yml`,
-separate because the shared workflow takes no Rust input.
+The operating systems, the Node and Go versions and the steps themselves
+live in that shared workflow and cannot be read from this checkout, so
+read it there rather than restating it here. One property of the fixtures
+holds on any runner: `.tsv` files are corrupted by CRLF, so a Windows
+checkout needs `git config --global core.autocrlf false`. The Rust gate
+is `.github/workflows/rust.yml`, separate because the shared workflow
+takes no Rust input.
 
 ## Documentation
 

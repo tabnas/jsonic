@@ -23,9 +23,10 @@ cd ts && npm install && npm run build && npm test
 cd go && go build ./... && go test ./...
 ```
 
-Tabnas repos resolve their unpublished `@tabnas/*` siblings from
-**side-by-side checkouts**, so clone this repo's tabnas dependencies into the
-same parent directory. Check `.github/workflows/` for the exact list.
+Every dependency resolves from its registry (`@tabnas/*` from npm, the Go
+modules from the proxy), so the suites run from this checkout alone. CI
+also builds this repo against side-by-side clones of its tabnas
+dependencies; `.github/workflows/ci.yml` names them.
 
 ## Commit messages
 
