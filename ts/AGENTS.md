@@ -54,21 +54,19 @@ parse function with the management methods attached as properties.
 ## Commands
 
 ```bash
-npm install          # resolves `tabnas` via the file: path in package.json
+npm install          # resolves every @tabnas dependency from the registry
 npm run build        # tsc --build src && tsc --build test (emits dist/ and dist-test/)
 npm test             # node --test test/**/*.test.js
 TEST_PATTERN=name npm run test-some
 node --test --experimental-test-coverage test/**/*.test.js
 ```
 
-The `tabnas` (`file:../../parser/ts`), `@tabnas/json`
-(`file:../../json/ts`) and `@tabnas/debug` (`file:../../debug/ts`)
-dependencies are sibling checkouts of `tabnas/parser`, `tabnas/json` and
-`tabnas/debug` whose `ts/` packages have been built (`@tabnas/json` and
-`@tabnas/debug` themselves depend on the engine as a sibling; point
-`@tabnas/debug`'s `tabnas` devDependency at `../../parser/ts`). Tests run
-against compiled output, so always `npm run build` after editing
-`src/` or `test/*.ts`.
+The engine (`@tabnas/parser`) and `@tabnas/json` are `peerDependencies`
+(`">=0"`) and `"*"` devDependencies; `@tabnas/debug`, `@tabnas/railroad`
+and `@tabnas/support` are `"*"` devDependencies only. None is a `file:`
+path, so `npm install` takes each from the registry and no sibling
+checkout has to be built first. Tests run against compiled output, so
+always `npm run build` after editing `src/` or `test/*.ts`.
 
 ## Documentation
 
