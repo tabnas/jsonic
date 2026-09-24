@@ -10,16 +10,19 @@ parser. The engine ships no grammar; the standard-JSON core
 layers jsonic's *relaxed* extensions on that core, exposing
 `jsonic.Grammar` (a `tabnas.Plugin`) plus a legacy `jsonic.Make` /
 `jsonic.Parse` API on top of it. The `Debug` plugin and `Describe`
-function are re-exported from `@tabnas/debug`
-(`github.com/tabnas/debug/go`); note `Describe` returns `(string, error)`.
+function are **not** re-exported: `@tabnas/debug`
+(`github.com/tabnas/debug/go`) is used only by `plugin_test.go`; note
+`Describe` returns `(string, error)`.
 
 **Dependency / build.** `go.mod` requires `github.com/tabnas/parser/go`,
-`github.com/tabnas/json/go` and `github.com/tabnas/debug/go`, each with a
-`replace` directive pointing at a sibling checkout (`../../parser/go`,
-`../../json/go`, `../../debug/go`) — the same development model the TS
-package uses (`file:` deps). Clone `tabnas/parser`, `tabnas/json` and
-`tabnas/debug` next to this repo before building.
-There is no `go.sum` entry while the dependencies are local `replace`s.
+`github.com/tabnas/json/go`, `github.com/tabnas/debug/go` and
+`github.com/tabnas/support/go` at published versions (debug and support
+only for the tests), with **no** `replace` directive — the same model
+the TS package uses (`"*"` devDependencies from the registry). Each
+resolves from the module proxy and `go.sum` is committed, so `go build`
+and `go test` need no sibling checkout. To build against an unreleased
+engine or json, wire the siblings in locally and never commit that
+wiring (see "Never commit the local wiring" in `../AGENTS.md`).
 
 ## Authority
 
