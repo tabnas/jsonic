@@ -9,23 +9,15 @@ This directory exists because session credentials cannot write
 2. A maintainer promotes it with the admin `rollout/apply-ci-folders.sh`
    script.
 
-## Pending
+## Promoted
 
-- **`workflows/docs.yml`** — the prose gate: Vale over the reader-facing
-  pages at the levels set in `.vale.ini`, on the file list
-  `ts/scripts/gated-docs.cjs` produces. See `docs/STYLE-GUIDE.md`.
+Nothing is pending. The Rust gate staged here has been promoted and now
+lives in `.github/workflows/rust.yml`:
 
-  It needs no sibling checkouts and no secrets, and pins its own Vale
-  version. Errors fail the job; warnings go to the run summary as a
-  report. `make prose` runs the identical check locally, and the test
-  suite already runs the other half of the gate
-  (`ts/test/docs.test.js`), so promoting this adds the spelling and
-  Google-convention arm rather than the whole gate.
-
-- **`workflows/rust.yml`**, the Rust gate: `ci/rust/run.sh` (formatting,
-  build, the shared fixtures, doctests, clippy, and a lockfile check that
-  exempts only the sibling crates' versions) on the MSRV pinned in
+- **`rust.yml`**, the Rust gate: `ci/rust/run.sh` (formatting, build, the
+  shared fixtures, doctests, clippy, and a lockfile check that exempts
+  only the sibling crates' versions) on the MSRV pinned in
   `rs/Cargo.toml`. It clones `tabnas/parser`, `tabnas/json` and
   `tabnas/support` beside the checkout, because the crate takes all three
   as path dependencies and none is published. `make test-rs` is the fast
-  local loop; the script is what CI would run.
+  local loop; the script is what CI runs.

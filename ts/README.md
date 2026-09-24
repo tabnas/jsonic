@@ -89,7 +89,7 @@ b:B
 { "a": 100e-2, '\u0062':`\x42`, }
 ```
 
-That last one mixes double quotes, single quotes, backticks, unicode
+That last one mixes double quotes, single quotes, backticks, Unicode
 escapes, hex escapes, and scientific notation. It doesn't matter. jsonic
 handles it.
 

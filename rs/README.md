@@ -134,7 +134,7 @@ where the host language has no way to say what JavaScript says:
   inversion, the shape the Go port uses.
 - **Nesting past 127 levels is rejected** with the error code `cancel`,
   counting lists, maps and the implicit maps of a pair dive alike. The
-  engine walks a value with the call stack to display, convert or drop
+  engine walks a value with the call stack to display, convert, or drop
   it, and a source a few thousand levels deep ended the process; the
   TypeScript and Go ports have no limit. The number is the one
   `tabnas-json` and `serde_json` use.
