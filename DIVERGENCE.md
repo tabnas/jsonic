@@ -120,11 +120,12 @@ value it returns is walked with the call stack to display, convert to
 JSON or drop, one frame per level, and a source a few thousand levels
 deep ended the process with a stack overflow (past 6,000 levels in a
 release build and 1,500 in a debug build, on a 2 MiB thread): an abort
-no caller can catch. A parse budget in `rs/src/lib.rs` refuses the 128th
+no caller can catch. A parse guard in `rs/src/lib.rs` refuses the 128th
 container with the engine's `cancel` code, whether it is a list, a map
-or one of the implicit maps a pair dive opens. The number is the one
-`tabnas-json` and `serde_json` use. Pinned by
-`nesting_is_bounded_by_the_depth_budget` in `rs/tests/jsonic_test.rs`
+or one of the implicit maps a pair dive opens, and whatever budget the
+caller sets. The number is the one `tabnas-json` and `serde_json` use.
+Pinned by `nesting_is_bounded_by_the_depth_guard` in
+`rs/tests/jsonic_test.rs`
 rather than by a register row, because the input is 128 nested brackets
 and a shared fixture must stay runnable in every port; it must never
 reach one.

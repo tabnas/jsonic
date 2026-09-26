@@ -45,8 +45,8 @@ pin.
    field json's strict profile changed. **This is load-bearing.** The
    TypeScript `registerJsonGrammar` installs rules alone; the Rust
    `tabnas_json::json` is the crate's one entry point and installs its
-   strict OPTIONS too (text.lex off, `KEY` = `#ST`, the number check, a
-   parse budget, ...). jsonic wants the rules only. `restore_relaxed`
+   strict OPTIONS too (text.lex off, `KEY` = `#ST`, the number check,
+   ...). jsonic wants the rules only. `restore_relaxed`
    lists the fields; `the_relaxed_profile_is_the_engine_default_profile`
    in `jsonic_test.rs` fails if json starts changing one it does not
    list.
@@ -118,22 +118,29 @@ promotion in `list_before_open`, which writes the new array into the
 cell it shares with the replaced `val` rule's snapshot. That is
 `r.prev.node = r.node` in the canonical grammar.
 
-## The depth budget is a crash fix
+## The depth guard is a crash fix
 
-`register_jsonic_grammar` ends by installing a parse budget that refuses
-nesting past `DEPTH_LIMIT` (127) containers with the engine's `cancel`
-code, unless the instance already carries a budget (a caller's, set
-through `make_with`, wins). The engine parses iteratively, but its
+`register_jsonic_grammar` ends by installing a parse guard, named
+`depth`, that refuses nesting past `DEPTH_LIMIT` (127) containers with
+the engine's `cancel` code. The engine parses iteratively, but its
 display, `to_json` and drop of a value walk the tree with the call
 stack, and on a 2 MiB thread the overflow arrived past 6,000 levels in a
 release build and 1,500 in a debug build: an abort, not an error.
 TypeScript and Go have no limit, so the refusal is a recorded divergence
 (`../DIVERGENCE.md`, "The Rust port") that must never reach a shared
-fixture. `restore_relaxed` deliberately drops the budget `tabnas_json`
-installs along with the rest of its profile; jsonic's replaces it, with
-the same limit, so the two Rust crates bound nesting alike. Depth is
-counted from the `map` and `list` rule names, not `rule_stack.len()`,
-for the reason `../../json/rs/AGENTS.md` gives.
+fixture.
+
+It is a guard and not the parse budget, which it was until the budget
+was found to be one slot: a caller's `parse_budget` replaced it in
+place, and the bound went with it. A caller's budget now runs beside the
+bound, set through `make_with` or later, and only `remove_parse_guard`
+removes it. `tabnas_json` installs a guard under the same name, which
+jsonic's replaces with the same limit, so the two Rust crates bound
+nesting alike; a grammar layered on jsonic changes the bound the same
+way, by installing its own `depth` guard. Depth is counted from the
+`map` and `list` rule names, not `rule_stack.len()`, for the reason
+`../../json/rs/AGENTS.md` gives, and the count is carried from one step
+to the next (`containers_on_stack`), so a step costs what changed.
 
 ## What a fixture cannot hold
 
