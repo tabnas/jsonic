@@ -668,6 +668,11 @@ fn combine(previous: Value, value: Value, rule: &mut Rule, context: &mut Context
 /// `serde_json` accepts.
 const DEPTH_LIMIT: usize = 127;
 
+/// Whether a rule of this name holds a container: a `map` or a `list`.
+fn is_container(name: &str) -> bool {
+    name == "map" || name == "list"
+}
+
 /// How many containers are open at this point in the parse: the `map` and
 /// `list` rules on the stack, plus the rule the loop is working on, which
 /// the engine hands over separately as `context.rule`. Counted from the
@@ -676,19 +681,89 @@ const DEPTH_LIMIT: usize = 127;
 /// or `elem`) and a length-based limit would encode that ratio. A pair
 /// dive (`a:b:c:1`) opens one implicit map per key, so it counts too.
 fn depth(context: &Context) -> usize {
-    let is_container = |name: &str| name == "map" || name == "list";
-    let ancestors = context
-        .rule_stack
-        .iter()
-        .filter(|rule| is_container(&rule.name))
-        .count();
     let current = usize::from(
         context
             .rule
             .as_ref()
             .is_some_and(|rule| is_container(&rule.name)),
     );
-    ancestors + current
+    containers_on_stack(context) + current
+}
+
+/// The containers on the stack, carried from one step to the next.
+///
+/// The budget runs at every step, so counting the whole stack each time
+/// cost a step as much as the stack is deep, and a parse nested through
+/// rules that are not containers took time growing with the square of its
+/// depth: XML's elements, which count as nothing here, took 2 s at 8,000
+/// levels (tabnas/jsonic#91). A grammar nested through containers never
+/// got deep enough to notice, since the limit stops it at 127.
+///
+/// The engine changes the stack only at the top: a pop truncates it and a
+/// push appends the new rule's snapshot, and the rules below the top stay
+/// as they were (the engine checks this in debug builds). A rule's
+/// ancestors are fixed for as long as it lives, so the containers at or
+/// below a stack position are known once the rule at that position is.
+/// The count is kept for each position with the id of the rule there,
+/// which is unique within a parse, and a step recounts only from the
+/// first position whose rule has changed, usually the top. A callback
+/// that writes into `context.rule_stack` below the top is not followed.
+struct StackCount {
+    /// The context the count describes, by address.
+    context: usize,
+    /// The last step counted. A parse's steps go up from 1, so a first
+    /// step, or one lower than the last, is a new parse in the same place;
+    /// the same step again is the same step, asked twice.
+    iteration: usize,
+    /// For each stack position, the id of the rule there and the
+    /// containers at or below it.
+    frames: Vec<(usize, usize)>,
+    /// Frames looked at, all told: what a step costs, for the tests.
+    #[cfg(test)]
+    examined: usize,
+}
+
+thread_local! {
+    // Per thread, as a parse runs on one; a nested parse on the same
+    // thread has a context of its own and starts the count afresh.
+    static STACK_COUNT: RefCell<StackCount> = const {
+        RefCell::new(StackCount {
+            context: 0,
+            iteration: 0,
+            frames: Vec::new(),
+            #[cfg(test)]
+            examined: 0,
+        })
+    };
+}
+
+fn containers_on_stack(context: &Context) -> usize {
+    let stack = &context.rule_stack;
+    STACK_COUNT.with(|count| {
+        let mut count = count.borrow_mut();
+        let here = context as *const Context as usize;
+        if count.context != here || context.iteration == 1 || context.iteration < count.iteration {
+            count.context = here;
+            count.frames.clear();
+        }
+        count.iteration = context.iteration;
+        let top = count.frames.len().min(stack.len());
+        let mut kept = top;
+        while kept > 0 && count.frames[kept - 1].0 != stack[kept - 1].i {
+            kept -= 1;
+        }
+        #[cfg(test)]
+        {
+            count.examined += (top - kept) + 1 + (stack.len() - kept);
+        }
+        count.frames.truncate(kept);
+        let mut containers = count.frames.last().map_or(0, |&(_, below)| below);
+        for rule in &stack[kept..] {
+            containers += usize::from(is_container(&rule.name));
+            count.frames.push((rule.i, containers));
+        }
+        containers
+    })
 }
 
 /// The budget check: `DEPTH_LIMIT` levels parse, the next one is refused
@@ -1341,4 +1416,141 @@ pub fn empty() -> Tabnas {
 pub fn parse(src: &str) -> Result<Value, JsonicError> {
     static DEFAULT: OnceLock<Tabnas> = OnceLock::new();
     DEFAULT.get_or_init(make).parse(src)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::Mutex;
+
+    /// The count as it was taken before it was kept: the whole stack, at
+    /// every step.
+    fn walked(context: &Context) -> usize {
+        let on_stack = context
+            .rule_stack
+            .iter()
+            .filter(|rule| is_container(&rule.name))
+            .count();
+        let current = context
+            .rule
+            .as_ref()
+            .is_some_and(|rule| is_container(&rule.name));
+        on_stack + usize::from(current)
+    }
+
+    #[test]
+    fn the_kept_count_is_the_walked_count_at_every_step() {
+        // The engine turns a panic in a budget into a parse error, so a
+        // difference is written down and asserted after the parses.
+        let differences = Arc::new(Mutex::new(Vec::new()));
+        let steps = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let (seen, stepped) = (differences.clone(), steps.clone());
+        let parser = make_with(move |o| {
+            o.parse.budget.check_every_n = 1;
+            o.parse.budget.on_check = Some(Arc::new(move |context| {
+                let (kept, walked) = (depth(context), walked(context));
+                if kept != walked {
+                    seen.lock().unwrap().push((context.iteration, kept, walked));
+                }
+                stepped.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                kept <= DEPTH_LIMIT
+            }));
+        });
+        let nested = |open: &str, inner: &str, close: &str, n: usize| {
+            format!("{}{inner}{}", open.repeat(n), close.repeat(n))
+        };
+        let sources = [
+            "1".to_string(),
+            "a:1,b:2".to_string(),
+            "a,b,c".to_string(),
+            "a:b:c:1,d:e:2".to_string(),
+            "[a:1,b:[c:2,d]]".to_string(),
+            "{a:[1,{b:[2,[3]]}],c:d:e:f}".to_string(),
+            "[1,2".to_string(),
+            "{a:".to_string(),
+            "]".to_string(),
+            nested("[", "", "]", 127),
+            nested("[", "", "]", 128),
+            nested("{a:", "1", "}", 127),
+            nested("{a:", "1", "}", 200),
+            "a:".repeat(130) + "1",
+            nested("[{a:", "1", "}]", 40) + "," + &nested("[", "x", "]", 60),
+        ];
+        // Twice over, so each parse also follows one that ended, some of
+        // them in an error, on the same thread.
+        for source in sources.iter().chain(sources.iter()) {
+            let _ = parser.parse(source);
+        }
+        assert!(steps.load(std::sync::atomic::Ordering::Relaxed) > 5_000);
+        assert_eq!(*differences.lock().unwrap(), Vec::new());
+    }
+
+    #[test]
+    fn a_step_counts_what_changed_not_the_whole_stack() {
+        // A grammar can nest through rules of its own that are not
+        // containers, as XML nests through its elements: the limit never
+        // trips, and the stack grows as deep as the input. Counting the
+        // whole stack at every step made such a parse take time growing
+        // with the square of its depth (tabnas/jsonic#91: XML took 2 s at
+        // 8,000 levels). A `wrap` rule, nested through `val` by
+        // parentheses, stands in for the elements here. The work is
+        // counted rather than timed: in a debug build the engine checks
+        // every buried frame at every step, which would swamp a timing.
+        let wrap = tabnas::Plugin::new("wrap", |parser, _options| {
+            parser.token_with_source("#LP", "(");
+            parser.token_with_source("#RP", ")");
+            let spec = GrammarSpec::from_value(json!({
+                "rule": {
+                    "val": {
+                        "open": [ { "s": "#LP", "p": "wrap", "b": 1, "g": "wrap" } ],
+                        "close": [ { "s": "#RP", "b": 1, "g": "wrap" } ]
+                    },
+                    "wrap": {
+                        "open": [ { "s": "#LP", "p": "val", "g": "wrap" } ],
+                        "close": [ { "s": "#RP", "g": "wrap" } ]
+                    }
+                }
+            }))
+            .map_err(|error| tabnas::PluginError(error.0))?;
+            parser
+                .grammar(&spec)
+                .map(|_| ())
+                .map_err(|error| tabnas::PluginError(error.0))
+        });
+        let steps = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let walk = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let (stepped, walked) = (steps.clone(), walk.clone());
+        let mut parser = make_with(move |o| {
+            o.parse.budget.check_every_n = 1;
+            o.parse.budget.on_check = Some(Arc::new(move |context| {
+                stepped.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                walked.fetch_add(
+                    context.rule_stack.len(),
+                    std::sync::atomic::Ordering::Relaxed,
+                );
+                within_depth_limit(context)
+            }));
+        });
+        parser.use_plugin(wrap, None).expect("wrap");
+        let levels = 500;
+        let src = format!("{}1{}", "(".repeat(levels), ")".repeat(levels));
+        let examined = || STACK_COUNT.with(|count| count.borrow().examined);
+        let before = examined();
+        parser.parse(&src).expect("parses");
+        let work = examined() - before;
+        let steps = steps.load(std::sync::atomic::Ordering::Relaxed);
+        let walk = walk.load(std::sync::atomic::Ordering::Relaxed);
+        // The stack reaches 1,000 rules: a count of all of it at every
+        // step would look at hundreds of frames a step (500 on average
+        // here), and the kept count looks at one or two.
+        assert!(steps > 2 * levels, "{steps} steps");
+        assert!(
+            walk > levels / 2 * steps,
+            "a shallow stack: {walk} frames in {steps} steps"
+        );
+        assert!(
+            work <= 3 * steps,
+            "{work} frames looked at in {steps} steps"
+        );
+    }
 }
