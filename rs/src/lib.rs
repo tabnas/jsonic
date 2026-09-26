@@ -46,7 +46,7 @@ use tabnas::{
 /// release orchestrator rewrites both, and `tests/version_test.rs` fails
 /// the build if they drift. Mirrors `VERSION` in `ts/src/jsonic.ts` and
 /// `const VERSION` in `go/jsonic.go`.
-pub const VERSION: &str = "0.7.1";
+pub const VERSION: &str = "0.7.2";
 
 /// The README's Rust examples run as doctests, so a stale one fails the
 /// gate rather than misleading the reader. Its `toml` and `bash` fences
