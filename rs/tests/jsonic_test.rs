@@ -477,11 +477,14 @@ fn the_relaxed_profile_is_the_engine_default_profile() {
     assert_eq!(relaxed.rule.exclude, bare.rule.exclude);
     assert_eq!(relaxed.token_set.get("KEY"), bare.token_set.get("KEY"));
     assert_eq!(relaxed.token_set.get("VAL"), bare.token_set.get("VAL"));
-    // json's budget is gone with the rest of its profile, and jsonic's
-    // own depth budget (see `nesting_is_bounded_by_the_depth_budget`) is
-    // in its place.
-    assert!(relaxed.parse.budget.on_check.is_some());
-    assert_eq!(relaxed.parse.budget.check_every_n, 1);
+    // No budget: the depth bound is a parse guard (see
+    // `nesting_is_bounded_by_the_depth_guard`), which the options do not
+    // carry, so the budget stays the caller's.
+    assert!(relaxed.parse.budget.on_check.is_none());
+    assert_eq!(
+        relaxed.parse.budget.check_every_n,
+        bare.parse.budget.check_every_n
+    );
     assert_eq!(relaxed.safe.key, bare.safe.key);
     assert_eq!(relaxed.errmsg.name, "jsonic");
     assert_eq!(relaxed.errmsg.link, "https://github.com/tabnas/jsonic");
@@ -1162,7 +1165,7 @@ fn finish_off_names_the_end_of_source() {
 }
 
 #[test]
-fn nesting_is_bounded_by_the_depth_budget() {
+fn nesting_is_bounded_by_the_depth_guard() {
     // 127 containers parse, the 128th is refused with the engine's
     // `cancel` code, whatever the containers are: lists, maps, or the
     // implicit maps of a pair dive. Neither other runtime limits depth
@@ -1207,7 +1210,7 @@ fn nesting_is_bounded_by_the_depth_budget() {
 }
 
 #[test]
-fn the_depth_budget_reaches_every_constructor_and_yields_to_a_caller_budget() {
+fn the_depth_guard_reaches_every_constructor_and_holds_under_a_caller_budget() {
     let deep = format!("{}{}", "[".repeat(200), "]".repeat(200));
     assert_eq!(make_json().parse(&deep).unwrap_err().code, "cancel");
     let mut bare = Tabnas::new();
@@ -1218,8 +1221,12 @@ fn the_depth_budget_reaches_every_constructor_and_yields_to_a_caller_budget() {
     assert_eq!(used.parse(&deep).unwrap_err().code, "cancel");
     let derived = make().derive(|_| {}).expect("derives");
     assert_eq!(derived.parse(&deep).unwrap_err().code, "cancel");
+    // One guard: jsonic's replaced the one `tabnas_json` installed under
+    // the same name.
+    assert_eq!(make().parse_guards.keys().collect::<Vec<_>>(), ["depth"]);
 
-    // A budget the caller set before the grammar is kept, not replaced.
+    // A budget the caller set before the grammar runs, and the bound
+    // holds beside it. It used to replace the bound.
     let counted = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
     let seen = counted.clone();
     let parser = make_with(move |o| {
@@ -1229,8 +1236,18 @@ fn the_depth_budget_reaches_every_constructor_and_yields_to_a_caller_budget() {
             true
         }));
     });
-    assert!(parser.parse(&deep).is_ok());
+    assert_eq!(parser.parse(&deep).unwrap_err().code, "cancel");
     assert!(counted.load(std::sync::atomic::Ordering::Relaxed) > 0);
+    assert!(parser.parse("[[1]]").is_ok());
+
+    // So does one set after it, which replaces the budget in place.
+    let mut parser = make();
+    parser.parse_budget(1, |_| true);
+    assert_eq!(parser.parse(&deep).unwrap_err().code, "cancel");
+
+    // The bound goes only when it is asked to go.
+    parser.remove_parse_guard("depth");
+    assert!(parser.parse(&deep).is_ok());
 }
 
 #[test]

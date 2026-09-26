@@ -651,7 +651,7 @@ fn combine(previous: Value, value: Value, rule: &mut Rule, context: &mut Context
 }
 
 // ---------------------------------------------------------------------------
-// The parse budget
+// The depth guard
 // ---------------------------------------------------------------------------
 
 /// How many nested containers a parse may hold before it is refused.
@@ -660,13 +660,25 @@ fn combine(previous: Value, value: Value, rule: &mut Rule, context: &mut Context
 /// tree the engine walks with the call stack to display, convert or drop,
 /// one frame per level, and a source of a few thousand `[` ended the
 /// process with a stack overflow, an abort rather than an error, before
-/// this budget existed (past 6,000 levels in a release build and 1,500 in
+/// this limit existed (past 6,000 levels in a release build and 1,500 in
 /// a debug build on a 2 MiB thread). TypeScript and Go have no limit,
 /// which is recorded in `DIVERGENCE.md`; a document a person writes does
 /// not come near this one. The number is the one `tabnas_json` uses, so
 /// the two Rust crates bound nesting the same way, and it is the depth
 /// `serde_json` accepts.
 const DEPTH_LIMIT: usize = 127;
+
+/// The name the depth check is installed under, as a parse guard.
+///
+/// A guard rather than the parse budget, because the budget is one slot
+/// that a caller's `parse_budget` replaces, and the bound went with it
+/// whenever a caller set a budget of its own. Nothing a caller does to
+/// the budget reaches a guard. The name is the one `tabnas_json` installs
+/// its check under, so jsonic's replaces json's; a grammar layered on
+/// jsonic that allows more depth (JSONC) or nests through other rules
+/// (INI's `dive`, YAML's block collections) installs its own check under
+/// this name to replace jsonic's.
+const DEPTH_GUARD: &str = "depth";
 
 /// Whether a rule of this name holds a container: a `map` or a `list`.
 fn is_container(name: &str) -> bool {
@@ -692,7 +704,7 @@ fn depth(context: &Context) -> usize {
 
 /// The containers on the stack, carried from one step to the next.
 ///
-/// The budget runs at every step, so counting the whole stack each time
+/// The guard runs at every step, so counting the whole stack each time
 /// cost a step as much as the stack is deep, and a parse nested through
 /// rules that are not containers took time growing with the square of its
 /// depth: XML's elements, which count as nothing here, took 2 s at 8,000
@@ -766,7 +778,7 @@ fn containers_on_stack(context: &Context) -> usize {
     })
 }
 
-/// The budget check: `DEPTH_LIMIT` levels parse, the next one is refused
+/// The depth guard: `DEPTH_LIMIT` levels parse, the next one is refused
 /// with the engine's `cancel` code.
 fn within_depth_limit(context: &Context) -> bool {
     depth(context) <= DEPTH_LIMIT
@@ -1144,9 +1156,10 @@ fn grammar_installed(parser: &Tabnas) -> bool {
 ///
 /// The standard-JSON core is installed first, through
 /// [`tabnas_json::json`], then the relaxed alternates and lifecycle
-/// actions are woven around it, and a parse budget refusing nesting past
-/// 127 containers (with the engine's `cancel` code) goes on last, unless
-/// the instance already carries a budget of its own. Registration is
+/// actions are woven around it, and a parse guard refusing nesting past
+/// 127 containers (with the engine's `cancel` code) goes on last, under
+/// the name `depth`. A caller's `parse_budget` does not replace a guard,
+/// so the bound holds whatever budget the caller sets. Registration is
 /// idempotent: an instance that already carries the grammar is left
 /// alone, so a plugin re-run cannot double the alternates.
 ///
@@ -1177,16 +1190,14 @@ pub fn register_jsonic_grammar(parser: &mut Tabnas) -> Result<(), GrammarError> 
     let phase_two = GrammarSpec::from_value(jsonic_document_append())?;
     parser.grammar(&phase_two)?;
 
-    // AFTER the documents, as tabnas_json sets its own: `grammar` applies
-    // a document's options, and an options pass that does not mention
-    // `parse.budget` is not required to preserve one. A budget the caller
-    // set before the grammar (through `make_with`) survived
-    // `restore_relaxed` above and wins; only an instance with none gets
-    // jsonic's. Every iteration, because a sampled check would let the
-    // parse run past the limit by however many levels the sample missed.
-    if parser.config().parse.budget.on_check.is_none() {
-        parser.parse_budget(1, within_depth_limit);
-    }
+    // A guard, not the budget: a budget the caller set, before the
+    // grammar through `make_with` or after it, runs as it always did, and
+    // the bound holds beside it (see `DEPTH_GUARD`). It replaces the guard
+    // `tabnas_json` installed above, which counts the same containers
+    // without carrying the count from one step to the next. Every step,
+    // because a sampled check would let the parse run past the limit by
+    // however many levels the sample missed.
+    parser.parse_guard(DEPTH_GUARD, within_depth_limit);
     Ok(())
 }
 
@@ -1440,21 +1451,21 @@ mod tests {
 
     #[test]
     fn the_kept_count_is_the_walked_count_at_every_step() {
-        // The engine turns a panic in a budget into a parse error, so a
-        // difference is written down and asserted after the parses.
+        // The engine turns a panic in a guard into a parse error, so a
+        // difference is written down and asserted after the parses. The
+        // check replaces jsonic's own guard, so the count is kept once per
+        // step, as it is in use.
         let differences = Arc::new(Mutex::new(Vec::new()));
         let steps = Arc::new(std::sync::atomic::AtomicUsize::new(0));
         let (seen, stepped) = (differences.clone(), steps.clone());
-        let parser = make_with(move |o| {
-            o.parse.budget.check_every_n = 1;
-            o.parse.budget.on_check = Some(Arc::new(move |context| {
-                let (kept, walked) = (depth(context), walked(context));
-                if kept != walked {
-                    seen.lock().unwrap().push((context.iteration, kept, walked));
-                }
-                stepped.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-                kept <= DEPTH_LIMIT
-            }));
+        let mut parser = make();
+        parser.parse_guard(DEPTH_GUARD, move |context| {
+            let (kept, walked) = (depth(context), walked(context));
+            if kept != walked {
+                seen.lock().unwrap().push((context.iteration, kept, walked));
+            }
+            stepped.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            kept <= DEPTH_LIMIT
         });
         let nested = |open: &str, inner: &str, close: &str, n: usize| {
             format!("{}{inner}{}", open.repeat(n), close.repeat(n))
@@ -1520,18 +1531,17 @@ mod tests {
         let steps = Arc::new(std::sync::atomic::AtomicUsize::new(0));
         let walk = Arc::new(std::sync::atomic::AtomicUsize::new(0));
         let (stepped, walked) = (steps.clone(), walk.clone());
-        let mut parser = make_with(move |o| {
-            o.parse.budget.check_every_n = 1;
-            o.parse.budget.on_check = Some(Arc::new(move |context| {
-                stepped.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-                walked.fetch_add(
-                    context.rule_stack.len(),
-                    std::sync::atomic::Ordering::Relaxed,
-                );
-                within_depth_limit(context)
-            }));
-        });
+        let mut parser = make();
         parser.use_plugin(wrap, None).expect("wrap");
+        // Replaces jsonic's own guard, counting its work as it goes.
+        parser.parse_guard(DEPTH_GUARD, move |context| {
+            stepped.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            walked.fetch_add(
+                context.rule_stack.len(),
+                std::sync::atomic::Ordering::Relaxed,
+            );
+            within_depth_limit(context)
+        });
         let levels = 500;
         let src = format!("{}1{}", "(".repeat(levels), ")".repeat(levels));
         let examined = || STACK_COUNT.with(|count| count.borrow().examined);
