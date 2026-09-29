@@ -120,7 +120,7 @@ tabnas dependencies is published:
   support are used only by the tests). It carries **no** `replace`
   directive, so each resolves from the module proxy, and `go/go.sum` is
   committed.
-- Rust: `rs/Cargo.toml` takes `tabnas = { path = "../../parser/rs" }`,
+- Rust: `rs/Cargo.toml` takes `tabnas = { package = "tabnas-parser", path = "../../parser/rs" }`,
   `tabnas-json = { path = "../../json/rs" }` and, as a dev-dependency,
   `tabnas-support = { path = "../../support/rs" }` (the shared fixture
   loader and runner). None of the three is published, so the sibling

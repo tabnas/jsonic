@@ -16,7 +16,7 @@ path = "src/lib.rs"
 # the standard tabnas development model: clone https://github.com/tabnas/parser
 # and https://github.com/tabnas/json next to this repo. Neither crate is
 # published, so there is no registry version to fall back on.
-tabnas = { path = "../../parser/rs" }
+tabnas = { package = "tabnas-parser", path = "../../parser/rs" }
 tabnas-json = { path = "../../json/rs" }
 indexmap = "2"
 regex = "1.10"
