@@ -42,7 +42,7 @@
       "Comments are not kept.",
       "Trailing commas are not kept.",
       "Implicit objects and lists, unquoted keys and strings, single-quoted, backtick and multiline strings, and path-dive keys are written in JSON's forms.",
-      "Hexadecimal, octal and binary numbers, and numbers with digit separators, are written as plain decimal numbers."
+      "Numbers spelled in hexadecimal, octal or binary, with digit separators, with a leading plus sign or a leading zero, or with a leading or trailing decimal point are written as plain decimal numbers."
     ]
   }
 }
