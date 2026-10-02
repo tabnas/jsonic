@@ -41,6 +41,8 @@ import { keyOrder,
 
 import { deep, assign, defprop, filterRules, parserwrap } from '@tabnas/parser/utility'
 
+import { translate } from './translate'
+
 import type {
   AltAction,
   AltCond,
@@ -398,6 +400,7 @@ root.Tabnas = Tabnas
 // named export alone is not reachable as `require('@tabnas/jsonic').VERSION`.
 // Hang it off the root too, which is what CJS consumers actually receive.
 root.VERSION = VERSION
+root.translate = translate
 
 // keyOrder must ALSO hang off the root, same reason as VERSION above: the
 // `module.exports = Jsonic` at the bottom replaces the CJS exports object,
@@ -451,9 +454,11 @@ export { Tabnas } from '@tabnas/parser'
 // cannot represent `{2:9,1:8}`'s key order).
 export { keyOrder } from '@tabnas/parser'
 export type { Plugin as TabnasPlugin } from '@tabnas/parser'
+export type { TranslationPart, TranslationParts } from './translate'
 
 export {
   VERSION,
+  translate,
   applyRuleFilter,
   // Jsonic is both a type and a value.
   Jsonic as Jsonic,

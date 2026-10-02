@@ -42,6 +42,16 @@ fn the_manifest_the_crate_embeds_is_the_repositorys() {
     );
 }
 
+#[test]
+fn the_structural_interface_names_the_builtin_render_entry() {
+    let parts = tabnas_jsonic::translate().expect("jsonic carries translation parts");
+    assert_eq!(parts.manifest, tabnas_jsonic::manifest_text());
+    assert_eq!(parts.lift, None);
+    let render = parts.render.expect("jsonic carries a render");
+    assert_eq!(render.entry, "json");
+    assert_eq!(render.source, None);
+}
+
 /// jsonic is read as a tree and written from one, through the `json` render
 /// alchemy carries. Its events carry the tree already, so there is no
 /// lift, and no render file of its own.
