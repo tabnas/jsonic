@@ -1,0 +1,48 @@
+{
+  "$schema": "https://tabnas.dev/schema/plugin.schema.json",
+  "name": "@tabnas/jsonic",
+  "go": "github.com/tabnas/jsonic/go",
+  "description": "The jsonic base grammar: relaxed, extensible JSON for the tabnas engine.",
+  "base": "@tabnas/json",
+  "engine": "@tabnas/parser",
+  "extensions": [
+    ".jsonic"
+  ],
+  "languageId": "jsonic",
+  "pluginKind": "grammar",
+  "grammarKind": "imperative",
+  "lexStream": "clean",
+  "syncGroups": [
+    "end",
+    "comma",
+    "close",
+    "sync"
+  ],
+  "specDir": "test/spec",
+  "clib": {
+    "dir": "go/clib",
+    "library": "libtabnasjsonic",
+    "abi": "v1",
+    "errorCodes": [
+      "usage",
+      "grammar",
+      "handle",
+      "internal"
+    ]
+  },
+  "errorCodes": [],
+  "docs": "https://tabnas.dev/docs/packages",
+  "repository": "https://github.com/tabnas/jsonic",
+  "versionSource": "ts/package.json",
+  "translate": {
+    "reads": "tree",
+    "writes": "tree",
+    "render": "json",
+    "loss": [
+      "Comments are not kept.",
+      "Trailing commas are not kept.",
+      "Implicit objects and lists, unquoted keys and strings, single-quoted, backtick and multiline strings, and path-dive keys are written in JSON's forms.",
+      "Numbers spelled in hexadecimal, octal or binary, with digit separators, with a leading plus sign or a leading zero, or with a leading or trailing decimal point are written as plain decimal numbers."
+    ]
+  }
+}
