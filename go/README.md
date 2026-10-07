@@ -74,12 +74,12 @@ compatibility layer** that installs this same plugin. Reach for them when
 porting existing code; reach for `Use(tabnasjsonic.Grammar)` when composing
 grammars.
 
-> **Building from source.** Until `tabnas/parser` and `tabnas/json`
-> publish tagged Go modules, this module depends on sibling checkouts via
-> `replace` directives in `go.mod` (the same development model the
-> TypeScript package uses). Clone `https://github.com/tabnas/parser.git`
-> and `https://github.com/tabnas/json.git` next to this repo so they
-> resolve at `../../parser/go` and `../../json/go`.
+> **Building from source.** `go.mod` requires released versions of
+> `tabnas/parser` and `tabnas/json`, which the module proxy serves, so a
+> checkout of this repo builds on its own (the same model the TypeScript
+> package uses). To build against unreleased ones, clone
+> `https://github.com/tabnas/parser.git` and `https://github.com/tabnas/json.git`
+> next to this repo and point a `go.work` at them.
 
 ## Configured Instance
 

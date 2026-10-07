@@ -15,10 +15,10 @@ Tab-separated, one case per line, with a header row naming the columns
 for input that must be rejected with that code.
 
 The files are read by
-[`@tabnas/support`](https://github.com/tabnas/support) and its Go half —
-**one loader, in two languages written to behave identically**. Both
-`loadTSV`s are now thin shims over it, returning the shapes their callers
-already expect.
+[`@tabnas/support`](https://github.com/tabnas/support) and its Go and Rust
+halves — **one loader, in three languages written to behave identically**.
+The TypeScript and Go `loadTSV`s are now thin shims over it, returning the
+shapes their callers already expect, and the Rust suite calls it directly.
 
 **Escaping applies to the `input` column only, in every runtime**: `\n`,
 `\r`, `\t` and `\\` are decoded there. Every other column is taken as

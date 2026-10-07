@@ -101,8 +101,9 @@ no CLI source, and no grammar-conversion code — just the library.
 
 The TypeScript and Go halves take their `@tabnas` dependencies at their
 **published** versions, from the npm registry and the Go module proxy.
-Only the Rust crate still needs sibling checkouts, because none of its
-tabnas dependencies is published:
+Only the Rust crate needs sibling checkouts, because `rs/Cargo.toml` names
+its tabnas dependencies by path (they are all on crates.io, but the
+committed manifest stays path-only):
 
 - TypeScript: `@tabnas/parser` and `@tabnas/json` are `peerDependencies`
   (`">=0"`) in `ts/package.json` and are also declared as `"*"`
@@ -124,8 +125,10 @@ tabnas dependencies is published:
 - Rust: `rs/Cargo.toml` takes `tabnas = { package = "tabnas-parser", path = "../../parser/rs" }`,
   `tabnas-json = { path = "../../json/rs" }` and, as a dev-dependency,
   `tabnas-support = { path = "../../support/rs" }` (the shared fixture
-  loader and runner). None of the three is published, so the sibling
-  checkout is the only resolution; `rs/Cargo.lock` is committed and
+  loader and runner). All three are on crates.io, but the committed
+  manifest names them by path alone, so the sibling checkout is the only
+  resolution here; `crates-release.yml` swaps the paths for crates.io
+  versions only in the copy it publishes. `rs/Cargo.lock` is committed and
   `ci/rust/run.sh` holds it to the manifest, exempting only the siblings'
   own version entries.
 
@@ -219,7 +222,7 @@ The TypeScript build resolves `@tabnas/parser` and `@tabnas/json` from the
 npm registry — every `@tabnas` devDependency in `ts/package.json` is
 `"*"` — so `npm install` in `ts/` is all it needs; no sibling checkout
 has to be built first. The repo-root [`Makefile`](Makefile) (adapted
-from voxgig/util) drives both languages.
+from voxgig/util) drives all three languages.
 
 ```bash
 # TypeScript (from ts/)
@@ -250,7 +253,8 @@ package at its `package.json` version; `make publish-go V=x.y.z`
 injects `V` into the `const VERSION` in `go/jsonic.go`, commits, and tags
 `go/vX.Y.Z`; `make version-rs V=x.y.z` rewrites the two Rust version
 sites (`rs/Cargo.toml`, `rs/src/lib.rs`) and the lockfile entry, without
-committing, because the crate is not published.
+committing; `release.yml`'s `crates` job publishes the crate from the
+release tag.
 
 ## Verify your work
 
@@ -275,8 +279,8 @@ or `ts/test/*.ts` exercises stale JavaScript.
 
 What "correct" means here, in order of authority:
 
-1. **The shared fixtures pass in BOTH runtimes.** `test/spec/*.tsv` is the
-   parity contract — a row green in one runtime and red in the other is a
+1. **The shared fixtures pass in EVERY runtime.** `test/spec/*.tsv` is the
+   parity contract — a row green in one runtime and red in another is a
    failure, not a discrepancy. The strict-JSON-mode behaviour is locked in
    by the `alignment-strict-json-mode*.tsv` pair, which runs on every
    `make test` without the network.
@@ -340,12 +344,14 @@ The steps, in order:
    suite then passes against unreleased code while appearing to verify the
    published one. Reinstalling is the part that matters.
 
-   One thing a clean install does **not** isolate:
-   `ts/test/doc-examples.test.*` resolves `@tabnas/*` by filesystem path
-   (`const TABNAS = path.join(REPO, '..')`), not through `node_modules`. If
-   unbuilt sibling checkouts sit beside this repo, those blocks fail with
-   `MODULE_NOT_FOUND` no matter what you installed — build the siblings, or
-   verify somewhere they are absent.
+   A clean install also covers the doc examples.
+   `ts/test/doc-examples.test.*` resolves a doc example's `require`
+   through `node_modules` first; only a `@tabnas/*` package that is not
+   installed falls back to the sibling checkout `../<x>/ts`
+   (`const TABNAS = path.join(REPO, '..')`), and `@tabnas/jsonic` itself
+   resolves to this repository's `ts/`. The tested blocks name only
+   `@tabnas/jsonic` and `@tabnas/parser`, a devDependency, so no sibling
+   checkout is involved.
 
    `npm test` already compiles here: `ts/package.json` sets `pretest` to
    `npm run build`, which npm runs automatically. No separate build step is
@@ -359,13 +365,17 @@ The steps, in order:
    ```bash
    (
      cd go
-     go mod edit -json | grep -q '"Replace": null' || { echo 'go.mod has a replace'; exit 1; }
+     go mod edit -json | jq -e '.Replace == null' >/dev/null || { echo 'go.mod has a replace'; exit 1; }
      GOWORK=off go test -count=1 ./...
    )
    ```
 
    `-count=1` because shared fixtures live outside the Go module, so a
-   changed corpus does not invalidate the test cache.
+   changed corpus does not invalidate the test cache. The check asks `jq`,
+   not `grep`: current Go leaves the `Replace` key out when there is no
+   replace, where older Go printed `"Replace": null`, and `jq` reads a
+   missing key as null, so the check passes on a clean `go.mod` and fails
+   on a replace either way.
 3. **Merge the bump through a reviewed PR.** That is the house convention —
    `CONTRIBUTING.md` squash-merges PRs and takes the title as the commit
    message — and what `release.yml`'s own header describes. A direct push to

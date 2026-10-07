@@ -217,8 +217,8 @@ All three packages are grammar plugins built on the
 jsonic's relaxed syntax on the standard-JSON core supplied by the
 [`@tabnas/json`](https://github.com/tabnas/json) plugin (TypeScript uses
 the npm packages, Go uses `github.com/tabnas/parser/go` and
-`github.com/tabnas/json/go`, Rust uses the `tabnas` and `tabnas-json`
-crates from sibling checkouts). TypeScript is canonical: every runtime
+`github.com/tabnas/json/go`, Rust uses the `tabnas-parser` and
+`tabnas-json` crates). TypeScript is canonical: every runtime
 shares the conformance fixtures in [`test/spec/`](test/spec/) and
 produces the same parse results, with the recorded exceptions in
 [`DIVERGENCE.md`](DIVERGENCE.md):

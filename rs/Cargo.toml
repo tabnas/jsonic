@@ -14,8 +14,10 @@ path = "src/lib.rs"
 [dependencies]
 # The engine and the strict-JSON core are consumed as SIBLING CHECKOUTS,
 # the standard tabnas development model: clone https://github.com/tabnas/parser
-# and https://github.com/tabnas/json next to this repo. Neither crate is
-# published, so there is no registry version to fall back on.
+# and https://github.com/tabnas/json next to this repo. Both crates are on
+# crates.io, but this committed manifest stays path-only (crates-release.yml
+# rewrites the paths when it publishes), so there is no registry version to
+# fall back on.
 tabnas = { package = "tabnas-parser", path = "../../parser/rs" }
 tabnas-json = { path = "../../json/rs" }
 indexmap = "2"

@@ -10,28 +10,44 @@ repository for humans and agents alike.
 
 ## Build & test
 
-This repository is *polyglot*: `ts/` and `go/` hold two parallel
-implementations of the same package. **`ts/` is canonical; `go/` tracks
-it** — a behaviour change normally lands in both, with tests in both.
+This repository is *polyglot*: `ts/`, `go/` and `rs/` hold three parallel
+implementations of the same package. **`ts/` is canonical; `go/` and `rs/`
+track it** — a behaviour change normally lands in all three, with tests in
+all three.
 
 ```bash
-make build   # builds ts/ and go/
-make test    # tests ts/ and go/
+make build   # builds ts/, go/ and rs/
+make test    # tests the same
 
 # or per stack:
 cd ts && npm install && npm run build && npm test
 cd go && go build ./... && go test ./...
+cd rs && cargo build --all-targets && cargo test --all-targets
 ```
 
-Every dependency resolves from its registry (`@tabnas/*` from npm, the Go
-modules from the proxy), so the suites run from this checkout alone. CI
-also builds this repo against side-by-side clones of its tabnas
-dependencies; `.github/workflows/ci.yml` names them.
+Every TypeScript and Go dependency resolves from its registry (`@tabnas/*`
+from npm, the Go modules from the proxy), so those suites run from this
+checkout alone. Sibling checkouts are optional there: to work against
+unreleased siblings, clone them into the same parent directory and run
+admin's `scripts/link.sh`, which links them over `ts/node_modules/@tabnas/*`
+and writes a `go.work` one level up. Never commit that wiring. CI also
+builds this repo against side-by-side clones of its tabnas dependencies;
+`.github/workflows/ci.yml` names them. `rs/` is the exception:
+`rs/Cargo.toml` takes the engine and the JSON core as path dependencies,
+and the fixture runner as a test-only one, so it needs `parser`, `json` and
+`support` checked out beside this repository even for a plain build. The
+crates are on crates.io, but the committed manifest stays path-only: only
+when it publishes `tabnas-jsonic` does the release workflow swap those paths
+for crates.io versions and drop the test-only one.
 
 ## Commit messages
 
-[Conventional Commits](https://www.conventionalcommits.org/) — release
-automation derives versions and changelogs from them, so this is required:
+[Conventional Commits](https://www.conventionalcommits.org/) are required,
+for commit messages and PR titles alike. PRs are squash-merged, so a PR's
+title is its commit message, and the GitHub Release that each release creates
+lists those titles in its generated notes. They do not set the version: a
+release is its own version-bump pull request, then a `release.yml` dispatch
+(see [`AGENTS.md`](AGENTS.md), "Releasing"). For example:
 
 ```
 feat: add lax mode for trailing commas
@@ -45,7 +61,7 @@ Use `feat!:` / `fix!:` (or a `BREAKING CHANGE:` footer) for breaking changes.
 
 1. Open an issue first for anything larger than a small fix.
 2. Branch from `main`; keep the PR focused on one change.
-3. `make test` must pass for **both** implementations.
+3. `make test` must pass for **all three** implementations.
 4. PR titles follow Conventional Commits — PRs are squash-merged, so the
    title becomes the commit message.
 5. CI must be green before merge.

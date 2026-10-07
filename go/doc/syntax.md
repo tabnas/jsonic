@@ -40,6 +40,6 @@ See the [options reference](options.md#info) for how to enable them.
 All numbers are returned as `float64`, matching `encoding/json` conventions.
 There is no separate integer type; `1` and `1.0` both parse to `float64(1)`.
 
-A leading-digit token that is not a valid number lexes as text in both
-runtimes: `123abc` parses to the string `"123abc"`, and `a:123abc` to
+A leading-digit token that is not a valid number lexes as text in every
+runtime: `123abc` parses to the string `"123abc"`, and `a:123abc` to
 `{"a":"123abc"}`. The Go and TypeScript parse results are identical here.

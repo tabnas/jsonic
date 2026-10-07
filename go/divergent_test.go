@@ -108,7 +108,7 @@ func renderOutcome(j *Jsonic, src string) string {
 }
 
 // makeFromLedgerOpts builds the instance a ledger row asks for. The ledger
-// spells options as JSON so the SAME text drives both ports; only the
+// spells options as JSON so the SAME text drives every port; only the
 // handful of option shapes the ledger actually uses are supported, and an
 // unknown one is an error rather than a silent stock parser — a row that
 // quietly ran without its options would assert the wrong thing.

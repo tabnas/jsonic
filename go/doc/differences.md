@@ -7,11 +7,11 @@ Go-specific additions.
 ## Behavioral Differences
 
 The two runtimes produce identical parse results for the shared conformance
-fixtures (`test/spec/*.tsv`, run by both suites).
+fixtures (`test/spec/*.tsv`, run by every suite).
 
 > **This file is prose, and prose rots.**
 > [`test/spec/divergent.tsv`](../../test/spec/divergent.tsv) is the
-> authority: it is EXECUTED by both suites, so a divergence that gets fixed
+> authority: it is EXECUTED by every suite, so a divergence that gets fixed
 > fails as loudly as one that regresses. This file has been wrong in both
 > directions, claiming `2.e3` and `1e999` still diverged after they were
 > aligned, and claiming base-prefixed overflow was aligned before it was.
@@ -144,8 +144,8 @@ so both runtimes now reject `{1:1}` and `{null:null}`, matching
 `#KEY` in a declarative `GrammarSpec` against package-level builtin sets;
 `Options.TokenSet` is now applied by `Make` and `#KEY`/`#VAL` resolve against
 the per-instance sets. Pinned in
-`test/spec/alignment-strict-json-mode-errors.tsv`, which runs in both
-runtimes.
+`test/spec/alignment-strict-json-mode-errors.tsv`, which runs in every
+runtime.
 
 **Every trailing entry does work, in both spellings.** The engine
 overlays a named token set onto the installed one by index, so a

@@ -2,9 +2,9 @@
 
 // The TSV fixture loader, now a thin shim over @tabnas/support.
 //
-// The fixtures live at the repo root (`test/spec`), above both runtimes, so
-// `go/` runs the same files — and both runtimes now read them with the same
-// loader, in two languages written to behave identically. That is what this
+// The fixtures live at the repo root (`test/spec`), above every runtime, so
+// `go/` and `rs/` run the same files — and every runtime now reads them with
+// the same loader, in three languages written to behave identically. That is what this
 // repo's own history argues for: its loader used to decode escapes in EVERY
 // column, so an `expected` value holding a JSON string escape ("ab\n😀")
 // became a raw control character and failed JSON.parse; and it used to keep
