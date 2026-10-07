@@ -40,7 +40,7 @@ file current with every behavior change.
 
 ## Parity contract
 
-Both runtimes run the shared fixtures in `../test/spec/*.tsv`. The Go
+Every runtime runs the shared fixtures in `../test/spec/*.tsv`. The Go
 suite resolves them via `specDir()` in `jsonic_test.go` (`../ts/test/
 spec`) and must keep them all green. A successful parse must produce the
 same value as TypeScript; only the documented differences (host-language

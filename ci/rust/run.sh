@@ -6,7 +6,8 @@
 # The engine, the JSON core and the fixture runner are PATH DEPENDENCIES
 # on sibling checkouts (rs/Cargo.toml: `tabnas = { package = "tabnas-parser", path = "../../parser/rs" }`,
 # `tabnas-json = { path = "../../json/rs" }`, and as a dev-dependency
-# `tabnas-support = { path = "../../support/rs" }`). None is published, so
+# `tabnas-support = { path = "../../support/rs" }`). They are on
+# crates.io, but the committed manifest names them by path alone, so
 # there is no registry version to fall back on. Clone
 # https://github.com/tabnas/parser, https://github.com/tabnas/json and
 # https://github.com/tabnas/support next to this repo before running.

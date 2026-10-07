@@ -84,22 +84,21 @@ offending source with a caret under the `[jsonic/<code>]` tag.
 
 ## Install
 
-Neither the engine nor the JSON core is published to a registry, so both
-are consumed as **sibling checkouts**, the standard tabnas development
-model. Clone `https://github.com/tabnas/parser` and
-`https://github.com/tabnas/json` next to this repository and point at
-them:
+The crate, the engine and the JSON core are all on crates.io, the engine
+as `tabnas-parser`, whose library is named `tabnas` in code, so add both:
 
-```toml
-[dependencies]
-tabnas-jsonic = { path = "../jsonic/rs" }
-tabnas = { package = "tabnas-parser", path = "../parser/rs" }
+```bash
+cargo add tabnas-jsonic tabnas-parser
 ```
 
 Both entries are needed. A crate's dependencies are not passed on to its
 dependents, so `tabnas-jsonic` alone does not put `tabnas` in your extern
 prelude, and the examples above that name `tabnas::Tabnas` would not
-resolve. Only `JsonicError` is re-exported. The test suite additionally
+resolve. Only `JsonicError` is re-exported.
+
+In this repository, the engine and the JSON core are taken by path from
+sibling checkouts of `https://github.com/tabnas/parser` and
+`https://github.com/tabnas/json` instead, and the test suite additionally
 needs `https://github.com/tabnas/support` beside the repository, for the
 shared fixture runner.
 

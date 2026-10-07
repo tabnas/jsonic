@@ -90,9 +90,10 @@ need `list.pair`), so verify examples by running them.
 
 ## Rules of the road
 
-- Behavior changes here are changes to the spec: the Go port (`../go/`)
-  must follow. Either port in the same change or record the gap in
-  `../go/doc/differences.md`.
+- Behavior changes here are changes to the spec: the Go and Rust ports
+  (`../go/`, `../rs/`) must follow. Port them in the same change or record
+  the gap, Go's in `../go/doc/differences.md` and Rust's in
+  `../rs/README.md` under "Differences from the canonical TypeScript".
 - Shared fixtures live in `test/spec/` (`input → expected`, or
   `ERROR:<code>`). The TS suite runs them through `test/utility.js`
   (`loadTSV`); the Go suite reads the same files. Prefer adding a shared

@@ -22,9 +22,9 @@ type tsvRow struct {
 // loadTSV reads a TSV file and returns its rows (excluding the header),
 // now a thin shim over github.com/tabnas/support/go.
 //
-// The fixtures live at the repo root (test/spec), above both runtimes, so
-// ts/ runs the same files — and both runtimes now read them with the same
-// loader, in two languages written to behave identically. That is what
+// The fixtures live at the repo root (test/spec), above every runtime, so
+// ts/ and rs/ run the same files — and every runtime now reads them with the
+// same loader, in three languages written to behave identically. That is what
 // this repo's own history argues for: the TS loader used to decode escapes
 // in EVERY column while this one decoded only the input, and this one kept
 // #-leading comment lines the TS loader dropped. Both were fixed by hand,

@@ -26,7 +26,7 @@ const { Jsonic } = require('..')
 const SPEC = findSpecDir(__dirname)
 
 // Build the instance a ledger row asks for. Options are spelled as JSON so
-// the SAME text drives both ports. An unrecognised shape throws rather than
+// the SAME text drives every port. An unrecognised shape throws rather than
 // silently yielding a stock parser: a row that ran without its options
 // would assert the wrong thing while looking green.
 function makeFromLedgerOpts(raw) {
