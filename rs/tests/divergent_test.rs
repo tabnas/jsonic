@@ -17,8 +17,8 @@
 //
 // `tabnas_support::Register` is not used, deliberately: it refuses a row
 // whose runtime cells all agree, and the ledger keeps one such row on
-// purpose (`string-replace-printable`, the control row that stops a fix
-// to the row above it being read as a regression here).
+// purpose (`string-replace-printable`, a control row for printable
+// replacement, kept when the divergent row beside it was deleted).
 //
 // The property that matters is kept either way: a divergence that gets
 // FIXED in any port fails that port's suite as loudly as one that
