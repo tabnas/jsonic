@@ -309,14 +309,15 @@ func TestCustomStringReplace(t *testing.T) {
 	// reported at the newline itself (line 2 = ` "Ac\n`, so column 5).
 	wantUnprintableAt(t, j0, "x:\n \"Ac\n\"", 2, 5)
 
-	// A replaced control char is legal body for the error scan: the
-	// '\n' below is replaced, so the error is the '\r' at column 6.
-	// NOTE: the successful-parse side of TS string.replace on control
-	// chars (j1('"aAc\n"') === 'aBcX') is not supported by the Go
-	// engine's string matcher — see doc/differences.md.
+	// A replaced control char is legal string body: the engine reads
+	// the replace map before its control check, in TypeScript's order
+	// (tabnas/parser#287, engine 0.12.11), so j1('"aAc\n"') === 'aBcX'
+	// here as in TS. The error scan skips a replaced char too: the '\n'
+	// below is replaced, so the error is the '\r' at column 6.
 	j1 := Make(Options{String: &StringOptions{
 		Replace: map[rune]string{'A': "B", '\n': "X"},
 	}})
+	parseWant(t, j1, "\"aAc\n\"", "aBcX")
 	wantUnprintableAt(t, j1, "x:\n \"ac\n\r\"", 2, 6)
 
 	j2 := Make(Options{String: &StringOptions{
