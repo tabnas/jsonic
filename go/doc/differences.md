@@ -62,15 +62,16 @@ implemented as a jsonic-installed lex matcher, `jsonic$unprintable` in
 `options.lex.match`, that pre-scans quoted strings just before the
 engine's string matcher.)
 
-One related edge is **not** aligned on the engine this module requires
-today: TS `string.replace` can map a control character to a replacement
-(for example `{'\n': 'X'}`), making it *legal* string body:
-`j1('"aAc\n"') === 'aBcX'` in TS. The Go engine's string matcher rejects
-the raw control character (`unprintable`) before it consults the map. The
-engine repairs that in `tabnas/parser#287`, reading the map in
-TypeScript's order. Replacement of printable characters is fully
-supported, and the `unprintable` error scan honours replace mappings (a
-replaced control char is skipped when locating the first offending one).
+One related edge is not a difference since engine 0.12.11: TS
+`string.replace` can map a control character to a replacement (for
+example `{'\n': 'X'}`), making it *legal* string body, and
+`j1('"aAc\n"') === 'aBcX'` in Go as well. Earlier engines' Go string
+matcher rejected the raw control character (`unprintable`) before it
+consulted the map, and `tabnas/parser#287` put the map first, in
+TypeScript's order. `TestCustomStringReplace` asserts the TS answer.
+Replacement of printable characters is fully supported, and the
+`unprintable` error scan honours replace mappings (a replaced control
+char is skipped when locating the first offending one).
 
 ### Number + Text
 

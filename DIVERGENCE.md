@@ -66,31 +66,6 @@ that was never in the input. Go rejects it.
 > the register's own words, and must not be read as the expected behaviour.
 > When #123 is adopted the row goes red and is deleted, not updated.
 
-### `string.replace` of a control character
-
-With `{"string":{"replace":{"\n":"X"}}}`, the input `"a\nc"`:
-
-| | result |
-|---|---|
-| TypeScript, Rust | `"aXc"` |
-| Go | `ERROR: unprintable` |
-
-TS consults the replacement map and a mapped control character becomes
-legal string body. The Go string matcher rejected the raw control
-character before consulting the map.
-
-**Being repaired in the engine** (`tabnas/parser#287`): Go reads the map
-in TypeScript's order, so its answer becomes `"aXc"` too. The register
-row, `string-replace-control`, was deleted first, as the issue's landing
-order asks: a deleted row asserts nothing, so this ledger stays green on
-the engine it requires today, and the engine fix can land without turning
-it red. Until this repository requires an engine that carries the fix, its
-Go port still answers `unprintable` here.
-
-Replacement of **printable** characters is aligned, and the .tsv keeps
-the control row, `string-replace-printable`, that sat beside the deleted
-one.
-
 ## The Rust port
 
 The register carries a `rust` column beside `go` and `ts`, and
@@ -170,6 +145,23 @@ One further difference is deliberately not a register row:
   one `nil` for both, so no serialized value changes and every runtime
   cell would read the same. The register refuses a row whose cells all
   agree, correctly: there is nothing there to diverge.
+
+## Repaired
+
+### `string.replace` of a control character
+
+With `{"string":{"replace":{"\n":"X"}}}`, the input `"a\nc"` was `"aXc"`
+in TypeScript and Rust and `ERROR: unprintable` in Go, whose string
+matcher rejected the raw control character before it consulted the map.
+The engine repaired that in `tabnas/parser#287`, reading the map in
+TypeScript's order, and released it in 0.12.11, which this repository
+requires: every port now answers `"aXc"`, and `TestCustomStringReplace`
+(`go/custom_test.go`) asserts it in Go. The register row,
+`string-replace-control`, was deleted first, as the issue's landing order
+asked: a deleted row asserts nothing, so this ledger stayed green while
+the fix landed. Replacement of **printable** characters was always
+aligned, and the .tsv keeps the control row, `string-replace-printable`,
+that sat beside the deleted one.
 
 ## Not divergences
 
