@@ -72,16 +72,24 @@ With `{"string":{"replace":{"\n":"X"}}}`, the input `"a\nc"`:
 
 | | result |
 |---|---|
-| TypeScript | `"aXc"` |
+| TypeScript, Rust | `"aXc"` |
 | Go | `ERROR: unprintable` |
 
 TS consults the replacement map and a mapped control character becomes
-legal string body. The Go string matcher rejects the raw control character
-before replacement is consulted.
+legal string body. The Go string matcher rejected the raw control
+character before consulting the map.
 
-Replacement of **printable** characters is aligned, and the .tsv keeps a
-control row adjacent to that one precisely so a fix to the divergent case
-cannot be mistaken for a regression in the aligned case.
+**Being repaired in the engine** (`tabnas/parser#287`): Go reads the map
+in TypeScript's order, so its answer becomes `"aXc"` too. The register
+row, `string-replace-control`, was deleted first, as the issue's landing
+order asks: a deleted row asserts nothing, so this ledger stays green on
+the engine it requires today, and the engine fix can land without turning
+it red. Until this repository requires an engine that carries the fix, its
+Go port still answers `unprintable` here.
+
+Replacement of **printable** characters is aligned, and the .tsv keeps
+the control row, `string-replace-printable`, that sat beside the deleted
+one.
 
 ## The Rust port
 
