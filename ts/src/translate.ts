@@ -11,6 +11,7 @@ type TranslationPart = Readonly<{
 type TranslationParts = Readonly<{
   manifest: string
   lift?: TranslationPart
+  embed?: TranslationPart
   render?: TranslationPart
 }>
 
@@ -55,12 +56,14 @@ const TRANSLATION: TranslationParts = Object.freeze({
   "translate": {
     "reads": "tree",
     "writes": "tree",
+    "root": "any",
     "render": "json",
     "loss": [
       "Comments are not kept.",
       "Trailing commas are not kept.",
       "Implicit objects and lists, unquoted keys and strings, single-quoted, backtick and multiline strings, and path-dive keys are written in JSON's forms.",
-      "Numbers spelled in hexadecimal, octal or binary, with digit separators, with a leading plus sign or a leading zero, or with a leading or trailing decimal point are written as plain decimal numbers."
+      "Numbers spelled in hexadecimal, octal or binary, with digit separators, with a leading plus sign or a leading zero, or with a leading or trailing decimal point are written as plain decimal numbers.",
+      "JSON has no spelling for Infinity or NaN, so a number that is not finite is written as null."
     ]
   }
 }
