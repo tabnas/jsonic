@@ -1481,8 +1481,8 @@ pub const fn translate() -> Option<TranslationParts> {
 /// alchemy carries rather than a file of this repository's, and the
 /// sentences that say what that render does not keep. Its `transduce`
 /// names the transducer part, `alchemy/transduce.alc`, the document's JSON
-/// events from the grammar's rule passes, through which a host that reads
-/// parser events reads a document. The crate embeds its own copies,
+/// events from the grammar's rule passes under its default options,
+/// through which a host that reads parser events reads a document. The crate embeds its own copies,
 /// `translate/manifest.json` and `translate/transduce.alc`, since a
 /// packaged crate holds nothing outside `rs/`; `tests/translate_test.rs`
 /// holds each copy to its file.

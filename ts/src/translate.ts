@@ -92,12 +92,19 @@ const TRANSLATION: TranslationParts = Object.freeze({
 ; (\`[a:1]\`), which the grammar drops, yields nothing, its passes passed
 ; by until it closes; and the empty document, which makes no pass, is
 ; null at \`finish\`. Every event is the one the walk of the grammar's
-; value gives, two shapes aside, which the tree contract a host puts
-; after the part refuses, so the host reads the document whole: an
-; implicit list whose first element is a container (\`{a:1},{b:2}\`),
-; whose events stream before the list is known, a second root to the
-; contract (STREAMABILITY_UNKNOWN); and a member name repeated, which
-; the grammar's \`map.extend\` merges and the part streams twice
+; value under its default options gives, the options every host that
+; reads a part builds the grammar with (\`make()\` in each runtime): the
+; passes carry no options, and an option that reshapes the value,
+; \`list.pair\` (a pair in a list kept as an object, by the same
+; alternate that drops it), \`list.child\`, \`info.map\` (a member named
+; as the marker dropped) or \`lex.emptyResult\`, is not in them, so a
+; host that sets one reads the document whole. Two shapes under the
+; defaults the tree contract a host puts after the part refuses, so
+; the host reads the document whole too: an implicit list whose first
+; element is a container (\`{a:1},{b:2}\`), whose events stream before
+; the list is known, a second root to the contract
+; (STREAMABILITY_UNKNOWN); and a member name repeated, which the
+; grammar's \`map.extend\` merges and the part streams twice
 ; (DUPLICATE_MEMBER).
 ;
 ; The state is [stack carry drop seen]: a marker per open frame, innermost
