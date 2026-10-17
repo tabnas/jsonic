@@ -1449,6 +1449,9 @@ pub struct TranslationParts {
     pub embed: Option<TranslationPart>,
     /// An optional render from the write shape to text.
     pub render: Option<TranslationPart>,
+    /// An optional transducer: the format's JSON events from its parser's
+    /// rule passes, for a host that reads parser events.
+    pub transduce: Option<TranslationPart>,
 }
 
 const TRANSLATION: TranslationParts = TranslationParts {
@@ -1458,6 +1461,10 @@ const TRANSLATION: TranslationParts = TranslationParts {
     render: Some(TranslationPart {
         entry: "json",
         source: None,
+    }),
+    transduce: Some(TranslationPart {
+        entry: "jsonic-transduce",
+        source: Some(include_str!("../translate/transduce.alc")),
     }),
 };
 
@@ -1472,10 +1479,13 @@ pub const fn translate() -> Option<TranslationParts> {
 /// shape jsonic is read as and written from (`tree`), the root the render
 /// takes (`any`), the render that writes it, which is the `json` render
 /// alchemy carries rather than a file of this repository's, and the
-/// sentences that say what that render does not keep. The crate embeds its
-/// own copy, `translate/manifest.json`, since a packaged crate holds
-/// nothing outside `rs/`; `tests/translate_test.rs` holds the copy to the
-/// file.
+/// sentences that say what that render does not keep. Its `transduce`
+/// names the transducer part, `alchemy/transduce.alc`, the document's JSON
+/// events from the grammar's rule passes, through which a host that reads
+/// parser events reads a document. The crate embeds its own copies,
+/// `translate/manifest.json` and `translate/transduce.alc`, since a
+/// packaged crate holds nothing outside `rs/`; `tests/translate_test.rs`
+/// holds each copy to its file.
 ///
 /// ```
 /// assert!(tabnas_jsonic::manifest_text().contains("\"translate\""));
