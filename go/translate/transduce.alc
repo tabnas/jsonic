@@ -1,0 +1,161 @@
+; jsonic's transducer part: the document's JSON events from the jsonic
+; grammar's rule passes, for a host that reads parser events (alchemy-cli's
+; `translate` and `run --grammar jsonic`). The grammar's rules are json's,
+; `map`, `list`, `pair`, `elem` and `val`, and map onto a tree as json's
+; do, but the relaxed forms the grammar reads are built in its actions,
+; which the passes do not show, so the part is hand-written over them:
+; a `map`'s passes open and close an object, a `list`'s an array, a
+; `pair`'s open on its key alternate announces its key, the first
+; token's text (a quoted or bare string as its value, any other token
+; as its source), while one opened on a separator with no key
+; (`{,a:1}`) announces nothing, and a `val` yields its scalar at its
+; close, from the value the close carries, so that a close whose
+; alternate replaces the val with `list`, the first element of an
+; implicit list (`x,y,z`), starts the array before it and the list's
+; open starts no second one. A `val` whose node is undefined
+; (`{a:}`, `a:,b:`, `[`) is null in an object and nothing in a list, as
+; the grammar's actions keep it; an `elem` that opens on a separator with
+; no value (`[,]`) is a null element; an `elem` that opens on a pair
+; (`[a:1]`), which the grammar drops, yields nothing, its passes passed
+; by until it closes; and the empty document, which makes no pass, is
+; null at `finish`. Every event is the one the walk of the grammar's
+; value under its default options gives, the options every host that
+; reads a part builds the grammar with (`make()` in each runtime): the
+; passes carry no options, and an option that reshapes the value,
+; `list.pair` (a pair in a list kept as an object, by the same
+; alternate that drops it), `list.child`, `info.map` (a member named
+; as the marker dropped) or `lex.emptyResult`, is not in them, so a
+; host that sets one reads the document whole. Two shapes under the
+; defaults the tree contract a host puts after the part refuses, so
+; the host reads the document whole too: an implicit list whose first
+; element is a container (`{a:1},{b:2}`), whose events stream before
+; the list is known, a second root to the contract
+; (STREAMABILITY_UNKNOWN); and a member name repeated, which the
+; grammar's `map.extend` merges and the part streams twice
+; (DUPLICATE_MEMBER).
+;
+; The state is [stack carry drop seen]: a marker per open frame, innermost
+; last (:object or :array for a container, :leaf for a val that pushed
+; nothing, :pushed for one that pushed a container); whether a val's close
+; made an implicit list, so the list's open starts no array; the depth of
+; an elem whose pair the list drops, while its passes pass by, or missing;
+; and whether a pass was seen. Nothing grows with the document's length,
+; only with its nesting, under max_metadata_bytes.
+
+; Whether an alternate's groups hold the one named: a pattern variable
+; binds rather than compares, so each group is matched by its literal.
+def jsonic-transduce-has-pair [groups]
+  match (count (filter (fn [g] (match g (case "pair" true) (case _ false))) groups))
+    case 0 false
+    case _ true
+
+def jsonic-transduce-has-null [groups]
+  match (count (filter (fn [g] (match g (case "null" true) (case _ false))) groups))
+    case 0 false
+    case _ true
+
+def jsonic-transduce-has-key [groups]
+  match (count (filter (fn [g] (match g (case "key" true) (case _ false))) groups))
+    case 0 false
+    case _ true
+
+def jsonic-transduce-key [token]
+  match (kind (get :val token))
+    case :string (get :val token)
+    case _ (get :src token)
+
+def jsonic-transduce-groups [rule]
+  match (get :alt rule)
+    case missing []
+    case alt (get :g alt)
+
+def jsonic-transduce-open [stack carry drop rule]
+  match (get :name rule)
+    case "map" (transition [(push :object stack) false drop true] [object-start])
+    case "list"
+      match carry
+        case true (transition [(push :array stack) false drop true] [])
+        case _ (transition [(push :array stack) false drop true] [array-start])
+    case "pair"
+      match (jsonic-transduce-has-key (jsonic-transduce-groups rule))
+        case true
+          match (transduce-token 0 rule)
+            case missing (transition [stack carry drop true] [])
+            case token (transition [stack carry drop true] [(key (jsonic-transduce-key token))])
+        case _ (transition [stack carry drop true] [])
+    case "elem"
+      let [groups (jsonic-transduce-groups rule)]
+        match (jsonic-transduce-has-pair groups)
+          case true (transition [stack carry (get :d rule) true] [])
+          case _
+            match (jsonic-transduce-has-null groups)
+              case true (transition [stack carry drop true] [(scalar null)])
+              case _ (transition [stack carry drop true] [])
+    case "val"
+      match (get :alt rule)
+        case missing (transition [(push :leaf stack) carry drop true] [])
+        case alt
+          match (get :p alt)
+            case "" (transition [(push :leaf stack) carry drop true] [])
+            case _ (transition [(push :pushed stack) carry drop true] [])
+    case _ (transition [stack carry drop true] [])
+
+; An undefined value, which jsonic keeps as null in an object and drops
+; from a list.
+def jsonic-transduce-undefined [rest carry drop]
+  match (count rest)
+    case 0 (transition [rest carry drop true] [(scalar null)])
+    case _
+      match (top rest)
+        case :object (transition [rest carry drop true] [(scalar null)])
+        case _ (transition [rest carry drop true] [])
+
+def jsonic-transduce-leaf [rest carry drop rule]
+  match (get :value rule)
+    case missing (jsonic-transduce-undefined rest carry drop)
+    case value
+      match (get :alt rule)
+        case missing (transition [rest carry drop true] [(scalar value)])
+        case alt
+          match (get :r alt)
+            case "list" (transition [rest true drop true] [array-start (scalar value)])
+            case _ (transition [rest carry drop true] [(scalar value)])
+
+def jsonic-transduce-close [stack carry drop rule]
+  match (get :name rule)
+    case "val"
+      match (top stack)
+        case :pushed (transition [(pop stack) carry drop true] [])
+        case :leaf (jsonic-transduce-leaf (pop stack) carry drop rule)
+        case _ (fail :protocol-order "a val closed with no val open, which the passes never do")
+    case "map" (transition [(pop stack) carry drop true] [object-end])
+    case "list" (transition [(pop stack) carry drop true] [array-end])
+    case _ (transition [stack carry drop true] [])
+
+def jsonic-transduce-step [state pass]
+  match state
+    case [stack carry drop seen]
+      match drop
+        case missing
+          match pass
+            case (open rule) (jsonic-transduce-open stack carry drop rule)
+            case (close rule) (jsonic-transduce-close stack carry drop rule)
+        case depth
+          match pass
+            case (close rule)
+              match (get :name rule)
+                case "elem"
+                  match (compare (get :d rule) depth)
+                    case :equal (transition [stack carry missing true] [])
+                    case _ (transition state [])
+                case _ (transition state [])
+            case _ (transition state [])
+
+def jsonic-transduce-finish [state]
+  match state
+    case [[] carry drop false] [(scalar null)]
+    case [[] carry drop true] []
+    case _ (fail :protocol-order "the rule passes ended inside a container, which a tree's never do")
+
+def jsonic-transduce [input]
+  as-events (scan-emit [[] false missing false] jsonic-transduce-step jsonic-transduce-finish (parser-events input))

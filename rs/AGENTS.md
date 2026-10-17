@@ -8,7 +8,7 @@ and this file only covers what is specific to this crate.
 
 | Path | |
 |---|---|
-| `src/lib.rs` | the whole port: the option branding, the two grammar documents, every closure the grammar names, `jsonic`, `register_jsonic_grammar`, `plugin`, `make`, `make_with`, `make_json`, `empty`, `parse`, and the translation part `manifest_text`, `include_str!` of the copy in `translate/` |
+| `src/lib.rs` | the whole port: the option branding, the two grammar documents, every closure the grammar names, `jsonic`, `register_jsonic_grammar`, `plugin`, `make`, `make_with`, `make_json`, `empty`, `parse`, and the translation parts: `manifest_text` and the transducer `translate()` carries, `include_str!`s of the copies in `translate/` |
 | `tests/parity_test.rs` | every standard-shaped `../test/spec/*.tsv` fixture through `tabnas_support::Runner`, with the per-file parser the Go runners build; plus the three-column list-child files |
 | `tests/lex_test.rs` | the token-stream corpus `lex.tsv` |
 | `tests/utility_test.rs` | the four `utility-*.tsv` files, against `tabnas::utility` |
@@ -16,8 +16,8 @@ and this file only covers what is specific to this crate.
 | `tests/registration_test.rs` | the tripwire: every fixture is run by one of the above, and every exemption is still bespoke-shaped |
 | `tests/jsonic_test.rs` | in-language behaviour: README examples, plugin layering, `MapRef`/`ListRef`/`Text`, key order, safe keys, comment defs and suffixes, selectors, strict mode, threads, `parse` reuse |
 | `tests/version_test.rs` | Cargo.toml == `VERSION` == ts/package.json |
-| `tests/translate_test.rs` | the translation part: the embedded manifest is `../tabnas.plugin.json`, the embed it names is the one `translate()` carries (none, for jsonic), and its `translate` object reads and writes a tree at any root through the `json` render alchemy carries, and its loss lines are sentences, one of them that a number that is not finite is written as null |
-| `translate/` | the crate's copy of `../tabnas.plugin.json` (as `manifest.json`), which a packaged crate needs, written by `npm run embed` in `../ts`; `tests/translate_test.rs` holds it to the file |
+| `tests/translate_test.rs` | the translation parts: the embedded manifest is `../tabnas.plugin.json`, the embedded `translate/transduce.alc` is the file its `translate.transduce` names and the one `translate()` carries under the entry `jsonic-transduce`, the embed it names is the one `translate()` carries (none, for jsonic), and its `translate` object reads and writes a tree at any root through the `json` render alchemy carries, and its loss lines are sentences, one of them that a number that is not finite is written as null |
+| `translate/` | the crate's copies of `../tabnas.plugin.json` (as `manifest.json`) and `../alchemy/transduce.alc`, which `include_str!` embeds and a packaged crate needs, written by `npm run embed` in `../ts`; `tests/translate_test.rs` holds each to its file: change the root file and run the embed, never a copy by hand |
 | `tests/common/mod.rs` | shared helpers: spec dir, value and failure conversion, the JavaScript number renderer |
 | `README.md` | the crate front page, prose-gated; its `rust` fences are doctests of this crate (see below) |
 
