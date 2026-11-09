@@ -14,6 +14,13 @@ package tabnasjsonic
 // and defers to the engine's string matcher, so values, escapes, and the
 // other string error codes (unterminated_string, invalid_unicode,
 // invalid_ascii, unexpected) are untouched.
+//
+// The matcher reads the source only through the lexer's window, so that a
+// grammar built on jsonic may declare lex.window (admin ADR-30): in a parse
+// from a reader l.Src is the window, which may end before the string does,
+// and a scan that reaches the window's end asks it to fill (Lex.Fill) and
+// carries on, so that it finds what the whole text shows it. In a whole
+// text a fill only answers.
 
 import (
 	"strconv"
@@ -25,6 +32,11 @@ import (
 // string (5e6) matchers, so it inspects a quoted string immediately before
 // the engine's string matcher would consume it.
 const unprintableOrder = 4_500_000
+
+// escapeReach is how many bytes escapeLen reads from the byte after an
+// escape character: the designator and the longest payload, `u{` with six
+// hex digits and its `}`, are nine.
+const escapeReach = 9
 
 // unprintableMatchSpecs is the lex.match entry set that jsonicOptions
 // layers onto the engine defaults (alongside the jsonic error branding).
@@ -53,12 +65,11 @@ func unprintableMatch(l *Lex, _ *Rule) *Token {
 		// on failure (TS returns undefined instead of unprintable).
 		return nil
 	}
-	src := l.Src
 	pnt := l.Cursor()
-	if pnt.SI >= len(src) {
+	if !held(l, pnt.SI) {
 		return nil
 	}
-	q, qlen := utf8.DecodeRuneInString(src[pnt.SI:])
+	q, qlen := utf8.DecodeRuneInString(l.Src[pnt.SI:])
 	if !cfg.StringChars[q] {
 		return nil
 	}
@@ -68,7 +79,11 @@ func unprintableMatch(l *Lex, _ *Rule) *Token {
 	rI := pnt.RI
 	cI := pnt.CI + 1
 
-	for sI < len(src) {
+	// l.Src is read again at each step: a fill grows the window, and the
+	// text it holds with it. Positions in it do not move while a token is
+	// cut.
+	for held(l, sI) {
+		src := l.Src
 		c, csize := utf8.DecodeRuneInString(src[sI:])
 
 		// Multi-line quotes consume raw line chars as string body.
@@ -103,6 +118,10 @@ func unprintableMatch(l *Lex, _ *Rule) *Token {
 		// (invalid_ascii, invalid_unicode, unexpected), so the earlier
 		// error wins, as in TS.
 		if c == cfg.EscapeChar {
+			// The window is filled past the longest escape first, so
+			// that escapeLen sees the escape whole or the source's end.
+			held(l, sI+csize+escapeReach-1)
+			src = l.Src
 			n := escapeLen(cfg, src, sI+csize)
 			if n < 0 {
 				return nil
@@ -146,10 +165,26 @@ func unprintableMatch(l *Lex, _ *Rule) *Token {
 	return nil
 }
 
+// held reports whether the text the lexer holds reaches the byte at index
+// i of l.Src, filling the window first where it does not: in a parse from
+// a reader the window may end before the source does. It asks for twice
+// what the scan has passed since the cursor, so that a long string costs
+// its length to read and not its square. In a whole text it only answers.
+func held(l *Lex, i int) bool {
+	if i < len(l.Src) {
+		return true
+	}
+	passed := i - l.Cursor().SI
+	l.Fill(max(passed+1, 2*passed))
+	return i < len(l.Src)
+}
+
 // escapeLen returns the number of source bytes the engine's string matcher
 // consumes after the escape lead character (the escape designator plus its
 // payload), or -1 when that matcher would error at this escape — the
 // caller then defers so the engine reports the correct earlier error.
+// src holds escapeReach bytes from eI, or the rest of the source where
+// that is shorter, so the answer is the one the whole text gives.
 func escapeLen(cfg *LexConfig, src string, eI int) int {
 	if eI >= len(src) {
 		return -1 // dangling escape at EOF: unterminated_string

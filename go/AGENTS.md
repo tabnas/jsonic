@@ -85,6 +85,13 @@ three files plus tests:
 - `engine.go` — re-exports the engine's public surface (types, funcs,
   consts, vars) under the historic jsonic names; `Jsonic = tabnas.Tabnas`,
   `JsonicError = tabnas.TabnasError`.
+- `unprintable.go` — the `jsonic$unprintable` pre-scan matcher, which
+  reports a raw control character in a quoted string as `unprintable` at
+  the character, as TypeScript does. It reads the source only through the
+  lexer's window (`held`, which calls `Lex.Fill` where the scan reaches the
+  window's end), so a grammar built on jsonic may declare `lex.window`;
+  jsonic's own constructors do not (root `AGENTS.md`, "A parse from a
+  reader").
 - `*_test.go` — behavior and API tests, including `helpers_test.go`
   (test-only helpers: `boolPtr`/`intPtr`, `preprocessEscapes`,
   `splitGroupTags`) and the external `tabnas_plugin_test.go`
@@ -107,7 +114,10 @@ go test -run TestName -v ./...
 
 - Shared behavior: add a fixture under `../test/spec/` and run it via
   the TSV helpers (`alignment_test.go`, `feature_tsv_test.go`,
-  `jsonic_test.go`). When you add one, the TS suite must also exercise it.
+  `jsonic_test.go`). When you add one, the TS suite must also exercise it,
+  and `window_test.go` must read it from a reader: add it to
+  `readerFixtures` with the parser its runner builds, or `TestReaderFixtures`
+  fails.
 - Go-specific API: plain `_test.go` files; mirror the TS test name in a
   comment when porting a TS test. `options_parity_test.go` tracks the
   option surface against TS.

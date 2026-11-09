@@ -37,6 +37,7 @@ use std::sync::{Arc, OnceLock};
 use indexmap::IndexMap;
 use regex::Regex;
 use serde_json::json;
+use tabnas::lexer::Lexer;
 use tabnas::{
     ActionError, Context, GrammarError, GrammarSpec, LexCheckResult, ListRef, Options, Plugin,
     PluginError, Rule, Tabnas, Text, Tin, Token, Value, TIN_OB, TIN_OS, TIN_ST, TIN_TX, TIN_ZZ,
@@ -1297,14 +1298,11 @@ fn strict_number() -> &'static Regex {
     })
 }
 
-/// The candidate literal starting at `src`, up to the next JSON structural
-/// character or whitespace: the run the engine's lenient number matcher
-/// would consider.
-fn leading_literal(src: &str) -> &str {
-    let end = src
-        .find(|c: char| c.is_whitespace() || matches!(c, ',' | '}' | ']' | ':' | '"' | '/'))
-        .unwrap_or(src.len());
-    &src[..end]
+/// Where the candidate literal starting at `src` ends: at the next JSON
+/// structural character or whitespace, the run the engine's lenient
+/// number matcher would consider. `None` when `src` ends first.
+fn literal_end(src: &str) -> Option<usize> {
+    src.find(|c: char| c.is_whitespace() || matches!(c, ',' | '}' | ']' | ':' | '"' | '/'))
 }
 
 /// Reject anything the engine's lenient number matcher would accept that
@@ -1312,13 +1310,46 @@ fn leading_literal(src: &str) -> &str {
 /// or trailing `.`. The TypeScript `number.exclude` is a negative
 /// lookahead the `regex` crate cannot express, so the positive pattern
 /// plus an inversion lives in a `check` hook, the shape the Go port uses.
-fn strict_number_check(src: &str) -> LexCheckResult {
-    let literal = leading_literal(src);
-    let starts_number = literal
+///
+/// The literal is read through the lexer's window, so that a grammar built
+/// on jsonic may declare `lex.window` (admin ADR-30): in a parse from a
+/// reader the window may end before the literal does, and is then asked to
+/// fill and the literal read again, so that the check judges what the
+/// whole text shows it. It asks for twice what the window holds, so a long
+/// literal costs its length to read and not its square. In a whole text
+/// the fill only answers.
+fn strict_number_check(lexer: &mut Lexer<'_>) -> LexCheckResult {
+    // The hook runs wherever a number COULD be lexed, not only where one
+    // starts, so it says nothing, and reads no further, unless a
+    // number-ish literal is actually here.
+    let starts_number = lexer
+        .window()
         .chars()
         .next()
         .is_some_and(|c| c == '-' || c == '+' || c == '.' || c.is_ascii_digit());
-    if !starts_number || strict_number().is_match(literal) {
+    if !starts_number {
+        return LexCheckResult::Continue;
+    }
+    loop {
+        let window = lexer.window();
+        if let Some(end) = literal_end(window) {
+            return judge_literal(&window[..end]);
+        }
+        let held = window.chars().count();
+        if !lexer.fill(held.saturating_mul(2).max(held + 1)) {
+            // The source ends within what was asked for, and the window
+            // holds the rest of it: the literal runs to its end, or to a
+            // terminator the fill brought in.
+            let window = lexer.window();
+            return judge_literal(&window[..literal_end(window).unwrap_or(window.len())]);
+        }
+    }
+}
+
+/// Continue where `literal` is exactly a standard JSON number, and skip
+/// the number matcher where it is not.
+fn judge_literal(literal: &str) -> LexCheckResult {
+    if strict_number().is_match(literal) {
         LexCheckResult::Continue
     } else {
         LexCheckResult::Skip
@@ -1381,7 +1412,7 @@ fn strict_json_document() -> serde_json::Value {
 pub fn make_json() -> Tabnas {
     let mut parser = Tabnas::new();
     apply_options(&mut parser).expect("the jsonic option document is fixed and valid");
-    parser.lex_check_ref(STRICT_NUMBER_CHECK, strict_number_check);
+    parser.imperative_lex_check_ref(STRICT_NUMBER_CHECK, strict_number_check);
     let strict = GrammarSpec::from_value(strict_json_document())
         .expect("the strict-JSON option document is fixed and valid");
     parser

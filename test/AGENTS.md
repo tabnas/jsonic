@@ -55,6 +55,14 @@ rules.
   `rs/tests/divergent_test.rs` the register. `rs/tests/registration_test.rs`
   is the Rust half of the registration gate.
 
+Every file whose rows are parses is also read from a reader, each row
+under its runner's parser with `lex.window` set, against the same text
+parsed whole: `ts/test/window.test.js` and `go/window_test.go`, each with
+its own table of files and parsers and an exemption list it holds to the
+directory, and `rs/tests/parity_test.rs`
+(`every_fixture_parses_the_same_from_a_reader`), over the parity runner's
+own tables. A new parsing fixture goes into the first two tables as well.
+
 `specDir` finds `test/spec` by walking up, rather than counting `..` hops,
 and a failure names the fixture's own physical line number.
 

@@ -216,6 +216,67 @@ engine's builtins of the same bare name cannot shadow them, and
 `tabnas_json::json`'s strict OPTIONS are restored to the relaxed profile
 after its rules install. `rs/AGENTS.md` walks through each.
 
+## A parse from a reader (`lex.window`)
+
+The engine reads a source from a reader a window at a time when the
+grammar declares `lex.window`, and reads the reader whole first when it
+does not (admin ADR-30 and ADR-33; tabnas/parser's
+`doc/chunked-source.md`). A grammar declares it once its own matchers and
+actions read the text only through the window.
+
+**jsonic's constructors do not declare the window, and must not until
+every grammar built on them declares its own.** They are the base the
+relaxed grammars build on: css, ini, json5, toml, yaml, zon and csv call
+`tabnas_jsonic::make()` in Rust; css, toml, yaml, zon and csv start from
+`Make()` in Go; and dmog builds jsonc, xml and json5 as `Make()` then
+`.Use(...)` in Go, and c, css, ini, jsonc, json5, toml, yaml and zon as
+`new Tabnas().use(jsonic).use(...)` in TypeScript. A window declared in
+`make()`, `Make()`, `Jsonic.make()` or the `jsonic` plugin would reach
+grammars whose own matchers do not read through it yet. Each grammar
+declares the window on its own whole parser, after its plugin is
+installed on jsonic's base (`set_options`, `SetOptions` or `tn.options`
+after the `use`); once every grammar built on jsonic does, jsonic's
+constructors declare it too. `TestJsonicDeclaresNoWindow`,
+`jsonic_declares_no_window` and `jsonic-declares-no-window` hold the
+constructors to that.
+
+What jsonic installs reads the source only through the window all the
+same, so that a grammar built on it can declare the window:
+
+- **TypeScript** installs no matcher: its tokens are the engine's
+  built-in matchers', and its actions read tokens, never the source.
+- **Go's** `jsonic$unprintable` pre-scan (`go/unprintable.go`) reads
+  `Lex.Src` through `held`, which asks the window to fill (`Lex.Fill`)
+  where the scan reaches its end, and fills it past the longest escape
+  before `escapeLen` reads one.
+- **Rust's** strict-number check (`make_json()`) reads the literal
+  through `Lexer::window` and fills where the literal runs to the
+  window's end. `make()` installs no hook that reads the text.
+
+Neither hook may lean on the engine. Where one stops at the window's
+end and defers, the built-in matcher that runs after it reads on to the
+edge and has the token cut again over a wider window, the hook with it;
+a grammar's own matcher that comes after the hook and fills instead
+does not. `TestReaderPreScanStandsAlone` and
+`strict_numbers_parse_the_same_from_a_reader` build exactly that case,
+and fail against a hook that stops at the edge.
+
+The tests set the window on the parsers they build, as a grammar built
+on jsonic sets it: `ts/test/window.test.js`, `go/window_test.go`, and in
+Rust `rs/tests/reader_test.rs` with the reader tests in
+`rs/tests/parity_test.rs` and `rs/tests/divergent_test.rs`. Every row of
+every fixture that parses its input, the register's included, parses the
+same from a reader as from its text, handed over in pieces of 1, 3 and 64
+bytes: in TypeScript and Rust under windows of a few characters as well
+as the engine's own, so that every matcher meets the window's edge. Go's
+small-window hook is unexported, so Go meets the edge with strings longer
+than the window, each feature shifted across the edge a byte at a time.
+Long documents parse the same from a reader too, an error at their end
+placed where the whole text places it. A fixture added to `test/spec/`
+is read from a reader as well: the TypeScript and Go tests fail on a file
+they neither list nor exempt with a reason, and the Rust test reads the
+parity runner's own tables, which `registration_test.rs` keeps complete.
+
 ## Build & test
 
 The TypeScript build resolves `@tabnas/parser` and `@tabnas/json` from the

@@ -30,7 +30,7 @@ mod common;
 use tabnas_jsonic::make_with;
 use tabnas_support::{load_spec, Failure, Runner, SpecOptions, Value};
 
-use common::{spec_dir, to_failure, to_value};
+use common::{same_from_reader, spec_dir, to_failure, to_value, windowed};
 
 /// Build the instance a ledger row asks for. The ledger spells options as
 /// JSON so the SAME text drives every port; only the option shapes the
@@ -153,4 +153,27 @@ fn a_ledger_row_needs_its_options_to_mean_anything() {
         stock.parse("a:1").map(|value| to_value(&value)),
         Ok(Value::Object(_))
     ));
+}
+
+/// Each ledger row, under the parser its options build with `lex.window`
+/// set, parses the same from a reader as from its text.
+#[test]
+fn every_ledger_row_parses_the_same_from_a_reader() {
+    let spec = load_spec(spec_dir().join("divergent.tsv"), &SpecOptions::default())
+        .unwrap_or_else(|error| panic!("{error}"));
+    let mut compared = 0;
+    let mut failures = Vec::new();
+    for row in &spec.rows {
+        let parser = make_from_ledger_opts(row.named("opts"))
+            .unwrap_or_else(|message| panic!("{}: {message}", row.location()));
+        let (count, found) = same_from_reader(
+            &windowed(parser),
+            row.named("name"),
+            &row.unesc_named("input"),
+        );
+        compared += count;
+        failures.extend(found);
+    }
+    assert!(compared > 0, "the ledger has no rows");
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
 }

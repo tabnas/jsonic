@@ -17,7 +17,7 @@ use tabnas::{CommentDef, Options, Tabnas};
 use tabnas_jsonic::{make, make_json, make_with};
 use tabnas_support::{equal_value, format_value, load_spec, parse_expect, report, SpecOptions};
 
-use common::{run_fixture, spec_dir, to_failure, to_value};
+use common::{fixture_from_reader, run_fixture, spec_dir, to_failure, to_value};
 
 /// The fixtures the stock parser runs: `jsonic_test.go`'s
 /// `parserTSVFiles` plus the `alignment-*` files `alignment_test.go`
@@ -301,5 +301,42 @@ fn list_child_fixtures() {
         "feature-list-child-pair-deep.tsv",
         &child_pair,
     ));
+    report(Ok(failures));
+}
+
+/// Every fixture above, each row parsed by the same parser with
+/// `lex.window` set, from a reader in pieces of 1, 3 and 64 bytes and under
+/// windows of a few characters, as from its text. jsonic's constructors do
+/// not declare the window (`reader_test.rs`); a grammar built on them
+/// does, and this is what holds jsonic's part of that parser to it.
+#[test]
+fn every_fixture_parses_the_same_from_a_reader() {
+    let mut runs: Vec<(&str, Tabnas)> = STOCK.iter().map(|file| (*file, make())).collect();
+    runs.extend(option_fixtures());
+    let child = || make_with(|o| o.list.child = true);
+    let child_pair = || {
+        make_with(|o| {
+            o.list.child = true;
+            o.list.pair = true;
+        })
+    };
+    runs.push(("feature-list-child.tsv", child()));
+    runs.push(("feature-list-child-deep.tsv", child()));
+    runs.push(("feature-list-child-pair.tsv", child_pair()));
+    runs.push(("feature-list-child-pair-deep.tsv", child_pair()));
+    let total = runs.len();
+    let mut compared = 0;
+    let mut failures = Vec::new();
+    for (n, (file, parser)) in runs.into_iter().enumerate() {
+        let (count, found) = fixture_from_reader(file, parser);
+        compared += count;
+        failures.extend(found);
+        eprintln!(
+            "from a reader: {} of {total} files ({}%), {compared} reader parses",
+            n + 1,
+            (n + 1) * 100 / total
+        );
+    }
+    assert!(compared > 10_000, "{compared}");
     report(Ok(failures));
 }
