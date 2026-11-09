@@ -9,16 +9,17 @@ and this file only covers what is specific to this crate.
 | Path | |
 |---|---|
 | `src/lib.rs` | the whole port: the option branding, the two grammar documents, every closure the grammar names, `jsonic`, `register_jsonic_grammar`, `plugin`, `make`, `make_with`, `make_json`, `empty`, `parse`, and the translation parts: `manifest_text` and the transducer `translate()` carries, `include_str!`s of the copies in `translate/` |
-| `tests/parity_test.rs` | every standard-shaped `../test/spec/*.tsv` fixture through `tabnas_support::Runner`, with the per-file parser the Go runners build; plus the three-column list-child files |
+| `tests/parity_test.rs` | every standard-shaped `../test/spec/*.tsv` fixture through `tabnas_support::Runner`, with the per-file parser the Go runners build; plus the three-column list-child files; and every row of all of them from a reader, `lex.window` set on the same parser (`every_fixture_parses_the_same_from_a_reader`) |
 | `tests/lex_test.rs` | the token-stream corpus `lex.tsv` |
 | `tests/utility_test.rs` | the four `utility-*.tsv` files, against `tabnas::utility` |
-| `tests/divergent_test.rs` | the divergence register |
+| `tests/divergent_test.rs` | the divergence register, and each of its rows from a reader |
+| `tests/reader_test.rs` | a parse from a reader: jsonic's constructors and plugin leave `lex.window` off, and the token corpus's inputs, strict numbers at the window's edge, literals longer than the window and long documents parse the same from a reader as from their text (root `AGENTS.md`, "A parse from a reader") |
 | `tests/registration_test.rs` | the tripwire: every fixture is run by one of the above, and every exemption is still bespoke-shaped |
 | `tests/jsonic_test.rs` | in-language behaviour: README examples, plugin layering, `MapRef`/`ListRef`/`Text`, key order, safe keys, comment defs and suffixes, selectors, strict mode, threads, `parse` reuse |
 | `tests/version_test.rs` | Cargo.toml == `VERSION` == ts/package.json |
 | `tests/translate_test.rs` | the translation parts: the embedded manifest is `../tabnas.plugin.json`, the embedded `translate/transduce.alc` is the file its `translate.transduce` names and the one `translate()` carries under the entry `jsonic-transduce`, the embed it names is the one `translate()` carries (none, for jsonic), and its `translate` object reads and writes a tree at any root through the `json` render alchemy carries, and its loss lines are sentences, one of them that a number that is not finite is written as null |
 | `translate/` | the crate's copies of `../tabnas.plugin.json` (as `manifest.json`) and `../alchemy/transduce.alc`, which `include_str!` embeds and a packaged crate needs, written by `npm run embed` in `../ts`; `tests/translate_test.rs` holds each to its file: change the root file and run the embed, never a copy by hand |
-| `tests/common/mod.rs` | shared helpers: spec dir, value and failure conversion, the JavaScript number renderer |
+| `tests/common/mod.rs` | shared helpers: spec dir, value and failure conversion, the JavaScript number renderer, and the reader helpers (`Pieces`, `windowed`, `same_from_reader`: an input parsed whole and from a reader in pieces of 1, 3 and 64 bytes, under the engine's window and windows of a few characters) |
 | `README.md` | the crate front page, prose-gated; its `rust` fences are doctests of this crate (see below) |
 
 Crate `tabnas-jsonic`, library `tabnas_jsonic`. The engine (`tabnas`),
@@ -180,6 +181,18 @@ reports `unprintable` at the character, honours `string.allow_control`
 and consults `string.replace` first, so `alignment-errors.tsv`,
 `string-allow-control.tsv` and the register pass with no shim. Do not
 add one.
+
+## The strict-number check reads through the window
+
+`make_json()` binds its number check with `imperative_lex_check_ref`,
+not `lex_check_ref`. A plain check is handed the text from the cursor to
+the window's end, which in a parse from a reader can end inside the
+literal, and it cannot ask for more; the imperative one reads the
+literal through `Lexer::window` and calls `Lexer::fill` where the literal
+runs to the window's end. Keep it imperative: `reader_test.rs`'s
+`strict_numbers_parse_the_same_from_a_reader` fails against a check that
+judges the cut literal, under a parser with the keyword matcher off,
+which is the case where no matcher after the check reads on to the edge.
 
 ## The docs are gated
 
