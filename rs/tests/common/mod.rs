@@ -78,13 +78,15 @@ impl std::io::Read for Pieces<'_> {
     }
 }
 
-/// `parser` with `lex.window` set, as a grammar built on jsonic sets it on
-/// the whole parser it makes. jsonic's own constructors leave it off
-/// (`reader_test.rs`), since they are the base of those grammars.
-pub fn windowed(mut parser: Tabnas) -> Tabnas {
-    parser
-        .set_options(|options| options.lex.window = true)
-        .expect("lex.window sets");
+/// `parser`, which must declare `lex.window` itself, as jsonic's whole
+/// parsers do (`make`, `make_with`, `make_json`; `reader_test.rs`), so that
+/// a reader test runs the parser as its constructor built it, with nothing
+/// set for the test.
+pub fn declaring_window(parser: Tabnas) -> Tabnas {
+    assert!(
+        parser.options.lex.window,
+        "the parser does not declare lex.window"
+    );
     parser
 }
 
@@ -145,10 +147,10 @@ pub fn same_from_reader(parser: &Tabnas, at: &str, input: &str) -> (usize, Vec<S
     (compared, failures)
 }
 
-/// Every row of `file`, parsed by `parser` with `lex.window` set, whole
-/// and from a reader ([`same_from_reader`]).
+/// Every row of `file`, parsed by `parser`, which declares `lex.window`,
+/// whole and from a reader ([`same_from_reader`]).
 pub fn fixture_from_reader(file: &str, parser: Tabnas) -> (usize, Vec<String>) {
-    let parser = windowed(parser);
+    let parser = declaring_window(parser);
     let spec = tabnas_support::load_spec(
         spec_dir().join(file),
         &tabnas_support::SpecOptions::default(),

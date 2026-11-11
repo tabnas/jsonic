@@ -3,18 +3,21 @@
 
 // A parse from a reader (`tn.parseReader`, admin ADR-30 and ADR-33).
 //
-// jsonic's constructors and its plugin do not declare `lex.window`: jsonic
-// is the base the relaxed grammars build on (`new Tabnas().use(jsonic)`,
-// then their own plugin), and each of them declares the window on its own
-// whole parser once its own matchers read through it. In TypeScript jsonic
+// jsonic's whole parser, `makeTabnas()`, declares `lex.window`: it is
+// `new Tabnas().use(jsonic)` with the window declared, so that a parse from
+// a reader holds a window of the source rather than all of it. The `jsonic`
+// plugin declares none: it is the base the relaxed grammars build on
+// (`new Tabnas().use(jsonic)`, then their own plugin), and each of them
+// declares its own setting on its own whole parser. The callable `Jsonic`
+// API parses strings, and declares none either. In TypeScript jsonic
 // installs no matcher: its tokens are the engine's built-in matchers', and
-// its actions read tokens, never the source. These tests set the window on
-// the engine under each parser they build, as a grammar built on jsonic
-// sets it on its own, and hold the composition to it: every row of every
-// fixture that parses its input parses the same from a reader, in pieces of
-// 1, 3 and 64 bytes, under windows of a few UTF-16 units and the engine's
-// own, as from its text; and so do long documents and tokens longer than
-// the window.
+// its actions read tokens, never the source. These tests run
+// `makeTabnas()` as it is built, and set the window on the engine under
+// each optioned parser the callable API builds, as a grammar built on
+// jsonic sets it on its own: every row of every fixture that parses its
+// input parses the same from a reader, in pieces of 1, 3 and 64 bytes,
+// under windows of a few UTF-16 units and the engine's own, as from its
+// text; and so do long documents and tokens longer than the window.
 
 const { describe, it } = require('node:test')
 const assert = require('node:assert')
@@ -23,7 +26,7 @@ const Path = require('node:path')
 
 const { findSpecDir, loadSpec } = require('@tabnas/support')
 
-const { Jsonic, Tabnas, jsonic } = require('..')
+const { Jsonic, Tabnas, jsonic, makeTabnas } = require('..')
 
 const SPEC = findSpecDir(__dirname)
 
@@ -250,9 +253,13 @@ function records(count) {
 }
 
 describe('window', () => {
-  it('jsonic-declares-no-window', () => {
-    // jsonic is the base the relaxed grammars build on: the window is
-    // declared by each of them on its own whole parser, never here.
+  it('the-whole-parser-declares-the-window', () => {
+    // makeTabnas() is jsonic's whole parser, and declares the window. The
+    // plugin is the base the relaxed grammars build on, each declaring its
+    // own setting on its own whole parser, and the callable API parses
+    // strings: neither declares it.
+    assert.equal(makeTabnas().internal().config.lex.window, true)
+    assert.ok(makeTabnas() instanceof Tabnas)
     const plugin = new Tabnas().use(jsonic)
     for (const [name, tn] of [
       ['Jsonic', Jsonic.internal().tabnas],
@@ -262,6 +269,36 @@ describe('window', () => {
     ]) {
       assert.ok(!tn.internal().config.lex.window, name + ' declares lex.window')
     }
+    // It is the plugin's parser: the same value and the same errors.
+    for (const src of ['a:1,b:[x,y,z]', 'a:b:c:1', "{x:'y', z:`w`}", '[1,', '}']) {
+      assert.deepStrictEqual(seen(() => makeTabnas().parse(src)), seen(() => plugin.parse(src)))
+    }
+  })
+
+  it('the-whole-parser-reads-every-stock-fixture-the-same-from-a-reader', () => {
+    // makeTabnas() as it is built, with nothing set for the test, over
+    // every fixture its parser is the stock one for.
+    const tn = makeTabnas()
+    assert.equal(tn.internal().config.lex.window, true, 'makeTabnas() declares lex.window')
+    const failures = []
+    let compared = 0
+    STOCK.forEach(([name], index) => {
+      const spec = loadSpec(Path.join(SPEC, name + '.tsv'))
+      for (const row of spec.rows) {
+        compared += sameFromReader(
+          tn, name + ':' + row.line, row.unescNamed('input'), failures)
+      }
+      if (0 === (index + 1) % 10 || index + 1 === STOCK.length) {
+        console.log(
+          'window stock fixtures, makeTabnas(): ' + (index + 1) + ' of ' +
+          STOCK.length + ' files (' +
+          Math.floor(((index + 1) * 100) / STOCK.length) + '%), ' +
+          compared + ' reader parses',
+        )
+      }
+    })
+    assert.ok(5000 < compared, '' + compared)
+    assert.deepEqual(failures, [])
   })
 
   it('every-fixture-parses-the-same-from-a-reader', () => {
@@ -341,9 +378,10 @@ describe('window', () => {
     ]
     const tn = windowed(Jsonic.make())
     const strict = windowed(Jsonic.make('json'))
+    const whole = makeTabnas()
     const failures = []
     for (const [n, doc] of docs.entries()) {
-      for (const parser of [tn, strict]) {
+      for (const parser of [tn, strict, whole]) {
         const whole = seen(() => parser.parse(doc))
         for (const size of [4096, (64 << 10) + 3]) {
           const read = seen(() => parser.parseReader(pieces(doc, size)))
@@ -376,10 +414,14 @@ describe('window', () => {
     const text = records(4000)
     assert.ok(256 << 10 < text.length, '' + text.length)
     const broken = text.slice(0, -2) + 'z: "tail\u0001"\n}\n'
-    const tn = windowed(Jsonic.make())
-    for (const [n, doc] of [text, broken].entries()) {
+    for (const [n, [tn, doc]] of [
+      [windowed(Jsonic.make()), text],
+      [windowed(Jsonic.make()), broken],
+      [makeTabnas(), text],
+      [makeTabnas(), broken],
+    ].entries()) {
       const whole = seen(() => tn.parse(doc))
-      assert.equal(undefined === whole.error, 0 === n, show(whole).slice(0, 200))
+      assert.equal(undefined === whole.error, 0 === n % 2, show(whole).slice(0, 200))
       for (const sizes of [undefined, { margin: 256, block: 256, chunk: 4096 }]) {
         const read = seen(() =>
           undefined === sizes
@@ -391,7 +433,7 @@ describe('window', () => {
           assert.deepStrictEqual(read.value, whole.value)
         }
       }
-      console.log('window long document: ' + (n + 1) + ' of 2 (' + (n + 1) * 50 + '%)')
+      console.log('window long document: ' + (n + 1) + ' of 4 (' + (n + 1) * 25 + '%)')
     }
   })
 })

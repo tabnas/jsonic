@@ -45,6 +45,8 @@ describe('api', function () {
       'jsonic',
       'registerJsonicGrammar',
       'Tabnas',
+      // jsonic's whole parser as a tabnas engine, with lex.window declared.
+      'makeTabnas',
       'VERSION',
       'translate',
       // Reads insertion order recorded under `map: { ordered: true }` —

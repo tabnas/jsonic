@@ -211,6 +211,16 @@ func plainNode(v any) any {
 // Make creates a relaxed-JSON parser instance: a tabnas engine with the
 // jsonic grammar plugin installed, plus any caller options on top.
 // Equivalent to the historic jsonic.make().
+//
+// The instance declares lex.window, so that ParseReader reads a reader a
+// window at a time rather than whole (admin ADR-30): every token of the
+// grammar is cut by the engine's own matchers, the unprintable pre-scan
+// reads the source through the window (unprintable.go), and the actions
+// read tokens, never the source. A caller's own Lex.Window wins, so
+// Options{Lex: &LexOptions{Window: &no}} reads a reader whole. A grammar
+// built on Make declares its own setting after installing its plugin, as
+// every grammar in the fleet that starts from it does; Grammar declares
+// none, since a host installs it beneath matchers of its own.
 func Make(opts ...Options) *Jsonic {
 	var o Options
 	if len(opts) > 0 {
@@ -246,6 +256,18 @@ func Make(opts ...Options) *Jsonic {
 		// than panic on the impossible case.
 		merged = base
 	}
+	// The window is declared at construction, not by a SetOptions after
+	// it, which rebuilds the config and drops what was written through
+	// Config(); and not in jsonicOptions, which the Grammar plugin applies.
+	if merged.Lex == nil || merged.Lex.Window == nil {
+		lex := LexOptions{}
+		if merged.Lex != nil {
+			lex = *merged.Lex
+		}
+		yes := true
+		lex.Window = &yes
+		merged.Lex = &lex
+	}
 	j := tabnas.Make(merged)
 
 	// Register (not just run) the grammar so the engine re-applies it when
@@ -265,8 +287,25 @@ func Make(opts ...Options) *Jsonic {
 // Empty creates a parser instance with the jsonic configuration but no
 // grammar rules, for building a grammar from scratch. Matches the historic
 // jsonic.empty().
+//
+// It declares no lex.window, unless the caller's options do: a grammar
+// built on it brings rules and matchers of its own, and declares the
+// window itself once they read the source only through it.
 func Empty(opts ...Options) *Jsonic {
-	j := Make(opts...)
+	var o Options
+	if len(opts) > 0 {
+		o = opts[0]
+	}
+	lex := LexOptions{}
+	if o.Lex != nil {
+		lex = *o.Lex
+	}
+	if lex.Window == nil {
+		no := false
+		lex.Window = &no
+	}
+	o.Lex = &lex
+	j := Make(o)
 	for _, rs := range j.RSM() {
 		rs.Clear()
 	}

@@ -52,6 +52,21 @@ The `options` parameter can also be a string shortcut:
 Create an empty parser with no grammar or defaults. Used as a base for
 building custom parsers from scratch.
 
+### `makeTabnas()`
+
+Return jsonic's whole parser as a `tabnas` engine instance:
+`new Tabnas().use(jsonic)` with `lex.window` declared, so that
+`parseReader` reads a reader a window at a time.
+
+```js
+const { makeTabnas } = require('@tabnas/jsonic')
+const tn = makeTabnas()
+tn.parse('a:1')  // => { a: 1 }
+```
+
+The `jsonic` plugin declares no window. A grammar built on it declares
+its own setting.
+
 ## Configuration
 
 ### `instance.options`
@@ -221,3 +236,4 @@ The main module exports:
 | `OPEN`, `CLOSE`, `BEFORE`, `AFTER`, `EMPTY` | Step constants |
 | `util` | Utility functions |
 | `make` | Alias for `Jsonic.make` |
+| `makeTabnas` | jsonic's whole parser as a `Tabnas`, with `lex.window` declared |

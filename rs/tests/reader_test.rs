@@ -1,31 +1,51 @@
 // A parse from a reader (`Tabnas::parse_reader`, admin ADR-30).
 //
-// jsonic's constructors and plugin leave `lex.window` off. `make()` is the
-// base the relaxed grammars build on (css, ini, json5, toml, yaml, zon and
-// csv start from it), and each of them declares the window on its own
-// whole parser once its own matchers read through it; a window declared
-// here would reach grammars whose matchers do not yet.
+// jsonic's whole parsers declare `lex.window`: `make()`, `make_with()`
+// and `make_json()`, so that a parse from a reader holds a window of the
+// source rather than all of it. Its plugin (`jsonic()`, `plugin()`) and
+// `empty()` declare none: a host installs the plugin beneath matchers of
+// its own, and a grammar built on `empty()` brings its own. `make()` is
+// also the base the relaxed grammars build on (c, css, csv, expr, ini,
+// json5, jsonc, openapi, toml, yaml and zon start from it), and each of
+// them declares its own setting on its own whole parser, after its plugin.
 //
-// What jsonic installs reads the source only through the window all the
-// same. The one hook here that reads the text, the strict-number check of
+// What jsonic installs reads the source only through the window. The one
+// hook here that reads the text, the strict-number check of
 // `make_json()`, reads the literal through `Lexer::window` and asks the
 // window to fill where the literal runs to its end. `parity_test.rs` and
-// `divergent_test.rs` hold every fixture row to that, each parser with the
-// window set, from a reader under windows of a few characters; this file
-// holds the token-stream corpus, numbers at the window's edge, a literal
-// longer than the window and a long document to it.
+// `divergent_test.rs` hold every fixture row to that, each under the
+// parser its constructor builds, from a reader under windows of a few
+// characters; this file holds the token-stream corpus, numbers at the
+// window's edge, a literal longer than the window and a long document to
+// it.
 
 mod common;
 
 use std::fmt::Write;
 
-use common::{fixture_from_reader, outcome, same_from_reader, windowed, Pieces};
-use tabnas_jsonic::{empty, jsonic, make, make_json, plugin};
+use common::{declaring_window, fixture_from_reader, outcome, same_from_reader, Pieces};
+use tabnas_jsonic::{empty, jsonic, make, make_json, make_with, plugin};
 
+/// The whole parsers declare the window, a caller's own setting wins over
+/// it, and the plugin and `empty()` declare none.
 #[test]
-fn jsonic_declares_no_window() {
-    assert!(!make().options.lex.window, "make()");
-    assert!(!make_json().options.lex.window, "make_json()");
+fn the_whole_parsers_declare_the_window() {
+    assert!(make().options.lex.window, "make()");
+    assert!(
+        make_with(|options| options.number.lex = false)
+            .options
+            .lex
+            .window,
+        "make_with()"
+    );
+    assert!(make_json().options.lex.window, "make_json()");
+    assert!(
+        !make_with(|options| options.lex.window = false)
+            .options
+            .lex
+            .window,
+        "make_with() with lex.window false"
+    );
     assert!(!empty().options.lex.window, "empty()");
     let mut installed = tabnas::Tabnas::new();
     jsonic(&mut installed).expect("jsonic installs");
@@ -37,7 +57,7 @@ fn jsonic_declares_no_window() {
 }
 
 /// The token-stream corpus's inputs (`lex.tsv`, which `lex_test.rs`
-/// lexes), parsed by a stock parser with the window set.
+/// lexes), parsed by a stock parser, which declares the window.
 #[test]
 fn the_token_corpus_parses_the_same_from_a_reader() {
     let (compared, failures) = fixture_from_reader("lex.tsv", make());
@@ -60,7 +80,10 @@ fn strict_numbers_parse_the_same_from_a_reader() {
     keywords_off
         .set_options(|options| options.value.lex = false)
         .expect("value.lex sets");
-    let parsers = [windowed(make_json()), windowed(keywords_off)];
+    let parsers = [
+        declaring_window(make_json()),
+        declaring_window(keywords_off),
+    ];
     let documents = [
         "[-1, 0, -0, 0.5, -12.5e-3, 1e5, 1E+2, 12345678901234567890]",
         "[1,22,333,4444,55555,666666,7777777]",
@@ -111,7 +134,7 @@ fn a_literal_longer_than_the_window_parses_the_same_from_a_reader() {
         format!("[1{digits}e5,2]"),
         format!("[{digits}]"),
     ];
-    for parser in [windowed(make_json()), windowed(make())] {
+    for parser in [declaring_window(make_json()), declaring_window(make())] {
         for document in &documents {
             let whole = outcome(parser.parse(document));
             for size in [4096, 64 * 1024 + 3] {
@@ -155,15 +178,15 @@ fn a_long_document_parses_the_same_from_a_reader() {
             .join(",\n")
     );
     let cases = [
-        (windowed(make()), format!("{{\n{relaxed}}}\n"), true),
+        (declaring_window(make()), format!("{{\n{relaxed}}}\n"), true),
         (
-            windowed(make()),
+            declaring_window(make()),
             format!("{{\n{relaxed}z: \"tail\u{1}\"\n}}\n"),
             false,
         ),
-        (windowed(make_json()), strict.clone(), true),
+        (declaring_window(make_json()), strict.clone(), true),
         (
-            windowed(make_json()),
+            declaring_window(make_json()),
             format!("{}, 01]", &strict[..strict.len() - 1]),
             false,
         ),

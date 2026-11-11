@@ -224,24 +224,39 @@ does not (admin ADR-30 and ADR-33; tabnas/parser's
 `doc/chunked-source.md`). A grammar declares it once its own matchers and
 actions read the text only through the window.
 
-**jsonic's constructors do not declare the window, and must not until
-every grammar built on them declares its own.** They are the base the
-relaxed grammars build on: css, ini, json5, toml, yaml, zon and csv call
-`tabnas_jsonic::make()` in Rust; css, toml, yaml, zon and csv start from
-`Make()` in Go; and dmog builds jsonc, xml and json5 as `Make()` then
-`.Use(...)` in Go, and c, css, ini, jsonc, json5, toml, yaml and zon as
-`new Tabnas().use(jsonic).use(...)` in TypeScript. A window declared in
-`make()`, `Make()`, `Jsonic.make()` or the `jsonic` plugin would reach
-grammars whose own matchers do not read through it yet. Each grammar
-declares the window on its own whole parser, after its plugin is
-installed on jsonic's base (`set_options`, `SetOptions` or `tn.options`
-after the `use`); once every grammar built on jsonic does, jsonic's
-constructors declare it too. `TestJsonicDeclaresNoWindow`,
-`jsonic_declares_no_window` and `jsonic-declares-no-window` hold the
-constructors to that.
+**jsonic's whole parsers declare the window**: `make()`, `make_with()`
+and `make_json()` in Rust, `Make()` and `MakeJSON()` in Go, and
+`makeTabnas()` in TypeScript, which is `new Tabnas().use(jsonic)` with
+the window declared (the historic `make`, `Jsonic.make`, builds the
+callable `Jsonic` wrapper, which parses strings, so the engine has a
+constructor of its own). A caller's own setting wins over it:
+`make_with(|o| o.lex.window = false)` and
+`Make(Options{Lex: &LexOptions{Window: &no}})` read a reader whole. The
+plugin (Rust's `jsonic()` and `plugin()`, Go's `Grammar`, TypeScript's
+`jsonic`) declares none, since a host installs it beneath matchers of
+its own, and nor does `empty()`/`Empty()`, whose grammar is the caller's
+to build. In Go the
+window is set in the options `Make` constructs the engine with, not by a
+`SetOptions` after it, which rebuilds the config and drops what was
+written through `Config()`.
 
-What jsonic installs reads the source only through the window all the
-same, so that a grammar built on it can declare the window:
+`make()` and `Make()` are also the base the relaxed grammars build on:
+c, css, csv, expr, ini, json5, jsonc, openapi, toml, yaml and zon start
+from them in Rust and Go, and each declares its own setting on its own
+whole parser after its plugin is installed on jsonic's base
+(`set_options` or `SetOptions` after the `use`): `true` where its own
+matchers read through the window, `false` (c, expr and openapi) where
+they are not verified yet, so the base's window does not reach them. In
+TypeScript they compose `new Tabnas().use(jsonic).use(...)`, whose
+plugins declare no window, and those with a whole-parser constructor
+declare their setting there. The window waited here until every one of
+them did (tabnas/jsonic#121). A grammar that comes to build on jsonic's
+base declares its own setting the same way.
+`TestJsonicDeclaresTheWindow`, `the_whole_parsers_declare_the_window` and
+`the-whole-parser-declares-the-window` hold jsonic's constructors and
+plugin to what this section says of them.
+
+What jsonic installs reads the source only through the window:
 
 - **TypeScript** installs no matcher: its tokens are the engine's
   built-in matchers', and its actions read tokens, never the source.
@@ -261,9 +276,13 @@ does not. `TestReaderPreScanStandsAlone` and
 `strict_numbers_parse_the_same_from_a_reader` build exactly that case,
 and fail against a hook that stops at the edge.
 
-The tests set the window on the parsers they build, as a grammar built
-on jsonic sets it: `ts/test/window.test.js`, `go/window_test.go`, and in
-Rust `rs/tests/reader_test.rs` with the reader tests in
+The tests run the parsers the constructors build, as built, with
+nothing set for the test (`declaring` in Go, `declaring_window` in Rust,
+each failing on a parser that does not declare the window), and in
+TypeScript `makeTabnas()` as built beside the engine under each optioned
+parser the callable API builds, with the window set on it:
+`ts/test/window.test.js`, `go/window_test.go`, and in Rust
+`rs/tests/reader_test.rs` with the reader tests in
 `rs/tests/parity_test.rs` and `rs/tests/divergent_test.rs`. Every row of
 every fixture that parses its input, the register's included, parses the
 same from a reader as from its text, handed over in pieces of 1, 3 and 64

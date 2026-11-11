@@ -349,6 +349,24 @@ function applyRuleFilter(tabnas: any): void {
 }
 
 
+// Build jsonic's whole parser as a tabnas engine: `new Tabnas().use(jsonic)`,
+// with `lex.window` declared, so that `tn.parseReader` reads a reader a
+// window at a time rather than whole (admin ADR-30). Every token of the
+// grammar is cut by the engine's own matchers, and its actions read tokens,
+// never the source. The window is declared here, on the parser this package
+// makes whole, and not in the `jsonic` plugin, which a host installs beneath
+// matchers of its own: a grammar built on jsonic composes
+// `new Tabnas().use(jsonic).use(...)` and declares its own setting. The
+// historic `make` (`Jsonic.make`) builds the callable `Jsonic` wrapper,
+// which parses strings, so the engine has a constructor of its own, the
+// counterpart of Go's `Make` and Rust's `make`.
+function makeTabnas(): Tabnas {
+  const tn = new Tabnas().use(jsonicPlugin)
+  tn.options({ lex: { window: true } })
+  return tn
+}
+
+
 // VERSION is this package's version. It MUST equal package.json "version":
 // the release orchestrator rewrites both, and the version test fails the
 // build if they drift. Mirrors `const VERSION` in go/jsonic.go.
@@ -395,6 +413,7 @@ root.S = S
 root.jsonic = jsonicPlugin
 root.registerJsonicGrammar = registerJsonicGrammar
 root.Tabnas = Tabnas
+root.makeTabnas = makeTabnas
 
 // `module.exports = Jsonic` below replaces the CJS exports object, so the
 // named export alone is not reachable as `require('@tabnas/jsonic').VERSION`.
@@ -469,6 +488,8 @@ export {
   jsonicPlugin as jsonic,
   // Grammar-only registration helper for plugins that layer on jsonic.
   registerJsonicGrammar,
+  // jsonic's whole parser as a tabnas engine, with lex.window declared.
+  makeTabnas,
   util,
   make,
   makeToken,

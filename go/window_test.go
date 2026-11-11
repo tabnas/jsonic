@@ -4,12 +4,15 @@ package tabnasjsonic
 
 // A parse from a reader (Tabnas.ParseReader, admin ADR-30 and ADR-33).
 //
-// jsonic's constructors do not declare lex.window: Make is the base the
-// relaxed grammars build on, and each of them declares the window on its
-// own whole parser once its own matchers read through it. What jsonic
-// installs reads the source only through the window all the same, so these
-// tests set the window on the parser they build, as a grammar built on
-// jsonic sets it on its own: every row of the shared fixtures parses the
+// jsonic's whole parsers declare lex.window: Make and MakeJSON, so that a
+// parse from a reader holds a window of the source rather than all of it.
+// The Grammar plugin and Empty declare none: a host installs the plugin
+// beneath matchers of its own, and a grammar built on Empty brings its
+// own. Make is also the base the relaxed grammars build on, and each of
+// them declares its own setting on its own whole parser, after its plugin.
+// What jsonic installs reads the source only through the window, and these
+// tests hold the parsers its constructors build to that, as built, with
+// nothing set for the test: every row of the shared fixtures parses the
 // same from a reader, handed over a few bytes at a time, as from its text;
 // and so do documents whose strings are longer than the window, with what
 // the string pre-scan (unprintable.go) looks for placed across the
@@ -56,11 +59,14 @@ func (p *pieces) Read(buf []byte) (int, error) {
 	return n, nil
 }
 
-// windowed sets lex.window on j, as a grammar built on jsonic sets it on
-// the whole parser it makes.
-func windowed(j *Jsonic) *Jsonic {
-	yes := true
-	j.SetOptions(Options{Lex: &LexOptions{Window: &yes}})
+// declaring holds j to declaring lex.window itself, as jsonic's whole
+// parsers do (TestJsonicDeclaresTheWindow), so that a reader test runs the
+// parser as its constructor built it, with nothing set for the test.
+func declaring(t *testing.T, j *Jsonic) *Jsonic {
+	t.Helper()
+	if !j.Config().Window {
+		t.Fatal("the parser does not declare lex.window")
+	}
 	return j
 }
 
@@ -232,7 +238,8 @@ var readerExempt = map[string]string{
 
 // TestReaderFixtures: every row of every fixture that parses its input
 // parses the same from a reader, in pieces of 1, 3, 64 and 4096 bytes, as
-// from its text, under the parser its runner builds with lex.window set.
+// from its text, under the parser its runner builds, which declares
+// lex.window.
 func TestReaderFixtures(t *testing.T) {
 	listed := map[string]bool{}
 	compared := 0
@@ -242,7 +249,7 @@ func TestReaderFixtures(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: %v", fixture.file, err)
 		}
-		j := windowed(fixture.make())
+		j := declaring(t, fixture.make())
 		for _, row := range rows {
 			if len(row.cols) == 0 {
 				continue
@@ -284,7 +291,8 @@ func TestReaderFixtures(t *testing.T) {
 }
 
 // TestReaderLedger: the divergence register's rows, each under the parser
-// its opts column builds, parse the same from a reader as from their text.
+// its opts column builds, which declares lex.window, parse the same from a
+// reader as from their text.
 func TestReaderLedger(t *testing.T) {
 	spec, err := support.LoadSpec(filepath.Join(specDir(), "divergent.tsv"), nil)
 	if err != nil {
@@ -296,7 +304,7 @@ func TestReaderLedger(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: %v", row.Named("name"), err)
 		}
-		compared += sameFromReader(t, windowed(j), row.Named("name"),
+		compared += sameFromReader(t, declaring(t, j), row.Named("name"),
 			preprocessEscapes(row.Named("input")), []int{1, 3, 64, 4096})
 	}
 	if compared == 0 {
@@ -344,8 +352,8 @@ func TestReaderLongStrings(t *testing.T) {
 	for shift := -1; shift <= 1; shift++ {
 		docs = append(docs, "["+strings.Repeat(`"x", `, 30000)+`"`+pad(readerMargin+shift)+"\x11"+`"]`)
 	}
-	plain := windowed(Make())
-	replaced := windowed(Make(Options{String: &StringOptions{Replace: map[rune]string{'\x01': "X"}}}))
+	plain := declaring(t, Make())
+	replaced := declaring(t, Make(Options{String: &StringOptions{Replace: map[rune]string{'\x01': "X"}}}))
 	compared := 0
 	for n, doc := range docs {
 		at := fmt.Sprintf("document %d (%q...%q, %d bytes)", n, doc[:2], doc[len(doc)-4:], len(doc))
@@ -384,7 +392,7 @@ func TestReaderLongDocument(t *testing.T) {
 	if len(text) < 1<<20 {
 		t.Fatalf("the document is %d bytes", len(text))
 	}
-	j := windowed(Make())
+	j := declaring(t, Make())
 	if _, err := j.Parse(text); err != nil {
 		t.Fatalf("the long document does not parse: %v", err)
 	}
@@ -426,7 +434,7 @@ func TestReaderPreScanStandsAlone(t *testing.T) {
 			}
 		}
 	}
-	j := windowed(Make(Options{Lex: &LexOptions{Match: map[string]*MatchSpec{
+	j := declaring(t, Make(Options{Lex: &LexOptions{Match: map[string]*MatchSpec{
 		"quoted": {Order: 4_800_000, Make: quoted},
 	}}}))
 	// The window reaches the first piece boundary at least readerMargin
@@ -440,22 +448,38 @@ func TestReaderPreScanStandsAlone(t *testing.T) {
 	sameFromReader(t, j, "no control character", strings.Replace(doc, "\x01", "c", 1), []int{4096})
 }
 
-// TestJsonicDeclaresNoWindow: jsonic's constructors and its plugin leave
-// lex.window off. Make is the base the relaxed grammars build on, so the
-// window is declared by each of them on its own whole parser, never here.
-func TestJsonicDeclaresNoWindow(t *testing.T) {
+// TestJsonicDeclaresTheWindow: jsonic's whole parsers declare lex.window,
+// whatever else their options set; a caller's own Lex.Window wins over it;
+// and the Grammar plugin and Empty declare none, since a host installs the
+// plugin beneath matchers of its own and a grammar built on Empty brings
+// its own.
+func TestJsonicDeclaresTheWindow(t *testing.T) {
+	yes, no := true, false
 	plugin := tabnas.Make()
 	if err := plugin.Use(Grammar, nil); err != nil {
 		t.Fatal(err)
 	}
-	for name, j := range map[string]*Jsonic{
-		"Make":                       Make(),
-		"MakeJSON":                   MakeJSON(),
-		"Empty":                      Empty(),
-		"tabnas.Make().Use(Grammar)": plugin,
+	derived, err := Make().Derive()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []struct {
+		name string
+		j    *Jsonic
+		want bool
+	}{
+		{"Make", Make(), true},
+		{"Make with lex options", Make(Options{Lex: &LexOptions{Empty: &no}}), true},
+		{"Make with other options", Make(Options{Number: &NumberOptions{Lex: &no}}), true},
+		{"MakeJSON", MakeJSON(), true},
+		{"Make().Derive()", derived, true},
+		{"Make with Lex.Window false", Make(Options{Lex: &LexOptions{Window: &no}}), false},
+		{"Empty", Empty(), false},
+		{"Empty with Lex.Window true", Empty(Options{Lex: &LexOptions{Window: &yes}}), true},
+		{"tabnas.Make().Use(Grammar)", plugin, false},
 	} {
-		if j.Config().Window {
-			t.Errorf("%s declares lex.window", name)
+		if got := c.j.Config().Window; got != c.want {
+			t.Errorf("%s: lex.window is %v, want %v", c.name, got, c.want)
 		}
 	}
 }
