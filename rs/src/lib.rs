@@ -1257,6 +1257,17 @@ fn grammar_plugin() -> Plugin {
 /// `list.child`, `list.pair`). `rule.include` and `rule.exclude` are
 /// honoured by the engine at parse time, so they may be set here too.
 ///
+/// The parser declares `lex.window`, so that [`Tabnas::parse_reader`]
+/// reads a reader a window at a time rather than whole (admin ADR-30):
+/// every token of the relaxed grammar is cut by the engine's own matchers,
+/// and its actions read tokens, never the source. The setting goes on with
+/// the branding, before `configure`, so a caller who sets
+/// `options.lex.window` to false reads a reader whole. A grammar built on
+/// this parser declares its own setting after installing its plugin, as
+/// every grammar in the fleet that starts from it does; [`jsonic`] and
+/// [`plugin`] declare none, since a host installs them beneath matchers of
+/// its own.
+///
 /// Infallible by design: the documents are fixed literals, so a failure
 /// here is a bug in this crate rather than anything a caller did.
 ///
@@ -1269,6 +1280,9 @@ pub fn make_with(configure: impl FnOnce(&mut Options)) -> Tabnas {
     let mut parser = Tabnas::new();
     apply_options(&mut parser).expect("the jsonic option document is fixed and valid");
     parser
+        .set_options(|options| options.lex.window = true)
+        .expect("lex.window sets");
+    parser
         .set_options(configure)
         .expect("the caller's options apply to a fresh engine");
     parser
@@ -1277,7 +1291,8 @@ pub fn make_with(configure: impl FnOnce(&mut Options)) -> Tabnas {
     parser
 }
 
-/// Build a relaxed-JSON parser with the default options.
+/// Build a relaxed-JSON parser with the default options. It declares
+/// `lex.window`, as [`make_with`] says.
 ///
 /// ```
 /// let parser = tabnas_jsonic::make();
@@ -1402,6 +1417,9 @@ fn strict_json_document() -> serde_json::Value {
 /// comments, no hex, octal or binary numbers, no leading zeros, no
 /// trailing commas, no single or backtick quoted strings, no empty input.
 ///
+/// It declares `lex.window`, as [`make_with`] does: the strict-number check
+/// it installs reads the literal through the lexer's window.
+///
 /// ```
 /// let strict = tabnas_jsonic::make_json();
 /// assert_eq!(strict.parse(r#"{"a":[1,2]}"#)?.to_string(), r#"{"a":[1,2]}"#);
@@ -1422,13 +1440,20 @@ pub fn make_json() -> Tabnas {
         .use_plugin(grammar_plugin(), None)
         .expect("the jsonic grammar documents are fixed and valid");
     parser
+        .set_options(|options| options.lex.window = true)
+        .expect("lex.window sets");
+    parser
 }
 
 /// A parser with the jsonic configuration but no grammar rules, for
 /// building a grammar from scratch. The counterpart of `Jsonic.empty()`
 /// and the Go `Empty`.
+///
+/// It declares no `lex.window`: a grammar built on it brings rules and
+/// matchers of its own, and declares the window itself once they read the
+/// source only through it.
 pub fn empty() -> Tabnas {
-    let mut parser = make();
+    let mut parser = make_with(|options| options.lex.window = false);
     for name in parser.rule_names() {
         parser.define_rule(name, |spec| {
             spec.clear();

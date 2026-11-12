@@ -304,11 +304,9 @@ fn list_child_fixtures() {
     report(Ok(failures));
 }
 
-/// Every fixture above, each row parsed by the same parser with
-/// `lex.window` set, from a reader in pieces of 1, 3 and 64 bytes and under
-/// windows of a few characters, as from its text. jsonic's constructors do
-/// not declare the window (`reader_test.rs`); a grammar built on them
-/// does, and this is what holds jsonic's part of that parser to it.
+/// Every fixture above, each row parsed by the same parser, which declares
+/// `lex.window` itself (`reader_test.rs`), from a reader in pieces of 1, 3
+/// and 64 bytes and under windows of a few characters, as from its text.
 #[test]
 fn every_fixture_parses_the_same_from_a_reader() {
     let mut runs: Vec<(&str, Tabnas)> = STOCK.iter().map(|file| (*file, make())).collect();

@@ -30,7 +30,7 @@ mod common;
 use tabnas_jsonic::make_with;
 use tabnas_support::{load_spec, Failure, Runner, SpecOptions, Value};
 
-use common::{same_from_reader, spec_dir, to_failure, to_value, windowed};
+use common::{declaring_window, same_from_reader, spec_dir, to_failure, to_value};
 
 /// Build the instance a ledger row asks for. The ledger spells options as
 /// JSON so the SAME text drives every port; only the option shapes the
@@ -155,8 +155,8 @@ fn a_ledger_row_needs_its_options_to_mean_anything() {
     ));
 }
 
-/// Each ledger row, under the parser its options build with `lex.window`
-/// set, parses the same from a reader as from its text.
+/// Each ledger row, under the parser its options build, which declares
+/// `lex.window`, parses the same from a reader as from its text.
 #[test]
 fn every_ledger_row_parses_the_same_from_a_reader() {
     let spec = load_spec(spec_dir().join("divergent.tsv"), &SpecOptions::default())
@@ -167,7 +167,7 @@ fn every_ledger_row_parses_the_same_from_a_reader() {
         let parser = make_from_ledger_opts(row.named("opts"))
             .unwrap_or_else(|message| panic!("{}: {message}", row.location()));
         let (count, found) = same_from_reader(
-            &windowed(parser),
+            &declaring_window(parser),
             row.named("name"),
             &row.unesc_named("input"),
         );

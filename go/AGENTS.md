@@ -89,8 +89,8 @@ three files plus tests:
   reports a raw control character in a quoted string as `unprintable` at
   the character, as TypeScript does. It reads the source only through the
   lexer's window (`held`, which calls `Lex.Fill` where the scan reaches the
-  window's end), so a grammar built on jsonic may declare `lex.window`;
-  jsonic's own constructors do not (root `AGENTS.md`, "A parse from a
+  window's end), so jsonic's `Make` and `MakeJSON` declare `lex.window`,
+  and so may a grammar built on them (root `AGENTS.md`, "A parse from a
   reader").
 - `*_test.go` — behavior and API tests, including `helpers_test.go`
   (test-only helpers: `boolPtr`/`intPtr`, `preprocessEscapes`,
