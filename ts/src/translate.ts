@@ -72,7 +72,7 @@ const TRANSLATION: TranslationParts = Object.freeze({
 `,
   render: Object.freeze({ entry: "json" }),
   transduce: Object.freeze({ entry: "jsonic-transduce", source: `; jsonic's transducer part: the document's JSON events from the jsonic
-; grammar's rule passes, for a host that reads parser events (alchemy-cli's
+; grammar's rule passes, for a host that reads parser events (dmog's
 ; \`translate\` and \`run --grammar jsonic\`). The grammar's rules are json's,
 ; \`map\`, \`list\`, \`pair\`, \`elem\` and \`val\`, and map onto a tree as json's
 ; do, but the relaxed forms the grammar reads are built in its actions,
